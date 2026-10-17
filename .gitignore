@@ -1,0 +1,5 @@
+data/
+assigned_ids.txt
+.venv/
+__pycache__/
+*.py[cod]
