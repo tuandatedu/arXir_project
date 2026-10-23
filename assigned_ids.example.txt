@@ -1,0 +1,5 @@
+# Copy to assigned_ids.txt and replace with the IDs from the Lab Instructors.
+# One canonical arXiv ID per line. Version suffixes are stripped by the crawler.
+2310.12345
+1706.03762
+# hep-th/9901001

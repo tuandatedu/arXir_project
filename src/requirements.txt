@@ -1,4 +1,22 @@
+# M1
 arxiv>=4.0
-psutil>=5.9
 requests>=2.31
+psutil>=5.9
+sickle>=0.7.0
+
+# tables / HF parquet
+pandas>=2.0
+pyarrow>=14.0
+
+# M2
+bibtexparser>=1.4
+
+# M3
+scikit-learn>=1.3
+rapidfuzz>=3.0
+joblib>=1.3
+numpy>=1.24
+
+# Jupyter Book lives in the *report* repository; listed so Colab can plot metrics
 jupyter-book<2
+matplotlib>=3.8

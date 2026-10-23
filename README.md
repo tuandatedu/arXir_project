@@ -1,29 +1,114 @@
-# arXiv Milestone 1: Data Crawling
+# arXiv Project (HCMUS Intro-DS)
 
-This repository contains the source code for crawling the arXiv IDs assigned by the Lab Instructors. It resolves every version, keeps only `.tex` and `.bib` files from source archives, and retrieves reference metadata from Semantic Scholar. It does not harvest the full arXiv repository.
+Group skeleton for the three milestones in
+<https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/>.
+
+This repository currently contains **function stubs only** (`NotImplementedError` +
+docstrings describing *what* to implement). Fill in the bodies; do not change
+table column names unless the lab book changes.
+
+| Milestone | Goal | Hugging Face tables |
+| --- | --- | --- |
+| M1 | Resolve assigned arXiv IDs, every version’s `.tex`/`.bib`, Semantic Scholar refs | `papers`, `references` |
+| M2 | Compilation path, hierarchy, cleanup, BibTeX, dedup across versions | `elements`, `hierarchy`, `bibtex` |
+| M3 | Clean, label, features, model, **MRR@5**, publish Parquet | `predictions` (+ export of all six) |
 
 ## Environment
 
-Python 3.10 or newer is required.
+Python **3.10+**.
 
-```powershell
-py -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -r requirement.txt
+```bash
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
+python -m pip install -r src/requirements.txt
 ```
 
-## Run
+Optional: Semantic Scholar API key in `S2_API_KEY` (steadier than the shared unauthenticated pool).
 
-Create a UTF-8 text file with one assigned arXiv ID per line. Blank lines and comments beginning with `#` are ignored.
+Do **not** commit `data/`, `assigned_ids.txt`, or API keys.
 
-```powershell
-python src/crawl_arxiv.py --ids assigned_ids.txt --output data/corpus
+## Assigned IDs
+
+Lab Instructors provide the ID range. Put one canonical arXiv ID per line in
+`assigned_ids.txt` (UTF-8). Blank lines and `#` comments are ignored. See
+`assigned_ids.example.txt`.
+
+## How to run (after implementations exist)
+
+```bash
+# M1 — crawl assigned papers (export.arxiv.org only, ≥ 3 s between calls)
+python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
+
+# M2 — parse every publication produced by M1
+python -m src.m2_parsing.run_m2
+
+# M3 — matching + local Hugging Face export
+python -m src.m3_matching.run_m3
 ```
 
-An optional Semantic Scholar API key can be passed with `--semantic-scholar-api-key` or provided in the `S2_API_KEY` environment variable. Keep the assigned ID file and generated data out of the public source repository.
+Working data (suggested):
 
-## Output
+```text
+data/working/{2310-12345}/     # M1 sources + metadata + S2 refs
+data/working/{2310-12345}/parsed/   # M2 elements / hierarchy / bibtex
+data/labels/{arxiv_id}.jsonl   # M3 ground truth (manual + auto)
+data/tables/                   # jsonl + metrics_*.json
+data/hf_dataset/               # 6 Parquet configs + dataset card
+```
 
-Each paper has a folder containing per-version metadata, extracted source files, and a `references.json` file with all references returned by Semantic Scholar. Only `.tex` and `.bib` files are retained from each source archive; TeX figure commands remain unchanged. The temporary source archive is deleted after extraction.
+## Hướng dẫn chi tiết theo milestone (đọc file này)
 
-The output also includes `papers.jsonl`, `references.jsonl`, and `metrics.json`. The references table contains only rows with an arXiv ID. Metrics include crawl duration, resolved-paper and version counts, archive and extracted-source sizes, reference coverage, output size, and sampled process memory. These JSON files are local working data and should not be committed.
+Thành viên **không cần đọc hết repo**: mở đúng README của việc mình nhận, làm theo checklist.
+
+| Việc | File hướng dẫn |
+| --- | --- |
+| Utils dùng chung (làm trước) | [`src/common/README.md`](src/common/README.md) |
+| Milestone 1 — crawl | [`src/m1_crawling/README.md`](src/m1_crawling/README.md) |
+| Milestone 2 — parse / dedup | [`src/m2_parsing/README.md`](src/m2_parsing/README.md) |
+| Milestone 3 — matching + HF | [`src/m3_matching/README.md`](src/m3_matching/README.md) |
+
+Mỗi file ghi: mục tiêu, thứ tự code, **từng hàm phải viết gì**, output trên đĩa, và checklist “xong khi nào”. Trong code, chỗ `TODO(M1/M2/M3)` trùng với README đó.
+
+## Who implements what
+
+| Path | Fill in |
+| --- | --- |
+| `src/common/` | IDs, HTTP retry, JSONL/Parquet I/O, RAM/time metrics |
+| `src/m1_crawling/discover.py` | arXiv API `id_list` → metadata + version count |
+| `src/m1_crawling/download.py` | `https://export.arxiv.org/src/{id}vN`, extract `.tex`/`.bib` only |
+| `src/m1_crawling/semantic_scholar.py` | Graph API references; keep old `hep-th/9901001` IDs |
+| `src/m1_crawling/pipeline.py` | End-to-end crawl + empty records for PDF-only versions |
+| `src/m2_parsing/gather.py` | `\documentclass` root, `\input`/`\include` path |
+| `src/m2_parsing/hierarchy.py` | Tree; sentence / block math / figure leaves; skip References |
+| `src/m2_parsing/cleanup.py` | Drop non-semantic cmds; unify `$...$` and `equation` |
+| `src/m2_parsing/bibitem.py` | `\bibitem` → BibTeX |
+| `src/m2_parsing/dedup.py` | Union BibTeX fields + shared `element_id` across versions |
+| `src/m3_matching/labelling.py` | ≥5 manual papers (≥20 entries each, ≥100 total); auto ≥10% of the rest |
+| `src/m3_matching/features.py` | Pair features (hierarchy allowed); document each in the poster |
+| `src/m3_matching/split.py` | test/valid = 1 manual + 1 auto each; train = remainder |
+| `src/m3_matching/model.py` | `m×n` candidate matrix, top-5 list |
+| `src/m3_matching/evaluate.py` | MRR@5 on test |
+| `src/m3_matching/export_hf.py` | Sharded Parquet + YAML dataset card, **no** custom load script |
+
+Column schemas live in `src/common/schemas.py` (must stay flat: one-level string lists only).
+
+## Constraints copied from the lab book
+
+- Crawl **assigned IDs only**, every version `v1..vN`. Do not harvest all of arXiv.
+- Use `export.arxiv.org`, never `arxiv.org` (403 / robot block).
+- Extract `.tex` and `.bib`; do not edit figure commands inside TeX.
+- PDF-only / non-TeX versions: **empty record**, do not drop the paper.
+- `references` table: rows **with an arXiv ID only**. Local JSON keeps all S2 refs.
+- Reports (M1/M2) are a **separate** Jupyter Book repo; figures generated at compile time.
+- Benchmark: Google Colab CPU-only; measure wall time and RAM (`psutil` / `time -v`).
+
+## Label file format (M3)
+
+`data/labels/{arxiv_id}.jsonl`:
+
+```json
+{"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"}
+{"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
+```
+
+`source` is `manual` or `auto`. One true reference per entry, or `null` when none of the crawled refs match.
