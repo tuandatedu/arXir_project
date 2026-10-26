@@ -532,8 +532,14 @@ def main(argv: list[str] | None = None) -> int:
             name, paper_ids = batches[batch_index]
             previous = _existing_manifest(args.backup_dir, name, paper_ids,
                                           verify_checksum=args.check_backups)
-            if previous and (not args.retry_failed or not _has_error(previous)):
-                continue
+            if args.retry_failed:
+              # Recovery chỉ xử lý checkpoint đã tồn tại và còn lỗi
+             if previous is None or not _has_error(previous):
+              continue
+            else:
+             # Fast Crawl bỏ qua checkpoint đã hoàn thành
+             if previous is not None:
+              continue
             result = _run_batch(paper_ids, name, args.output_root, args.backup_dir, http,
                                 args.check_backups, args.retry_failed,
                                 not args.no_version_dates)
