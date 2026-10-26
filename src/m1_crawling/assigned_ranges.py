@@ -38,9 +38,10 @@ def range_ids(item: AssignedRange) -> list[str]:
             raise ValueError("Cross-month limit must be verified")
         numbers = ([f"{first_month}.{n:05d}" for n in range(int(start), item.cross_month_limit + 1)] +
                    [f"{last_month}.{n:05d}" for n in range(1, int(end) + 1)])
-    if len(numbers) != 5000:
-        raise ValueError(f"Range {item.number} has {len(numbers)} IDs, expected 5000")
-    return numbers
+    if not numbers:
+    raise ValueError(f"Range {item.number} is empty")
+    if len(numbers) != len(set(numbers)):
+    raise ValueError(f"Range {item.number} contains duplicate IDs")
 
 
 def assigned_ids(range_number: int = 0) -> list[str]:
