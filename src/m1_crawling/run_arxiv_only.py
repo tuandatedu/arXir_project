@@ -215,7 +215,8 @@ def _enrich_revision_dates(metas: dict[str, PaperMeta], http: ArxivHTTP) -> None
         paper.revised_dates = dates + ([latest] if latest else [])
 
 
-def _crawl_one(paper_id: str, meta: PaperMeta | None, work: Path, http: ArxivHTTP) -> dict:
+def _crawl_one(paper_id: str, meta: PaperMeta | None, work: Path, http: ArxivHTTP,
+               previous: dict | None = None) -> dict:
     start = time.monotonic()
     folder = work / "working" / paper_id.replace(".", "-")
     folder.mkdir(parents=True, exist_ok=True)
@@ -227,9 +228,29 @@ def _crawl_one(paper_id: str, meta: PaperMeta | None, work: Path, http: ArxivHTT
 
     _write_json(folder / "paper.json", asdict(meta))
     version_rows = []
+    previous_versions = {
+        row.get("version"): row for row in (previous or {}).get("versions", [])
+        if isinstance(row, dict)
+    }
     for version in list_versions(meta):
         v_dir = folder / f"v{version}"
         v_dir.mkdir(parents=True, exist_ok=True)
+        old_version = previous_versions.get(version)
+        if old_version and old_version.get("status") in ("ok", "no_tex"):
+            # Keep successful source files intact. Check their existence so a
+            # corrupted/incomplete checkpoint does not count as a success.
+            old_files = old_version.get("files") or []
+            valid = old_version["status"] == "no_tex" or (
+                bool(old_files) and all(
+                    (v_dir / "sources" / filename).is_file() for filename in old_files
+                )
+            )
+            if valid:
+                version_rows.append(old_version)
+                continue
+        # Only failed or missing versions reach the download path.
+        shutil.rmtree(v_dir / "sources", ignore_errors=True)
+        (v_dir / "empty.json").unlink(missing_ok=True)
         version_dates = meta.raw.get("intermediate_version_dates", {})
         date = (meta.submission_date if version == 1 else
                 meta.raw.get("atom_updated", "") if version == meta.latest_version
@@ -291,7 +312,11 @@ def _crawl_one(paper_id: str, meta: PaperMeta | None, work: Path, http: ArxivHTT
         "arxiv_id": paper_id,
         "status": ("error" if any(v["status"] == "error" for v in version_rows)
                    else "ok" if any(v["status"] == "ok" for v in version_rows) else "no_tex"),
-        "versions": version_rows, "error": None,
+        "versions": version_rows,
+        "error": "; ".join(
+            f"v{v['version']}: {v.get('reason') or 'unknown error'}"
+            for v in version_rows if v["status"] == "error"
+        ) or None,
         "elapsed_sec": round(time.monotonic() - start, 3),
     }
     _write_json(folder / "status.json", result)
@@ -336,39 +361,51 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     before = time.monotonic()
     requests_before, retries_before = http.request_count, http.retry_count
     lookup_start = time.monotonic()
-    metas = {}
+    metas: dict[str, PaperMeta] = {}
+    need_discovery = []
+    # Recovery reuses the original metadata instead of re-requesting it.
+    for pid in pending:
+        saved = batch_work / "working" / pid.replace(".", "-") / "paper.json"
+        if saved.is_file():
+            try:
+                metas[pid] = PaperMeta(**_read_json(saved))
+                continue
+            except (TypeError, ValueError, OSError, json.JSONDecodeError):
+                LOG.warning("Invalid saved metadata for %s; rediscovering", pid)
+        need_discovery.append(pid)
     discovery_error = None
     try:
-        for i in range(0, len(pending), 100):
-            metas.update(fetch_papers_by_ids(pending[i:i + 100], http=http))
+        for i in range(0, len(need_discovery), 100):
+            metas.update(fetch_papers_by_ids(need_discovery[i:i + 100], http=http))
         if revision_dates:
             try:
-                _enrich_revision_dates(metas, http)
+                _enrich_revision_dates({pid: metas[pid] for pid in need_discovery
+                                        if pid in metas}, http)
             except Exception as exc:
                 LOG.warning("Version date lookup failed (metadata kept): %s", exc)
-                for meta in metas.values():
-                    if meta.latest_version > 2:
+                for pid in need_discovery:
+                    meta = metas.get(pid)
+                    if meta and meta.latest_version > 2:
                         meta.raw["revision_dates_complete"] = False
     except Exception as exc:
-        # This is a network/API failure, not evidence that all IDs are absent.
+        # Failure discovering some IDs does not invalidate cached metadata.
         discovery_error = f"{type(exc).__name__}: {exc}"
         LOG.error("Discovery failed in %s: %s", name, discovery_error)
     discovery_sec = time.monotonic() - lookup_start
 
     statuses: dict[str, dict] = dict(old_status)
     for index, pid in enumerate(pending, 1):
-        if discovery_error:
+        if discovery_error and pid not in metas:
             statuses[pid] = {"arxiv_id": pid, "status": "error", "versions": [],
                              "error": "discovery: " + discovery_error, "elapsed_sec": 0}
             paper_dir = batch_work / "working" / pid.replace(".", "-")
             _write_json(paper_dir / "status.json", statuses[pid])
         else:
             try:
-                # Remove remnants of a previous broken version only when retrying.
-                stale = batch_work / "working" / pid.replace(".", "-")
-                if pid in old_status and stale.exists():
-                    shutil.rmtree(stale)
-                statuses[pid] = _crawl_one(pid, metas.get(pid), batch_work, http)
+                statuses[pid] = _crawl_one(
+                    pid, metas.get(pid), batch_work, http,
+                    previous=old_status.get(pid),
+                )
             except Exception as exc:
                 statuses[pid] = {"arxiv_id": pid, "status": "error", "versions": [],
                                  "error": f"{type(exc).__name__}: {exc}", "elapsed_sec": 0}
