@@ -40,10 +40,11 @@ def range_ids(item: AssignedRange) -> list[str]:
                    [f"{last_month}.{n:05d}" for n in range(1, int(end) + 1)])
     if not numbers:
     raise ValueError(f"Range {item.number} is empty")
+    
     if len(numbers) != len(set(numbers)):
     raise ValueError(f"Range {item.number} contains duplicate IDs")
-
-
+    
+    return numbers
 def assigned_ids(range_number: int = 0) -> list[str]:
     ids: list[str] = []
     for item in RANGES:
