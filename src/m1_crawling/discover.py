@@ -1,79 +1,128 @@
+"""arXiv targeted ID discovery (batched Atom API, no full-site harvesting).
+
+Compatibility: PaperMeta, fetch_paper_by_id and list_versions keep the skeleton
+signatures so the teammate writing corpus.py/pipeline.py can import them.
 """
-Entry discovery: resolve assigned arXiv IDs → metadata + số version.
-
-Đề: KHÔNG harvest cả arXiv. Graded part là resolve ID được giao và liệt kê
-mọi version. Toolbox: arXiv API (chính), OAI-PMH, Kaggle snapshot (tùy chọn).
-
-arxiv.py ≥ 4.0: dùng Client().results(Search(...)), KHÔNG search.results()
-và KHÔNG Result.download_source() (đã bị gỡ).
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import re
 from typing import Any
+from urllib.parse import urlparse
+import xml.etree.ElementTree as ET
+
+from src.m1_crawling.arxiv_http import ArxivHTTP
+
+API_URL = "https://export.arxiv.org/api/query"
+ATOM = "{http://www.w3.org/2005/Atom}"
+ARXIV = "{http://arxiv.org/schemas/atom}"
+VERSION_RE = re.compile(r"^(\d{4}\.\d{4,5}|[a-z][a-z.-]+(?:/[a-z.-]+)?/\d{7})v([1-9]\d*)$", re.I)
 
 
 @dataclass
 class PaperMeta:
-    """Metadata một publication sau khi lookup API (latest version)."""
-
     arxiv_id: str
     title: str
     authors: list[str]
     abstract: str = ""
     latest_version: int = 1
-    submission_date: str = ""  # ISO, version 1 / published
+    submission_date: str = ""
     revised_dates: list[str] = field(default_factory=list)
     venue: str | None = None
     categories: list[str] = field(default_factory=list)
     raw: dict[str, Any] = field(default_factory=dict)
 
 
-def fetch_paper_by_id(arxiv_id: str) -> PaperMeta:
-    """
-    Lookup một ID qua arXiv API (`id_list`).
+def _identifier(text: str) -> tuple[str, int]:
+    identifier = urlparse(text.strip()).path.rsplit("/", 1)[-1]
+    matched = VERSION_RE.fullmatch(identifier)
+    if matched:
+        return matched.group(1), int(matched.group(2))
+    matched_base = re.fullmatch(r"\d{4}\.\d{4,5}", identifier)
+    if matched_base:
+        return identifier, 1
+    raise ValueError(f"Invalid arXiv Atom identifier: {text!r}")
 
-    Cần code bên trong:
-    - arxiv.Search(id_list=[arxiv_id]) + arxiv.Client().results(search).
-    - Tôn trọng ARXIV_MIN_DELAY_SEC (3s) — Client mặc định đã delay, vẫn log.
-    - paper.id thường là 'http://arxiv.org/abs/2310.12345v4' → parse latest_version.
-    - published ~ submission_date; updated + version history nếu API trả.
-    - Nếu paper không tồn tại: raise rõ ràng để pipeline ghi fail, không im lặng.
+
+def _parse_feed(data: bytes) -> dict[str, PaperMeta]:
+    root = ET.fromstring(data)
+    if root.tag != ATOM + "feed":
+        raise ValueError("arXiv API did not return an Atom feed")
+    output = {}
+    for entry in root.findall(ATOM + "entry"):
+        title = " ".join((entry.findtext(ATOM + "title") or "").split())
+        # API may place an explanatory error entry rather than an actual paper.
+        if title.lower().startswith("error") and not entry.findall(ATOM + "author"):
+            continue
+        try:
+            base, version = _identifier(entry.findtext(ATOM + "id") or "")
+        except ValueError:
+            continue
+        names = [" ".join((author.findtext(ATOM + "name") or "").split())
+                 for author in entry.findall(ATOM + "author")]
+        names = [name for name in names if name]
+        if not names:
+            continue
+        published = entry.findtext(ATOM + "published") or ""
+        updated = entry.findtext(ATOM + "updated") or ""
+        published = published[:10] if published else ""
+        updated = updated[:10] if updated else ""
+        categories = [node.get("term", "") for node in entry.findall(ATOM + "category")]
+        metadata = PaperMeta(
+            arxiv_id=base, title=title, authors=names,
+            abstract=" ".join((entry.findtext(ATOM + "summary") or "").split()),
+            latest_version=version, submission_date=published,
+            # Last updated date is reliable; intermediate revision dates require
+            # querying version-specific Atom entries separately.
+            revised_dates=([updated] if version > 1 and updated else []),
+            venue=entry.findtext(ARXIV + "journal_ref"),
+            categories=categories,
+            raw={"atom_updated": updated, "revision_dates_complete": version == 1 or (version == 2 and bool(updated))},
+        )
+        previous = output.get(base)
+        if previous is None or version >= previous.latest_version:
+            output[base] = metadata
+    return output
+
+
+def fetch_papers_by_ids(arxiv_ids: list[str], http: ArxivHTTP | None = None) -> dict[str, PaperMeta]:
+    """Discover up to 100 IDs in ONE API call, returning only resolved papers.
+
+    A successful HTTP response with an absent ID means 'not_found'. On API
+    failure we RAISE rather than falsely marking every ID as nonexistent.
     """
-    raise NotImplementedError("TODO(M1): fetch_paper_by_id")
+    if not arxiv_ids:
+        return {}
+    if len(arxiv_ids) > 100:
+        raise ValueError("Batch API discovery must use <=100 IDs per call")
+    own = http is None
+    http = http or ArxivHTTP()
+    try:
+        with http.get(API_URL, params={"id_list": ",".join(arxiv_ids),
+                                       "start": 0, "max_results": len(arxiv_ids)}) as response:
+            parsed = _parse_feed(response.content)
+        return {paper_id: parsed[paper_id] for paper_id in arxiv_ids if paper_id in parsed}
+    finally:
+        if own:
+            http.close()
+
+
+def fetch_paper_by_id(arxiv_id: str) -> PaperMeta:
+    result = fetch_papers_by_ids([arxiv_id]).get(arxiv_id)
+    if result is None:
+        raise LookupError(f"arXiv paper does not exist: {arxiv_id}")
+    return result
 
 
 def list_versions(meta: PaperMeta) -> list[int]:
-    """
-    Mọi version phải crawl: [1, 2, ..., latest].
-
-    Cần code bên trong:
-    - Nếu latest_version = 4 → [1, 2, 3, 4].
-    - Paper chỉ submit 1 lần → [1] (đề: suffice with v1).
-    """
-    raise NotImplementedError("TODO(M1): list_versions")
+    if meta.latest_version < 1:
+        raise ValueError("Invalid latest_version")
+    return list(range(1, meta.latest_version + 1))
 
 
 def harvest_oai_pmh_optional(date_from: str, date_to: str) -> list[dict[str, Any]]:
-    """
-    TÙY CHỌN (toolbox, không bắt buộc cho assigned range).
-
-    Cần code bên trong nếu nhóm muốn so sánh phương pháp trong report:
-    - sickle.Sickle(OAI_PMH_ENDPOINT).ListRecords(metadataPrefix='arXiv', ...).
-    - Endpoint mới: https://oaipmh.arxiv.org/oai (cũ export.arxiv.org/oai2 đã retire).
-    - Resumption token hết hạn theo ngày — harvest lớn phải resume từ state đã lưu.
-    """
-    raise NotImplementedError("TODO(M1, optional): harvest_oai_pmh_optional")
+    raise NotImplementedError("Optional whole-repository harvest is out of scope for M1")
 
 
 def load_kaggle_metadata_optional(file_path: str, keyword: str) -> object:
-    """
-    TÙY CHỌN: Cornell arXiv metadata JSONL trên Kaggle (không gọi API).
-
-    Cần code bên trong nếu dùng cho exploratory / report:
-    - Đọc từng dòng json.loads → DataFrame.
-    - Filter title.contains(keyword, case=False).
-    - KHÔNG thay thế bước resolve assigned IDs (phần được chấm).
-    """
-    raise NotImplementedError("TODO(M1, optional): load_kaggle_metadata_optional")
+    raise NotImplementedError("Optional Kaggle data is not needed for assigned ID discovery")
