@@ -424,8 +424,8 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
                 print(f"[{name}] {index}/{len(pending)} processed, "
                       f"{http.request_count - requests_before} HTTP requests", flush=True)
     else:
-        # Parallelize at PAPER level only. All HTTP requests still share the
-        # client's one-connection lock, including response body streaming.
+        # Parallelize at PAPER level. HTTP request starts share a pacing gate,
+        # but workers can wait for responses and stream bodies concurrently.
         with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="arxiv-paper") as pool:
             futures = {
                 pool.submit(_crawl_pending, pid, metas.get(pid), batch_work, http,
@@ -520,7 +520,7 @@ def build_parser() -> argparse.ArgumentParser:
                    help="arXiv pacing: >=3 seconds between ALL requests")
     p.add_argument("--retries", type=int, default=4)
     p.add_argument("--workers", type=int, default=1,
-                   help="Paper processing workers (1..4). HTTP remains one active connection.")
+                   help="Paper workers (1..4). Request starts share one global 3.1s pacing gate.")
     p.add_argument("--retry-failed", action="store_true",
                    help="Reopen checkpoint and retry only failed papers; retain other data")
     p.add_argument("--verify-boundaries", action="store_true",

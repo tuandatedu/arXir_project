@@ -47,7 +47,7 @@ reports/
 ## Notes
 
 - `--retries 0` skips retry **after a failed HTTP request**; it cannot avoid waiting for the configured network timeout on a broken download.
-- The worker pool is for **paper processing** (downloads/extraction); the HTTP client serializes **every** network request and streamed body, enforces one active connection and at least 3.1 seconds between request starts globally. This is not a way to multiply arXiv request rate.
+- The worker pool is for **paper processing** (downloads/extraction); the HTTP client enforces **global** pacing (at least 3.1 seconds between request starts), while allowing workers to wait for responses and stream downloads concurrently. This is not a way to multiply arXiv request rate.
 - On HTTP 429, the shared cooldown respects `Retry-After`. Never run two Colab notebooks simultaneously against the same Drive checkpoint directory.
 - Keep `BATCH_SIZE` unchanged when resuming. `MAX_WORKERS` may be changed freely (1..4).
 - `metrics.csv` has optional `workers_this_run` for newly generated checkpoints. Existing checkpoint/report formats remain readable.

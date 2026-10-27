@@ -1,10 +1,9 @@
-"""Thread-safe arXiv HTTP client: one active connection and shared pacing.
+"""Thread-safe arXiv HTTP client with globally paced request starts.
 
-Multiple paper workers may process/extract files concurrently, but all arXiv
-HTTP traffic (metadata + source, including streaming the response body) passes
-through one connection lock. The minimum request interval is global, not per
-worker. Each thread has its own requests.Session to avoid sharing mutable
-Session state across threads.
+Workers can wait for HTTP responses and stream source archives concurrently,
+but request starts share one minimum-delay gate. Each worker has its own
+requests.Session. The gate is NOT held while waiting for a response or while
+streaming its body. 429/5xx retry cooldowns are shared between workers.
 """
 from __future__ import annotations
 
@@ -30,11 +29,11 @@ class ArxivHTTPError(RuntimeError):
 
 
 class ArxivHTTP:
-    """One process-wide arXiv connection, shared pacing and retry counters.
+    """Shared request pacing and counters; per-thread sessions.
 
-    All callers use ``with http.get(url, ...) as response`` so the connection
-    lock is held until a streamed download has finished or the response closes.
-    Close this client only after all worker threads have joined.
+    All callers use ``with http.get(url, ...) as response``. A short lock
+    serializes request-start scheduling, NOT response streaming. Close this
+    client only after all worker threads have joined.
     """
 
     RETRYABLE = (429, 500, 502, 503, 504)
@@ -49,7 +48,7 @@ class ArxivHTTP:
         self.timeout = timeout
         self.retries = retries
         self.user_agent = user_agent
-        self._connection_lock = threading.Lock()
+        self._state_lock = threading.Lock()
         self._local = threading.local()
         self._sessions: list[requests.Session] = []
         self.last_request: float | None = None
@@ -65,11 +64,12 @@ class ArxivHTTP:
             session = requests.Session()
             session.headers.update({"User-Agent": self.user_agent, "Accept": "*/*"})
             self._local.session = session
-            self._sessions.append(session)
+            with self._state_lock:
+                self._sessions.append(session)
         return session
 
     def _pace(self) -> None:
-        """Called with _connection_lock held; applies across every worker."""
+        """Called with _state_lock held; applies across every worker."""
         earliest = self._cooldown_until
         if self.last_request is not None:
             earliest = max(earliest, self.last_request + self.delay)
@@ -96,67 +96,68 @@ class ArxivHTTP:
             stream: bool = False) -> Iterator[requests.Response]:
         if not url.startswith("https://export.arxiv.org/"):
             raise ValueError("Only https://export.arxiv.org is allowed for this client")
+        # Session construction happens before the pacing gate so slow setup
+        # cannot postpone a reserved request start and distort the schedule.
+        session = self.session
         for attempt in range(self.retries + 1):
             wait = 0.0
-            with self._connection_lock:
+            # IMPORTANT: only pace and counters are under the shared lock.
+            # Neither session.get() nor iter_content() may hold this lock.
+            with self._state_lock:
                 self._pace()
                 self.request_count += 1
-                try:
-                    response = self.session.get(url, params=params, stream=stream,
-                                                timeout=(15, self.timeout),
-                                                allow_redirects=True)
-                except requests.RequestException as exc:
-                    if attempt == self.retries:
-                        raise ArxivHTTPError(
-                            f"Network failure after retries ({url}): {exc}"
-                        ) from exc
-                    wait = min(90.0, max(self.delay, 2 ** (attempt + 1)))
-                    LOG.warning("Network error %s; retry in %.1fs", exc, wait)
+            try:
+                response = session.get(url, params=params, stream=stream,
+                                       timeout=(15, self.timeout),
+                                       allow_redirects=True)
+            except requests.RequestException as exc:
+                if attempt == self.retries:
+                    raise ArxivHTTPError(
+                        f"Network failure after retries ({url}): {exc}"
+                    ) from exc
+                wait = min(90.0, max(self.delay, 2 ** (attempt + 1)))
+                LOG.warning("Network error %s; retry in %.1fs", exc, wait)
+                with self._state_lock:
                     self.retry_count += 1
                     self._cooldown_until = max(self._cooldown_until,
                                                time.monotonic() + wait)
-                else:
-                    # All requests start on the export mirror. Redirects to
-                    # an HTTPS CDN are allowed, but never plaintext HTTP.
-                    if not response.url.startswith("https://"):
-                        response.close()
-                        raise ArxivHTTPError(f"Insecure source redirect: {response.url}")
-                    if not response.url.startswith("https://export.arxiv.org/"):
-                        LOG.info("Export mirror redirected to %s", response.url)
-                    if response.status_code in self.RETRYABLE:
-                        status = response.status_code
-                        retry_after = self._retry_after(response.headers.get("Retry-After"))
-                        response.close()
-                        if attempt == self.retries:
-                            raise ArxivHTTPError(f"HTTP {status} after retries: {url}", status)
-                        wait = max(self.delay, min(120.0, retry_after if retry_after is not None
-                                                   else 2 ** (attempt + 1)))
-                        LOG.warning("HTTP %s, retry %s/%s after %.1fs", status,
-                                    attempt + 1, self.retries, wait)
+            else:
+                if not response.url.startswith("https://"):
+                    response.close()
+                    raise ArxivHTTPError(f"Insecure source redirect: {response.url}")
+                if not response.url.startswith("https://export.arxiv.org/"):
+                    LOG.info("Export mirror redirected to %s", response.url)
+                if response.status_code in self.RETRYABLE:
+                    status = response.status_code
+                    retry_after = self._retry_after(response.headers.get("Retry-After"))
+                    response.close()
+                    if attempt == self.retries:
+                        raise ArxivHTTPError(f"HTTP {status} after retries: {url}", status)
+                    wait = max(self.delay, min(120.0, retry_after if retry_after is not None
+                                               else 2 ** (attempt + 1)))
+                    LOG.warning("HTTP %s, retry %s/%s after %.1fs", status,
+                                attempt + 1, self.retries, wait)
+                    with self._state_lock:
                         self.retry_count += 1
                         self._cooldown_until = max(self._cooldown_until,
                                                    time.monotonic() + wait)
-                    elif response.status_code >= 400:
-                        status = response.status_code
+                elif response.status_code >= 400:
+                    status = response.status_code
+                    response.close()
+                    raise ArxivHTTPError(f"HTTP {status}: {url}", status)
+                else:
+                    try:
+                        with response:
+                            yield response
+                    finally:
                         response.close()
-                        raise ArxivHTTPError(f"HTTP {status}: {url}", status)
-                    else:
-                        # Keep the lock throughout iter_content()/response.content.
-                        # Do NOT catch exceptions from the caller here: a
-                        # contextmanager generator may yield only once.
-                        try:
-                            with response:
-                                yield response
-                        finally:
-                            response.close()
-                        return
-            # Backoff is outside the lock, but _cooldown_until is global.
+                    return
             if wait:
                 time.sleep(wait)
         raise AssertionError("unreachable")
 
     def close(self) -> None:
-        with self._connection_lock:
+        with self._state_lock:
             for session in self._sessions:
                 session.close()
             self._sessions.clear()

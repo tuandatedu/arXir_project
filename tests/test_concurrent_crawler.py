@@ -103,7 +103,7 @@ def test_concurrent_recovery_only_failed_paper_and_keeps_success(tmp_path, monke
     assert export_reports(backup)["failed_version_rows"] == 0
 
 
-def test_http_one_active_connection_including_stream_and_global_counters(monkeypatch):
+def test_http_concurrent_streaming_and_global_counters(monkeypatch):
     active = 0
     peak = 0
     guard = threading.Lock()
@@ -144,7 +144,7 @@ def test_http_one_active_connection_including_stream_and_global_counters(monkeyp
 
     with ThreadPoolExecutor(max_workers=4) as pool:
         list(pool.map(worker, range(8)))
-    assert peak == 1
+    assert peak >= 2  # response streams overlap; previously serialized by lock
     assert http.request_count == 8
     assert http.retry_count == 0
     assert len(http._sessions) >= 2
@@ -216,3 +216,51 @@ def test_recovery_cli_never_processes_missing_checkpoint(tmp_path, monkeypatch):
                          "--workers", "3", "--retry-failed",
                          "--backup-dir", str(tmp_path)]) == 0
     assert calls == [("batch_00001", 3)]
+
+
+def test_http_pacing_shared_across_workers_while_responses_overlap(monkeypatch):
+    # Use a tiny test-only delay, never weaken the production 3.1s default.
+    monkeypatch.setattr(arxiv_http, "ARXIV_MIN_DELAY_SEC", 0.025)
+    started = []
+    in_flight = 0
+    peak = 0
+    guard = threading.Lock()
+
+    class Response:
+        url = "https://export.arxiv.org/src/test"
+        status_code = 200
+        headers = {}
+        def close(self):
+            pass
+        def __enter__(self):
+            return self
+        def __exit__(self, *_):
+            pass
+
+    class Session:
+        def __init__(self):
+            self.headers = {}
+        def get(self, *args, **kwargs):
+            nonlocal in_flight, peak
+            with guard:
+                started.append(time.monotonic())
+                in_flight += 1
+                peak = max(peak, in_flight)
+            time.sleep(.065)  # simulate network wait with lock released
+            with guard:
+                in_flight -= 1
+            return Response()
+        def close(self):
+            pass
+
+    monkeypatch.setattr(arxiv_http.requests, "Session", Session)
+    with arxiv_http.ArxivHTTP(delay=.025, retries=0) as http:
+        def worker(_):
+            with http.get("https://export.arxiv.org/src/test"):
+                pass
+        with ThreadPoolExecutor(max_workers=3) as pool:
+            list(pool.map(worker, range(5)))
+        assert http.request_count == 5
+    assert peak >= 2
+    assert len(started) == 5
+    assert all(b - a >= .019 for a, b in zip(started, started[1:]))
