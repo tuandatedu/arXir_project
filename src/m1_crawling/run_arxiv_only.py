@@ -536,8 +536,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.batch_size < 1 or args.batch_size > 100 or args.next < 0:
         raise SystemExit("batch-size must be 1..100; --next must be nonnegative")
-    if not 1 <= args.workers <= 4 or args.retries < 0:
-        raise SystemExit("--workers must be 1..4; --retries must be nonnegative")
+    if args.workers < 1 or args.retries < 0:
+        raise SystemExit("--workers must be >= 1; --retries must be nonnegative")
     all_ids = assigned_ids(args.range_number)
     batches = build_batches(all_ids, args.batch_size)
     print(f"Assigned range={args.range_number or 'ALL'}: {len(all_ids)} unique IDs "
