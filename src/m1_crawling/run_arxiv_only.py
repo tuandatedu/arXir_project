@@ -11,6 +11,7 @@ Run from REPOSITORY ROOT:
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime, timezone
 import hashlib
@@ -338,9 +339,30 @@ def _collect_existing_statuses(work: Path, ids: list[str]) -> dict[str, dict]:
     return existing
 
 
+def _crawl_pending(paper_id: str, meta: PaperMeta | None, batch_work: Path,
+                   http: ArxivHTTP, previous: dict | None,
+                   discovery_error: str | None) -> dict:
+    """Worker owns one paper folder; only the coordinator writes batch files."""
+    if discovery_error and meta is None:
+        record = {"arxiv_id": paper_id, "status": "error", "versions": [],
+                  "error": "discovery: " + discovery_error, "elapsed_sec": 0}
+        _write_json(batch_work / "working" / paper_id.replace(".", "-") /
+                    "status.json", record)
+        return record
+    try:
+        return _crawl_one(paper_id, meta, batch_work, http, previous=previous)
+    except Exception as exc:
+        record = {"arxiv_id": paper_id, "status": "error", "versions": [],
+                  "error": f"{type(exc).__name__}: {exc}", "elapsed_sec": 0}
+        _write_json(batch_work / "working" / paper_id.replace(".", "-") /
+                    "status.json", record)
+        LOG.exception("Unexpected crawler failure for %s", paper_id)
+        return record
+
+
 def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
                http: ArxivHTTP, verify_checksum: bool,
-               retry_failed: bool, revision_dates: bool) -> dict:
+               retry_failed: bool, revision_dates: bool, workers: int = 1) -> dict:
     previous = _existing_manifest(backup_dir, name, ids, verify_checksum)
     if previous and (not retry_failed or not _has_error(previous)):
         print(f"[SKIP] {name} complete checkpoint: {previous.get('ok',0)} OK, "
@@ -394,27 +416,28 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     discovery_sec = time.monotonic() - lookup_start
 
     statuses: dict[str, dict] = dict(old_status)
-    for index, pid in enumerate(pending, 1):
-        if discovery_error and pid not in metas:
-            statuses[pid] = {"arxiv_id": pid, "status": "error", "versions": [],
-                             "error": "discovery: " + discovery_error, "elapsed_sec": 0}
-            paper_dir = batch_work / "working" / pid.replace(".", "-")
-            _write_json(paper_dir / "status.json", statuses[pid])
-        else:
-            try:
-                statuses[pid] = _crawl_one(
-                    pid, metas.get(pid), batch_work, http,
-                    previous=old_status.get(pid),
-                )
-            except Exception as exc:
-                statuses[pid] = {"arxiv_id": pid, "status": "error", "versions": [],
-                                 "error": f"{type(exc).__name__}: {exc}", "elapsed_sec": 0}
-                paper_dir = batch_work / "working" / pid.replace(".", "-")
-                _write_json(paper_dir / "status.json", statuses[pid])
-                LOG.exception("Unexpected crawler failure for %s", pid)
-        if index % 10 == 0 or index == len(pending):
-            print(f"[{name}] {index}/{len(pending)} processed, "
-                  f"{http.request_count - requests_before} HTTP requests", flush=True)
+    if workers == 1:
+        for index, pid in enumerate(pending, 1):
+            statuses[pid] = _crawl_pending(pid, metas.get(pid), batch_work, http,
+                                           old_status.get(pid), discovery_error)
+            if index % 10 == 0 or index == len(pending):
+                print(f"[{name}] {index}/{len(pending)} processed, "
+                      f"{http.request_count - requests_before} HTTP requests", flush=True)
+    else:
+        # Parallelize at PAPER level only. All HTTP requests still share the
+        # client's one-connection lock, including response body streaming.
+        with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="arxiv-paper") as pool:
+            futures = {
+                pool.submit(_crawl_pending, pid, metas.get(pid), batch_work, http,
+                            old_status.get(pid), discovery_error): pid
+                for pid in pending
+            }
+            for index, future in enumerate(as_completed(futures), 1):
+                pid = futures[future]
+                statuses[pid] = future.result()
+                if index % 10 == 0 or index == len(pending):
+                    print(f"[{name}] {index}/{len(pending)} processed, "
+                          f"{http.request_count - requests_before} HTTP requests", flush=True)
 
     ordered = [statuses[pid] for pid in ids]
     _write_jsonl(batch_work / "crawl_records.jsonl", ordered)
@@ -430,6 +453,7 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     resource_metrics = sampler.finish()
     manifest = {"batch": name, "created_at": _now(), "ids": ids,
                 "requested": len(ids), "processed_this_run": len(pending),
+                "workers_this_run": workers,
                 "ok": sum(x["status"] == "ok" for x in ordered),
                 "no_tex": sum(x["status"] == "no_tex" for x in ordered),
                 "not_found": sum(x["status"] == "not_found" for x in ordered),
@@ -495,6 +519,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--delay", type=float, default=3.1,
                    help="arXiv pacing: >=3 seconds between ALL requests")
     p.add_argument("--retries", type=int, default=4)
+    p.add_argument("--workers", type=int, default=1,
+                   help="Paper processing workers (1..4). HTTP remains one active connection.")
     p.add_argument("--retry-failed", action="store_true",
                    help="Reopen checkpoint and retry only failed papers; retain other data")
     p.add_argument("--verify-boundaries", action="store_true",
@@ -510,6 +536,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.batch_size < 1 or args.batch_size > 100 or args.next < 0:
         raise SystemExit("batch-size must be 1..100; --next must be nonnegative")
+    if not 1 <= args.workers <= 4 or args.retries < 0:
+        raise SystemExit("--workers must be 1..4; --retries must be nonnegative")
     all_ids = assigned_ids(args.range_number)
     batches = build_batches(all_ids, args.batch_size)
     print(f"Assigned range={args.range_number or 'ALL'}: {len(all_ids)} unique IDs "
@@ -533,16 +561,17 @@ def main(argv: list[str] | None = None) -> int:
             previous = _existing_manifest(args.backup_dir, name, paper_ids,
                                           verify_checksum=args.check_backups)
             if args.retry_failed:
-              # Recovery chỉ xử lý checkpoint đã tồn tại và còn lỗi
-             if previous is None or not _has_error(previous):
-              continue
+                # Recovery only touches existing, valid, failed checkpoints.
+                # Never create new batches during recovery.
+                if previous is None or not _has_error(previous):
+                    continue
             else:
-             # Fast Crawl bỏ qua checkpoint đã hoàn thành
-             if previous is not None:
-              continue
+                # Fast Crawl resumes from the next unfinished checkpoint.
+                if previous is not None:
+                    continue
             result = _run_batch(paper_ids, name, args.output_root, args.backup_dir, http,
                                 args.check_backups, args.retry_failed,
-                                not args.no_version_dates)
+                                not args.no_version_dates, workers=args.workers)
             completed += 1
             errors += result["failed"]
             if args.next and completed >= args.next:

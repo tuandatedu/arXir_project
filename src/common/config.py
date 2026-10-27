@@ -38,7 +38,7 @@ ARXIV_API_URL = "http://export.arxiv.org/api/query"
 ARXIV_SRC_MIRROR = "https://export.arxiv.org/src"  # /{arxiv_id} hoặc /{id}vN
 OAI_PMH_ENDPOINT = "https://oaipmh.arxiv.org/oai"
 
-# API etiquette: tối thiểu 3 giây giữa các request, một connection tại một thời điểm.
+# API etiquette: tối thiểu 3 giây giữa các request, một connection tại một thời điểm (kể cả khi xử lý bài concurrent).
 ARXIV_MIN_DELAY_SEC = 3.0
 ARXIV_USER_AGENT = "arXir-project/0.1 (HCMUS Intro-DS group; academic crawl)"
 

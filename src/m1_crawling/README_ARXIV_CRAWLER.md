@@ -10,7 +10,7 @@ Nguồn yêu cầu: https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/cr
 |---|---|
 | `discover.py` (**đã hiện thực**) | Tra 1 ID hoặc tối đa 100 ID/request, parse Atom, `PaperMeta`, số phiên bản |
 | `download.py` (**đã hiện thực**) | Tải có giới hạn kích thước, nhận dạng tar/gzip/zip/TeX/PDF, extract an toàn `.tex`/`.bib` |
-| `arxiv_http.py` (**mới**) | Một HTTP session và **bộ giới hạn >=3s dùng chung** cho API + source, retry 429/5xx/network |
+| `arxiv_http.py` (**mới**) | HTTP sessions riêng theo worker, **một kết nối hoạt động** và **bộ giới hạn >=3s dùng chung** cho API + source, retry 429/5xx/network |
 | `assigned_ranges.py` (**mới**) | 5 khoảng ID, mỗi khoảng dự kiến 5000 ID; xử lý giao tháng |
 | `run_arxiv_only.py` (**mới**) | CLI độc lập, chia batch, tạo corpus, backup Drive, tiếp tục sau ngắt |
 | `requirements-crawler.txt` (**mới**) | Gói pip tối thiểu cho crawler |
@@ -101,7 +101,7 @@ Hoặc 5 khoảng, một thư mục chung, không lẫn với `range3`:
 !python -m src.m1_crawling.run_arxiv_only --range 0 --next 5 --batch-size 50 --backup-dir '{BACKUP}/all_ranges'
 ```
 
-**Cảnh báo**: Không chạy đồng thời hai phiên Colab / máy trên cùng nhóm IP để rút thời gian request: arXiv yêu cầu một connection và tối thiểu 3s/request. Thêm batch hay download song song không phải cách tối ưu hợp lệ. Nếu thời gian giới hạn của Colab ngắt, mở phiên mới, clone lại repo, mount cùng Drive, rồi chạy lại cùng lệnh; batch đã xong sẽ được bỏ qua.
+**Cảnh báo**: Không chạy đồng thời hai phiên Colab / máy trên cùng nhóm IP để rút thời gian request: arXiv yêu cầu một connection và tối thiểu 3s/request. Bản concurrent cho phép nhiều worker xử lý/extract bài nhưng khóa toàn bộ HTTP (kể cả tải stream), nên không tăng số kết nối hay tốc độ gửi request. Nếu thời gian giới hạn của Colab ngắt, mở phiên mới, clone lại repo, mount cùng Drive, rồi chạy lại cùng lệnh; batch đã xong sẽ được bỏ qua.
 
 Nếu file `.json` của batch có `failed > 0`, sử dụng:
 
@@ -120,7 +120,7 @@ Nếu file `.json` của batch có `failed > 0`, sử dụng:
 ## 5. Tối ưu hiệu năng, lý do vẫn có thể lâu
 
 - **Metadata batched**: 50 ID trong **một** API query thay vì một query cho mỗi ID; không tải PDF, không qua trang HTML, không dùng Selenium.
-- **Chỉ có một session HTTP** chung metadata + source, interval mặc định `3.1s`, retry với exponential backoff/Retry-After. Không tạo nhiều worker song song để tránh 429/403.
+- **Một kết nối HTTP tại một thời điểm** chung metadata + source, interval mặc định `3.1s` trên toàn bộ worker, retry với exponential backoff/Retry-After. Dùng `--workers 1..4` (mặc định 1) để chồng lấp xử lý file; không tăng số kết nối hay request/giây.
 - **Download streaming** 256 KiB, không giữ archive lớn trong RAM; extraction theo từng member, chỉ `.tex`, `.bib`, cấm path traversal/symlink. Nếu archive quá lớn hoặc lạ thì ghi lỗi, không ghi nhầm là PDF-only.
 - **Một số paper có nhiều phiên bản** ⇒ phải tải v1..vN. Với ~25.000 paper và tối thiểu một download/paper: ~75.000s (~20h50m) chỉ dành cho pacing source. Mạng, retry, versions, nén/backup có thể tăng thời gian, không thể cam kết dưới 20h khi tuân thủ điều khoản API.
 - **Sao lưu theo batch**: mỗi 50 paper sau khi crawl được đóng gói thành một `.tar.gz` và manifest `.json` trên Drive; scratch Colab được dọn để tiết kiệm dung lượng.
@@ -212,7 +212,7 @@ from src.m1_crawling.discover import fetch_papers_by_ids, list_versions
 from src.m1_crawling.download import download_source_archive, extract_tex_and_bib
 from pathlib import Path
 
-with ArxivHTTP(delay=3.1) as client:   # SHARE ONE INSTANCE!
+with ArxivHTTP(delay=3.1) as client:   # SHARE ONE THROTTLED CLIENT!
     paper_map = fetch_papers_by_ids(["2604.00535", "2604.00536"], http=client)
     for paper_id, metadata in paper_map.items():
         for version in list_versions(metadata):
@@ -252,3 +252,13 @@ Các chữ ký cũ của `fetch_paper_by_id`, `list_versions`, `source_url`, `do
 3. Archive vượt giới hạn bảo vệ sẽ thành `error` (có thể tăng giới hạn trong `download.py` nếu Colab đủ dung lượng), không được lẳng lặng bỏ bài.
 4. Batch là mức checkpoint. Nếu Colab ngắt **giữa một batch chưa hoàn thành**, tối đa số paper đang trong batch đó có thể cần chạy lại. Giảm `--batch-size` xuống 10-25 khi mạng không ổn định, nhưng tạo thư mục backup mới.
 5. M1 thống kê RAM/disk cho toàn bộ hệ thống phải do pipeline hoàn chỉnh thực hiện, ngoài phần chỉ số crawler ở đây.
+
+
+## Concurrent có giới hạn (cập nhật)
+
+- `--workers 1` = chế độ tuần tự như trước; `--workers 3` = tối đa 3 bài được xử lý đồng thời trong **một batch**. Batch vẫn chạy tuần tự.
+- Các worker có session riêng, nhưng toàn bộ kết nối HTTP (kể cả thời gian đọc stream) đi qua một khóa chung và khoảng cách request tối thiểu 3.1 giây; HTTP 429 áp dụng thời gian chờ chung.
+- `--retry-failed` chỉ duyệt checkpoint cũ có `failed > 0`, không tạo batch mới. Thành công và `no_tex` vẫn giữ nguyên; chỉ retry phiên bản lỗi.
+- Checkpoint cũ và `runtime_history.csv` tương thích. `metrics.csv` bổ sung cột `workers_this_run` cho batch mới/cập nhật.
+- Benchmark nên so sánh 1 worker với 3 worker trên các tập ID tương đương; không cam kết tăng tốc đáng kể nếu nút thắt là HTTP.
+- Chạy offline: `python -m pytest -q tests/test_arxiv_crawler.py tests/test_runtime_tracking.py tests/test_concurrent_crawler.py`.
