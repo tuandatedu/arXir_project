@@ -27,7 +27,7 @@ RANGES: tuple[AssignedRange, ...] = (
     AssignedRange(1, "2609.37834", "2610.02470", cross_month_limit=40363),
     AssignedRange(2, "2604.15535", "2604.20534"),
     AssignedRange(3, "2604.00535", "2604.05534"),
-    AssignedRange(4, "2603.25580", "2604.00534", cross_month_limit=31045),
+    AssignedRange(4, "2603.25580", "2604.00534", cross_month_limit=30045),
     AssignedRange(5, "2603.15580", "2603.20579"),
 )
 
