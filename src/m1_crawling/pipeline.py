@@ -9,15 +9,15 @@ from pathlib import Path
 from typing import Optional
 
 from src.common.config import TABLES_DIR, WORKING_DIR
-from src.common.io import load_assigned_ids
+from src.common.io import load_assigned_ids, read_json
 from src.common.metrics import track_run, directory_size_bytes
 from src.common.schemas import PaperRow, ReferenceRow
 from src.common.ids import normalize_arxiv_id
 from .analyze import corpus_stats, write_metrics
 from .arxiv_http import ArxivHTTP
-from .corpus import (publication_dir, version_source_dir, save_paper_meta,
-                     save_references, save_version_sources)
-from .discover import fetch_papers_by_ids, list_versions
+from .corpus import (iter_publications, publication_dir, version_source_dir,
+                     save_paper_meta, save_references, save_version_sources)
+from .discover import PaperMeta, fetch_papers_by_ids, list_versions
 from .download import cleanup_temp_archive, detect_archive_kind, download_source_archive, extract_tex_and_bib
 from .semantic_scholar import fetch_s2_references, s2_ref_to_local_record
 from .tables import paper_meta_to_row, s2_records_to_reference_rows, write_m1_tables
@@ -161,21 +161,6 @@ def run_milestone1(ids_file: Path, *, s2_api_key: Optional[str] = None,
                 item = crawl_one_publication(arxiv_id, s2_api_key=s2_api_key,
                                              http=http, working_dir=working_dir)
                 crawl_results.append(item)
-                # A resolved paper is retained even if some versions or S2 failed.
-                paper_json = publication_dir(arxiv_id, working_dir) / "paper.json"
-                # Export a papers row only when discovery successfully saved metadata.
-                if item.get("n_versions", 0) > 0 and paper_json.exists():
-                    from src.common.io import read_json
-                    from .discover import PaperMeta
-                    meta_data = read_json(paper_json)
-                    meta = PaperMeta(**{key: meta_data[key] for key in (
-                        "arxiv_id", "title", "authors", "abstract", "latest_version",
-                        "submission_date", "revised_dates", "venue", "categories", "raw")})
-                    papers.append(paper_meta_to_row(meta))
-                    refs_path = publication_dir(arxiv_id, working_dir) / "references.json"
-                    if refs_path.exists():
-                        from src.common.io import read_json
-                        references.extend(s2_records_to_reference_rows(arxiv_id, read_json(refs_path)))
             except Exception as exc:
                 LOG.exception("Could not crawl assigned paper %s", arxiv_id)
                 crawl_results.append({
@@ -185,7 +170,18 @@ def run_milestone1(ids_file: Path, *, s2_api_key: Optional[str] = None,
                     "error": str(exc),
                 })
 
-        # Write table outputs after the crawl so they reflect every resolved paper.
+        # Rebuild tables from the whole corpus so each batch keeps prior rows.
+        for corpus_id in iter_publications(working_dir):
+            paper_data = read_json(publication_dir(corpus_id, working_dir) / "paper.json")
+            meta = PaperMeta(**{key: paper_data[key] for key in (
+                "arxiv_id", "title", "authors", "abstract", "latest_version",
+                "submission_date", "revised_dates", "venue", "categories", "raw")})
+            papers.append(paper_meta_to_row(meta))
+            refs_path = publication_dir(corpus_id, working_dir) / "references.json"
+            if refs_path.exists():
+                references.extend(s2_records_to_reference_rows(corpus_id, read_json(refs_path)))
+
+        # Write tables after every call, including rows from earlier batches.
         # Tables and metrics can be redirected to Drive for persistent Colab output.
         write_m1_tables(papers, references, tables_dir=tables_dir)
         disk_samples.append(retained_output_bytes())

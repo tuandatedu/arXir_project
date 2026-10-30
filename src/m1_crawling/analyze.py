@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from src.common.config import TABLES_DIR
+from src.common.ids import normalize_arxiv_id
 from src.common.io import read_json, write_json
 from src.common.metrics import directory_size_bytes
 
@@ -27,6 +28,8 @@ def corpus_stats(
     paper_files = sorted(root.glob("*/paper.json")) if root.exists() else []
     run_rows = crawl_results or []
     runtime = runtime_metrics or {}
+    ids = list(assigned_ids) if assigned_ids is not None else None
+    assigned = {normalize_arxiv_id(arxiv_id) for arxiv_id in ids} if ids is not None else None
 
     # Counts and byte totals that can be measured directly from the saved corpus.
     n_versions = 0
@@ -35,11 +38,19 @@ def corpus_stats(
     total_refs = 0
     refs_with_arxiv = 0
     refs_with_metadata = 0
-    papers_with_semantic_scholar_data = 0
+    n_resolved = 0
+    papers_with_reference_file = 0
+    papers_with_any_reference = 0
+    reference_field_counts = {"title": 0, "authors": 0, "submission_date": 0, "s2_id": 0}
 
     for paper_file in paper_files:
         publication = paper_file.parent
         metadata = read_json(paper_file)
+        # Ignore stale or unrelated corpus folders when this run has a known assignment.
+        paper_id = normalize_arxiv_id(metadata.get("arxiv_id", publication.name.replace("-", ".")))
+        if assigned is not None and paper_id not in assigned:
+            continue
+        n_resolved += 1
         versions = metadata.get("versions") or list(
             range(1, int(metadata.get("latest_version", 1)) + 1)
         )
@@ -58,23 +69,28 @@ def corpus_stats(
         # The local references file retains records even when they have no arXiv ID.
         refs_path = publication / "references.json"
         if refs_path.is_file():
-            papers_with_semantic_scholar_data += 1
+            papers_with_reference_file += 1
             refs = read_json(refs_path)
             if isinstance(refs, list):
+                if refs:
+                    papers_with_any_reference += 1
                 for ref in refs:
                     if not isinstance(ref, dict):
                         continue
                     total_refs += 1
                     refs_with_arxiv += bool(ref.get("ref_arxiv_id"))
-                    # A reference is considered populated if S2 returned any useful fields.
-                    has_metadata = any((
-                        ref.get("ref_title"), ref.get("ref_authors"),
-                        ref.get("ref_submission_date"), ref.get("ref_s2_id"),
-                    ))
-                    refs_with_metadata += bool(has_metadata)
+                    fields = {
+                        "title": ref.get("ref_title"),
+                        "authors": ref.get("ref_authors"),
+                        "submission_date": ref.get("ref_submission_date"),
+                        "s2_id": ref.get("ref_s2_id"),
+                    }
+                    for field, value in fields.items():
+                        if value:
+                            reference_field_counts[field] += 1
+                    # Complete means all four selected metadata fields are present.
+                    refs_with_metadata += all(fields.values())
 
-    n_resolved = len(paper_files)
-    ids = list(assigned_ids) if assigned_ids is not None else None
     n_assigned = len(ids) if ids is not None else None
 
     # Use per-run records for measurements that disappear with the temporary archives.
@@ -125,11 +141,27 @@ def corpus_stats(
         "avg_refs_per_paper": total_refs / n_resolved if n_resolved else 0,
         "reference_arxiv_id_coverage": refs_with_arxiv / total_refs if total_refs else None,
         "reference_metadata_completeness": refs_with_metadata / total_refs if total_refs else None,
-        "papers_with_semantic_scholar_data": papers_with_semantic_scholar_data,
+        "reference_metadata_any_field_coverage": (
+            sum(reference_field_counts.values()) / (len(reference_field_counts) * total_refs)
+            if total_refs else None
+        ),
+        "reference_field_coverage": {
+            field: count / total_refs if total_refs else None
+            for field, count in reference_field_counts.items()
+        },
+        "papers_with_reference_file": papers_with_reference_file,
+        "papers_with_any_reference": papers_with_any_reference,
+        # Backward-compatible key; this means a local file exists, which can be empty.
+        "papers_with_semantic_scholar_data": papers_with_reference_file,
         "semantic_scholar_requests_attempted": semantic_scholar_attempted,
         "semantic_scholar_requests_succeeded": semantic_scholar_succeeded,
         "semantic_scholar_requests_failed": semantic_scholar_failed,
         "semantic_scholar_request_success_rate": (
+            semantic_scholar_succeeded / semantic_scholar_attempted
+            if semantic_scholar_attempted else None
+        ),
+        # This is a request-level success rate, not the share of references with complete fields.
+        "reference_metadata_request_success_rate": (
             semantic_scholar_succeeded / semantic_scholar_attempted
             if semantic_scholar_attempted else None
         ),

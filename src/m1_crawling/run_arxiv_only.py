@@ -329,6 +329,42 @@ def _make_paper_row(meta: PaperMeta) -> dict:
             "submission_date": meta.submission_date, "revised_dates": meta.revised_dates,
             "venue": meta.venue}
 
+def _print_batch_summary(name: str, manifest: dict, paper_rows: list[dict],
+                         references: dict[str, list[dict]] | None = None) -> None:
+    print("\n" + "=" * 70)
+    print(f"{name} - REFERENCES")
+    print("=" * 70)
+
+    if references is None:
+        print("References have not been collected in this crawler.")
+    else:
+        for paper_id, records in references.items():
+            print(f"\nPaper: {paper_id}")
+
+            if not records:
+                print("  No references found")
+                continue
+
+            for index, ref in enumerate(records, 1):
+                print(f"  {index}. {ref.get('title', 'Unknown title')}")
+
+    print("\n" + "=" * 70)
+    print(f"{name} - CRAWL SUMMARY")
+    print("=" * 70)
+    print(f"Requested: {manifest['requested']}")
+    print(f"Processed: {manifest['processed_this_run']}")
+    print(f"Successful: {manifest['ok']}")
+    print(f"No TeX: {manifest['no_tex']}")
+    print(f"Not found: {manifest['not_found']}")
+    print(f"Failed: {manifest['failed']}")
+    print(f"Workers: {manifest['workers_this_run']}")
+
+    print("\n" + "=" * 70)
+    print(f"{name} - CHECKPOINT")
+    print("=" * 70)
+    print(f"Archive size: {manifest['archive_bytes'] / 1024**2:.2f} MiB")
+    print(f"SHA256: {manifest['archive_sha256']}")
+    print("=" * 70, flush=True)
 
 def _collect_existing_statuses(work: Path, ids: list[str]) -> dict[str, dict]:
     existing = {}
@@ -472,9 +508,8 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     manifest["archive_seconds"] = round(time.monotonic() - start_upload, 3)
     # Always keep an explicit archived manifest describing backup duration.
     _write_json(backup_dir / (name + ".json"), manifest)
-    print(f"[SAVED] {name}: OK={manifest['ok']}, no_tex={manifest['no_tex']}, "
-          f"missing={manifest['not_found']}, errors={manifest['failed']}, "
-          f"archive={manifest['archive_bytes']/1024/1024:.2f} MiB", flush=True)
+    _print_batch_summary(name, manifest, paper_rows)
+
     shutil.rmtree(batch_work)
     return manifest
 
