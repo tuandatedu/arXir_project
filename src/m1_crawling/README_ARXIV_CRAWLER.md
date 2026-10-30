@@ -228,7 +228,7 @@ Các chữ ký cũ của `fetch_paper_by_id`, `list_versions`, `source_url`, `do
 - Người phụ trách Data Management lấy `papers.jsonl` và `crawl_records.jsonl` từ mỗi batch. `papers.jsonl` đã có đúng 6 trường schema `PaperRow`: `arxiv_id`, `title`, `authors`, `submission_date`, `revised_dates`, `venue`.
 - `working/{arxiv_id.replace('.', '-')}/vN/sources/` chứa TeX/BibTeX để M2 đọc; **KHÔNG** sửa nội dung/đổi relative path của `.tex`/`.bib`.
 - Không có nguồn: đọc `vN/empty.json`; lỗi: đọc `vN/status.json`; ID không tồn tại: đọc `working/<id>/status.json`.
-- Người phụ trách Semantic Scholar gọi **1 lần mỗi publication** theo `arxiv_id` và tạo `references_s2.json`; hiện **crawler không tạo `references` table** vì chưa có dữ liệu từ Semantic Scholar. Nên giữ toàn bộ S2 refs trong corpus như yêu cầu đề.
+- Người phụ trách Semantic Scholar gọi **1 lần mỗi publication** theo `arxiv_id` và tạo `references.json`; hiện **crawler không tạo `references` table** vì chưa có dữ liệu từ Semantic Scholar. Nên giữ toàn bộ references trong corpus như yêu cầu đề.
 - Nếu muốn import batch: dùng `tarfile.open(..., 'r:gz')` trong Python với kiểm tra đường dẫn an toàn; lưu ra một thư mục working bền vững hoặc streaming từng file. Không nén lại nguồn gốc do crawler đã loại ảnh và giữ nguyên TeX.
 - Có thể thực hiện ở máy Windows, Google Drive hay Colab (batch archives độc lập); `data/` nên nằm ngoài Git / trong `.gitignore`.
 

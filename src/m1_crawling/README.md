@@ -49,7 +49,7 @@ Gọi `raise NotImplementedError` hiện tại = chỗ bạn **xóa và viết t
 ```text
 data/working/2310-12345/
   paper.json              # title, authors, submission_date, revised_dates, venue, versions
-  references_s2.json      # MỌI ref từ Semantic Scholar (kể cả không có arXiv ID)
+  references.json         # MỌI ref đã crawl (kể cả không có arXiv ID)
   v1/sources/*.tex, *.bib
   v2/sources/...
   v3/empty.json           # ví dụ PDF-only: {"empty": true, "reason": "pdf"}
@@ -110,7 +110,7 @@ Gọi **một lần / publication** (S2 không phân version).
 | `publication_dir` / `version_source_dir` | Path theo config + folder name |
 | `save_paper_meta` | `paper.json` |
 | `save_version_sources` | `empty=True` → marker, **không** xóa publication; `False` → copy tex/bib |
-| `save_s2_references` | `references_s2.json` |
+| `save_references` | `references.json` |
 | `iter_publications` | Liệt kê paper đã crawl (M2 dùng) |
 
 ### `tables.py` — 2 bảng nộp cuối (M3 mới đẩy lên Hugging Face)
@@ -156,5 +156,5 @@ Một connection tại một thời điểm (đề API etiquette).
 - [ ] Version PDF-only vẫn còn paper + empty marker
 - [ ] Folder chỉ còn `.tex`/`.bib` (+ json metadata)
 - [ ] `papers.jsonl` 1 hàng / paper; `references.jsonl` chỉ ref có arXiv ID
-- [ ] `references_s2.json` vẫn chứa ref không có arXiv ID
+- [ ] `references.json` vẫn chứa ref không có arXiv ID
 - [ ] Có `metrics_m1.json` (time + RAM) để nhóm viết book

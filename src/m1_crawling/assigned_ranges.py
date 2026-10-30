@@ -21,7 +21,7 @@ class AssignedRange:
 
 
 # Endpoints match the five rows in the team's assignment spreadsheet.
-# WARNING: 40363 and 31045 are existing provisional month-end values;
+# WARNING: 40363 and 30045 are existing provisional month-end values;
 # verify them before a full crawl. They are NOT given by the spreadsheet.
 RANGES: tuple[AssignedRange, ...] = (
     AssignedRange(1, "2609.37834", "2610.02470", cross_month_limit=40363),
