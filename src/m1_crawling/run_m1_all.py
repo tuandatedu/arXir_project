@@ -21,6 +21,9 @@ validation verdict; the process exit status is 0 only when validation passed.
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
+import logging
 import os
 import sys
 from pathlib import Path
@@ -51,13 +54,15 @@ def parse_args(argv: Optional[list[str]] = None) -> argparse.Namespace:
                         help="Re-fetch references for papers Semantic Scholar answered empty")
     parser.add_argument("--semantic-scholar-api-key", default=None,
                         help="Optional S2 API key; otherwise S2_API_KEY is used")
+    parser.add_argument("--quiet", action="store_true",
+                        help="Do not print crawl, validation, or report output")
     args = parser.parse_args(argv)
     args.semantic_scholar_api_key = (args.semantic_scholar_api_key
                                      or os.environ.get("S2_API_KEY"))
     return args
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def _main(argv: Optional[list[str]] = None) -> int:
     args = parse_args(argv)
     if args.range != 0 and args.range not in {item.number for item in RANGES}:
         print(f"Unknown range number: {args.range} "
@@ -92,6 +97,19 @@ def main(argv: Optional[list[str]] = None) -> int:
           f"validation={'OK' if summary['validation_ok'] else 'FAILED'} "
           f"-> {tables_dir / 'm1_run_summary.json'}", flush=True)
     return 0 if summary["validation_ok"] else 1
+
+
+def main(argv: Optional[list[str]] = None) -> int:
+    args = parse_args(argv)
+    if not args.quiet:
+        return _main(argv)
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        previous_disable = logging.root.manager.disable
+        logging.disable(logging.CRITICAL)
+        try:
+            return _main(argv)
+        finally:
+            logging.disable(previous_disable)
 
 
 if __name__ == "__main__":

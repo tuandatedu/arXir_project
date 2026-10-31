@@ -11,6 +11,9 @@ Run from REPOSITORY ROOT:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import asdict
 from datetime import datetime, timezone
@@ -593,10 +596,12 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Skip optional intermediate revision-date lookups")
     p.add_argument("--preview", action="store_true", help="Count IDs and show batches without network")
     p.add_argument("--check-backups", action="store_true", help="Re-hash every existing checkpoint")
+    p.add_argument("--quiet", action="store_true",
+                   help="Do not print crawl progress, summaries, or retry warnings")
     return p
 
 
-def main(argv: list[str] | None = None) -> int:
+def _main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.batch_size < 1 or args.batch_size > 100 or args.next < 0:
         raise SystemExit("batch-size must be 1..100; --next must be nonnegative")
@@ -651,6 +656,19 @@ def main(argv: list[str] | None = None) -> int:
     if completed == 0:
         print("All selected batches have checkpoints. For errors, use --retry-failed.")
     return 0 if not errors else 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    if not args.quiet:
+        return _main(argv)
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        previous_disable = logging.root.manager.disable
+        logging.disable(logging.CRITICAL)
+        try:
+            return _main(argv)
+        finally:
+            logging.disable(previous_disable)
 
 
 if __name__ == "__main__":

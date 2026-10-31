@@ -5,10 +5,10 @@ Inputs under ``data_dir``:
   reference_*/{id}.json             -> every Semantic Scholar reference of that paper
 
 Outputs under ``tables_dir`` (default ``data_dir/tables``):
-  papers.jsonl, references.jsonl    -> exactly the columns of schemas.PaperRow / ReferenceRow
+  papers.json, references.json      -> JSON arrays matching PaperRow / ReferenceRow
   build_report.json                 -> counts of everything that was skipped or removed
 
-Only references that carry a valid arXiv ID reach references.jsonl; the full reference
+Only references that carry a valid arXiv ID reach the references table; the full reference
 lists stay in reference_*/. Nothing here raises on a single bad record: it is counted.
 """
 from __future__ import annotations
@@ -143,7 +143,7 @@ def collect_references(data_dir: Path, paper_ids: set[str], *,
 
 def build_tables(data_dir: Path, tables_dir: Optional[Path] = None, *,
                  batch_names: Optional[Iterable[str]] = None) -> dict:
-    """Write papers.jsonl, references.jsonl and build_report.json; return the report."""
+    """Write papers.json, references.json and build_report.json; return the report."""
     data_dir = Path(data_dir)
     tables_dir = Path(tables_dir) if tables_dir is not None else data_dir / "tables"
     wanted_batches = set(batch_names) if batch_names is not None else None
