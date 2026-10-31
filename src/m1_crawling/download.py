@@ -2,14 +2,22 @@
 from __future__ import annotations
 
 import gzip
+from http.client import IncompleteRead
 import io
+import logging
 from pathlib import Path, PurePosixPath
 import shutil
 import tarfile
+import time
 from typing import Literal
 import zipfile
 
+import requests
+
+from src.common.ids import versioned_id
 from src.m1_crawling.arxiv_http import ArxivHTTP
+
+LOG = logging.getLogger(__name__)
 
 ArchiveKind = Literal["targz", "tar", "zip", "gz", "tex", "pdf", "unknown", "empty"]
 SOURCE_MIRROR = "https://export.arxiv.org/src"
@@ -18,37 +26,57 @@ MAX_ARCHIVE_BYTES = 400 * 1024 * 1024  # protect Colab disk
 MAX_FILE_BYTES = 32 * 1024 * 1024       # protect against decompression bombs
 MAX_TOTAL_EXTRACTED = 120 * 1024 * 1024
 MAX_FILES = 5000
+STREAM_ATTEMPTS = 3  # re-download when the connection drops mid-stream
+# Raised while reading the body, i.e. AFTER ArxivHTTP.get() returned, so its own retry never sees them.
+STREAM_ERRORS = (requests.exceptions.ChunkedEncodingError, requests.exceptions.ConnectionError,
+                 requests.exceptions.ReadTimeout, IncompleteRead)
 
 
 def source_url(arxiv_id: str, version: int) -> str:
-    if not isinstance(version, int) or version < 1:
-        raise ValueError("version must be positive")
-    if not __import__("re").fullmatch(r"\d{4}\.\d{4,5}", arxiv_id):
-        raise ValueError("Only new-style assigned arXiv IDs are supported")
-    return f"{SOURCE_MIRROR}/{arxiv_id}v{version}"
+    """Versioned /src/ URL; accepts new-style (2310.12345) and old-style IDs."""
+    # versioned_id validates the version and strips any existing suffix first.
+    return f"{SOURCE_MIRROR}/{versioned_id(arxiv_id, version)}"
 
 
 def download_source_archive(arxiv_id: str, version: int, dest_path: Path,
                             http: ArxivHTTP | None = None,
-                            max_bytes: int = MAX_ARCHIVE_BYTES) -> Path:
-    """Writes in 256KiB chunks, deletes partial files on every error."""
+                            max_bytes: int = MAX_ARCHIVE_BYTES,
+                            attempts: int = STREAM_ATTEMPTS) -> Path:
+    """Writes in 256KiB chunks, deletes partial files on every error.
+
+    A connection that breaks mid-body (ChunkedEncodingError / IncompleteRead) is retried
+    from the start up to ``attempts`` times with 5 s, 15 s ... waits; every attempt still
+    goes through the shared 3 s request gate. HTTP status errors and size-limit errors are
+    not retried here.
+    """
     dest_path = Path(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
     own = http is None
     http = http or ArxivHTTP()
     partial = dest_path.with_name(dest_path.name + ".partial")
     try:
-        with http.get(source_url(arxiv_id, version), stream=True) as response:
-            count = 0
-            with partial.open("wb") as out:
-                for chunk in response.iter_content(chunk_size=256 * 1024):
-                    if chunk:
-                        count += len(chunk)
-                        if count > max_bytes:
-                            raise ValueError(f"Archive exceeds {max_bytes} bytes")
-                        out.write(chunk)
-        partial.replace(dest_path)
-        return dest_path
+        for attempt in range(1, max(1, attempts) + 1):
+            try:
+                with http.get(source_url(arxiv_id, version), stream=True) as response:
+                    count = 0
+                    with partial.open("wb") as out:
+                        for chunk in response.iter_content(chunk_size=256 * 1024):
+                            if chunk:
+                                count += len(chunk)
+                                if count > max_bytes:
+                                    raise ValueError(f"Archive exceeds {max_bytes} bytes")
+                                out.write(chunk)
+                partial.replace(dest_path)
+                return dest_path
+            except STREAM_ERRORS as exc:
+                partial.unlink(missing_ok=True)
+                if attempt >= attempts:
+                    raise
+                wait = 5 * 3 ** (attempt - 1)
+                LOG.warning("%sv%s download broke (%s); attempt %d/%d, retry in %ds",
+                            arxiv_id, version, type(exc).__name__, attempt, attempts, wait)
+                time.sleep(wait)
+        raise AssertionError("unreachable")
     except Exception:
         partial.unlink(missing_ok=True)
         raise

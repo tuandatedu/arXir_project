@@ -9,7 +9,7 @@ from typing import Any
 from src.common.config import WORKING_DIR
 from src.common.ids import folder_name_for_arxiv_id, normalize_arxiv_id
 from src.common.io import read_json, write_json
-from .discover import PaperMeta
+from .discover import PaperMeta, version_update_date
 
 
 def publication_dir(arxiv_id: str, working_dir: Path | None = None) -> Path:
@@ -92,6 +92,27 @@ def save_version_sources(arxiv_id: str, version: int, extracted_files: list[Path
         destination.parent.mkdir(parents=True, exist_ok=True)
         # copy2 preserves file timestamps and metadata while leaving TeX contents unchanged.
         shutil.copy2(source, destination)
+
+
+def save_version_metadata(arxiv_id: str, version: int, meta: PaperMeta,
+                          working_dir: Path | None = None) -> Path:
+    """Store per-version metadata beside that version's source folder."""
+    base = normalize_arxiv_id(arxiv_id)
+    date, date_source = version_update_date(meta, version)
+    payload = {
+        "arxiv_id": base, "version": version, "versioned_id": f"{base}v{version}",
+        "updated_date": date,
+        "date_source": date_source,
+        # Publication-level fields can change across revisions; keep the latest
+        # values and mark their scope instead of claiming per-version history.
+        "title_latest": meta.title, "authors_latest": meta.authors,
+        "title_authors_scope": "latest_publication_only",
+    }
+    version_dir = publication_dir(arxiv_id, working_dir) / f"v{version}"
+    version_dir.mkdir(parents=True, exist_ok=True)
+    path = version_dir / "metadata.json"
+    write_json(path, payload)
+    return path
 
 
 def save_references(arxiv_id: str, records: list[dict[str, Any]],

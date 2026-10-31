@@ -20,24 +20,40 @@ def paper_meta_to_row(meta: PaperMeta) -> PaperRow:
     )
 
 
+def ref_row_from_record(citing_arxiv_id: str, record: dict) -> ReferenceRow | None:
+    """Flatten one local S2 record; return None when either ID is unusable.
+
+    Semantic Scholar occasionally returns malformed ``externalIds.ArXiv`` values
+    (kept verbatim by semantic_scholar.py); one bad reference must never abort
+    the table build, so such rows are dropped and counted by callers.
+    """
+    ref_id = record.get("ref_arxiv_id")
+    if not ref_id:
+        return None
+    try:
+        citing = normalize_arxiv_id(citing_arxiv_id)
+        ref = normalize_arxiv_id(str(ref_id))
+    except (TypeError, ValueError):
+        return None
+    return ReferenceRow(
+        arxiv_id=citing,
+        ref_arxiv_id=ref,
+        ref_title=str(record.get("ref_title") or ""),
+        ref_authors=list(record.get("ref_authors") or []),
+        ref_submission_date=str(record.get("ref_submission_date") or ""),
+        ref_s2_id=str(record.get("ref_s2_id") or ""),
+    )
+
+
 def s2_records_to_reference_rows(citing_arxiv_id: str,
                                  records: list[dict]) -> list[ReferenceRow]:
-    """Keep only references with an arXiv ID for the published references table."""
+    """Keep only references with a valid arXiv ID for the published table."""
     # The local JSON keeps all references; the published table requires an arXiv ID.
     rows = []
     for record in records:
-        ref_id = record.get("ref_arxiv_id")
-        if not ref_id:
-            continue
-        # Flatten the local record into the exact columns defined by ReferenceRow.
-        rows.append(ReferenceRow(
-            arxiv_id=normalize_arxiv_id(citing_arxiv_id),
-            ref_arxiv_id=normalize_arxiv_id(str(ref_id)),
-            ref_title=str(record.get("ref_title") or ""),
-            ref_authors=list(record.get("ref_authors") or []),
-            ref_submission_date=str(record.get("ref_submission_date") or ""),
-            ref_s2_id=str(record.get("ref_s2_id") or ""),
-        ))
+        row = ref_row_from_record(citing_arxiv_id, record)
+        if row is not None:
+            rows.append(row)
     return rows
 
 

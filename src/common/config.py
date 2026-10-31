@@ -34,7 +34,7 @@ ASSIGNED_IDS_FILE = PROJECT_ROOT / "assigned_ids.txt"
 # arXiv — Milestone 1
 # ---------------------------------------------------------------------------
 # Dùng mirror export, KHÔNG crawl arxiv.org (dễ bị 403).
-ARXIV_API_URL = "http://export.arxiv.org/api/query"
+ARXIV_API_URL = "https://export.arxiv.org/api/query"
 ARXIV_SRC_MIRROR = "https://export.arxiv.org/src"  # /{arxiv_id} hoặc /{id}vN
 OAI_PMH_ENDPOINT = "https://oaipmh.arxiv.org/oai"
 

@@ -16,8 +16,10 @@ from src.common.ids import normalize_arxiv_id
 from .analyze import corpus_stats, write_metrics
 from .arxiv_http import ArxivHTTP
 from .corpus import (iter_publications, publication_dir, version_source_dir,
-                     save_paper_meta, save_references, save_version_sources)
-from .discover import PaperMeta, fetch_papers_by_ids, list_versions
+                     save_paper_meta, save_references, save_version_metadata,
+                     save_version_sources)
+from .discover import (PaperMeta, enrich_revision_dates, fetch_papers_by_ids,
+                       list_versions)
 from .download import cleanup_temp_archive, detect_archive_kind, download_source_archive, extract_tex_and_bib
 from .semantic_scholar import fetch_s2_references, s2_ref_to_local_record
 from .tables import paper_meta_to_row, s2_records_to_reference_rows, write_m1_tables
@@ -49,6 +51,9 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
         discovery_started = time.perf_counter()
         try:
             meta = fetch_papers_by_ids([arxiv_id], http=http).get(arxiv_id)
+            # Papers with 3+ revisions need extra lookups so revised_dates is complete.
+            if meta is not None and meta.latest_version > 2:
+                enrich_revision_dates(meta, http=http)
         except Exception as exc:
             result["discovery_seconds"] = round(time.perf_counter() - discovery_started, 6)
             result["errors"].append({"stage": "discovery", "error": str(exc)})
@@ -67,6 +72,8 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
         # Download and process every version independently, so one failure does not stop others.
         for version in versions:
             destination = version_source_dir(arxiv_id, version, working_dir)
+            # Keep per-version metadata (date + source) beside the version folder.
+            save_version_metadata(arxiv_id, version, meta, working_dir)
             # Keep the original archive temporary; only selected text files enter the corpus.
             # Keep temporary archives under the corpus root so disk sampling includes them.
             with tempfile.TemporaryDirectory(

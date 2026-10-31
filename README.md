@@ -3,9 +3,9 @@
 Group skeleton for the three milestones in
 <https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/>.
 
-This repository currently contains **function stubs only** (`NotImplementedError` +
-docstrings describing *what* to implement). Fill in the bodies; do not change
-table column names unless the lab book changes.
+M1 (crawl), M2 (parse) and M3 (matching) are implemented under `src/`; the
+column names in `src/common/schemas.py` follow the lab book and must not change
+unless the lab book changes.
 
 | Milestone | Goal | Hugging Face tables |
 | --- | --- | --- |
@@ -33,11 +33,15 @@ Lab Instructors provide the ID range. Put one canonical arXiv ID per line in
 `assigned_ids.txt` (UTF-8). Blank lines and `#` comments are ignored. See
 `assigned_ids.example.txt`.
 
-## How to run (after implementations exist)
+## How to run
 
 ```bash
 # M1 — crawl assigned papers (export.arxiv.org only, ≥ 3 s between calls)
 python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
+
+# M1 batch flow (Colab): crawl one assigned range, then references + tables
+python -m src.m1_crawling.run_arxiv_only --range 5 --batch-size 200
+python -m src.m1_crawling.run_m1_all --range 5 --data-dir data
 
 # M2 — parse every publication produced by M1
 python -m src.m2_parsing.run_m2

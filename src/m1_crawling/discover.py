@@ -120,6 +120,60 @@ def list_versions(meta: PaperMeta) -> list[int]:
     return list(range(1, meta.latest_version + 1))
 
 
+def enrich_revision_dates(meta: PaperMeta, http: ArxivHTTP | None = None) -> None:
+    """Fill intermediate revision dates with version-qualified Atom lookups.
+
+    For v1 the submission date is known; for the latest vN the Atom updated
+    date is known. Papers with v3+ need v2..v(N-1) looked up separately so
+    ``revised_dates`` holds every revision date in chronological order. When
+    arXiv does not expose an intermediate version, the known dates are kept and
+    ``raw.revision_dates_complete`` is set to False.
+    """
+    if meta.latest_version <= 2:
+        return
+    own = http is None
+    http = http or ArxivHTTP()
+    try:
+        needed = [f"{meta.arxiv_id}v{n}" for n in range(2, meta.latest_version)]
+        intermediate: dict[int, str] = {}
+        for i in range(0, len(needed), 80):
+            chunk = needed[i:i + 80]
+            with http.get(API_URL, params={"id_list": ",".join(chunk),
+                                           "start": 0, "max_results": len(chunk)}) as response:
+                root = ET.fromstring(response.content)
+            for entry in root.findall(ATOM + "entry"):
+                try:
+                    base, ver = _identifier(entry.findtext(ATOM + "id") or "")
+                except ValueError:
+                    continue
+                if base != meta.arxiv_id:
+                    continue
+                updated = (entry.findtext(ATOM + "updated") or "")[:10]
+                if updated:
+                    intermediate[ver] = updated
+        dates = [intermediate[v] for v in range(2, meta.latest_version) if v in intermediate]
+        meta.raw["revision_dates_complete"] = len(dates) == meta.latest_version - 2
+        meta.raw["intermediate_version_dates"] = {
+            str(ver): date for ver, date in sorted(intermediate.items())
+            if 2 <= ver < meta.latest_version}
+        latest = meta.raw.get("atom_updated", "")
+        meta.revised_dates = dates + ([latest] if latest else [])
+    finally:
+        if own:
+            http.close()
+
+
+def version_update_date(meta: PaperMeta, version: int) -> tuple[str | None, str]:
+    """Return (date, source) for one version from discovery metadata."""
+    if version == 1:
+        return meta.submission_date or None, "atom_published"
+    if version == meta.latest_version:
+        return meta.raw.get("atom_updated") or None, "atom_updated_latest"
+    dates = meta.raw.get("intermediate_version_dates") or {}
+    date = dates.get(str(version))
+    return (date or None), ("atom_intermediate_version" if date else "unknown")
+
+
 def harvest_oai_pmh_optional(date_from: str, date_to: str) -> list[dict[str, Any]]:
     raise NotImplementedError("Optional whole-repository harvest is out of scope for M1")
 
