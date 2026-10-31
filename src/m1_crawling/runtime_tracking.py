@@ -33,9 +33,11 @@ def checkpoint_state(backup_dir: Path) -> dict[str, tuple[int, int]]:
         result[path.name] = (stat.st_size, stat.st_mtime_ns)
     return result
 
+def runtime_history_path(backup_dir: Path) -> Path:
+    return Path(backup_dir) / "reports" / HISTORY_FILENAME
 
 def read_runtime_history(backup_dir: Path) -> list[dict]:
-    path = Path(backup_dir) / HISTORY_FILENAME
+    path = runtime_history_path(backup_dir)
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
@@ -91,7 +93,9 @@ def record_runtime(backup_dir: Path, *, mode: str, range_id: int,
                                    for name, state in after.items()),
     }
     rows.append(row)
-    path = backup_dir / HISTORY_FILENAME
+    path = runtime_history_path(backup_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    rows = read_runtime_history(backup_dir)
     temp = path.with_name(path.name + ".partial")
     try:
         with temp.open("w", encoding="utf-8-sig", newline="") as f:
