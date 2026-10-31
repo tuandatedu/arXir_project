@@ -58,9 +58,14 @@ Trong `DATA_DIR`:
 - `tables/`: bảng JSON tổng, build report và validation report sau cell 9.
 - `runtime_history.csv`: wall-clock của các lượt Fast Crawl/Recovery.
 - `reports/`: báo cáo thống kê được tạo bởi hàm `export_report()` ở cell 8.
+- `reports/performance_metrics.csv`: per-batch/per-phase CPU, RAM, elapsed time, discovery, and scratch/output disk measurements.
+
+`performance_metrics.csv` records arXiv batches, Semantic Scholar, table builds, and validation. CPU/RSS sample the Colab process tree once per second; CPU can exceed 100% across cores. `runtime_history.csv` records arXiv command wall time. `summary.json` aggregates sequential stage times and reports final output bytes separately from the sampled scratch peak.
 
 ## Kiểm tra kết quả
 
 - Xem `batch_XXXXX.json` để biết số paper thành công/lỗi và trạng thái reference.
 - Xem `tables/validation_report.json` sau cell 9 để biết lỗi và cảnh báo của hai bảng tổng.
 - Chạy `export_report()` ở cell 8 nếu cần tạo/cập nhật báo cáo crawler và runtime.
+
+Official workflow: `M1_CONCURRENT.ipynb` cell 5 crawls arXiv, fetches references, and builds per-batch tables; cell 9 builds/validates combined tables; cell 8 exports reports. `run_m1_all.py` post-processes existing batch checkpoints and does not crawl arXiv. `run_m1.py` is the older per-paper pipeline and is not used by the batch notebook.

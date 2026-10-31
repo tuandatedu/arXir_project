@@ -108,6 +108,139 @@ def _write_csv(path: Path, rows: list[dict], fields: list[str]) -> None:
             writer.writerow({key: _json_value(row.get(key)) for key in fields})
 
 
+def _read_phase_metrics(path: Path) -> list[dict]:
+    if not path.is_file():
+        return []
+    with path.open("r", newline="", encoding="utf-8") as stream:
+        return list(csv.DictReader(stream))
+
+
+def _summarize_phase_metrics(rows: list[dict]) -> dict:
+    summary: dict[str, dict] = {}
+    for phase in ("semantic_scholar", "tables_build", "tables_validate"):
+        phase_rows = [row for row in rows if row.get("phase") == phase]
+        durations = [float(row.get("elapsed_seconds") or 0) for row in phase_rows]
+        successful = [row for row in phase_rows if row.get("status") == "ok"]
+        samples = sum(int(row.get("rss_samples") or 0) for row in successful)
+        rss_sum = sum(int(row.get("average_rss_bytes") or 0)
+                      * int(row.get("rss_samples") or 0) for row in successful)
+        cpu_samples = sum(int(row.get("cpu_samples") or 0) for row in successful)
+        cpu_sum = sum(float(row.get("average_cpu_percent") or 0)
+                      * int(row.get("cpu_samples") or 0) for row in successful)
+        summary[phase] = {
+            "runs": len(phase_rows),
+            "successful_runs": len(successful),
+            "error_runs": len(phase_rows) - len(successful),
+            "total_elapsed_seconds": round(sum(durations), 3),
+            "average_elapsed_seconds": round(sum(durations) / len(durations), 3)
+            if durations else 0,
+            "average_process_cpu_percent": round(cpu_sum / cpu_samples, 2)
+            if cpu_samples else 0,
+            "peak_process_cpu_percent": round(max(
+                (float(row.get("peak_cpu_percent") or 0) for row in successful),
+                default=0), 2),
+            "cpu_samples": cpu_samples,
+            "peak_process_rss_bytes": max(
+                (int(row.get("peak_rss_bytes") or 0) for row in successful), default=0
+            ),
+            "average_process_rss_bytes": round(rss_sum / samples) if samples else 0,
+            "rss_samples": samples,
+        }
+    return summary
+
+
+def _output_size_report(data_dir: Path) -> tuple[int, dict[str, int]]:
+    groups = {name: 0 for name in ("checkpoints", "references", "tables", "other")}
+    for path in Path(data_dir).rglob("*"):
+        try:
+            if not path.is_file() or path.name.endswith(".partial"):
+                continue
+            relative = path.relative_to(data_dir)
+            parts = relative.parts
+            if "tables" in parts:
+                group = "tables"
+            elif any(part.startswith("reference_") for part in parts):
+                group = "references"
+            elif path.name.startswith("batch_") or path.name == "runtime_history.csv":
+                group = "checkpoints"
+            else:
+                group = "other"
+            groups[group] += path.stat().st_size
+        except OSError:
+            continue
+    return sum(groups.values()), groups
+
+
+def _performance_summary(runtime_rows: list[dict], metric_rows: list[dict],
+                         total_papers: int) -> dict:
+    def seconds(rows: list[dict]) -> float:
+        return sum(float(row.get("elapsed_seconds") or 0) for row in rows)
+
+    arxiv_events = [row for row in metric_rows if row.get("phase") == "arxiv_crawl"]
+    s2_events = [row for row in metric_rows if row.get("phase") == "semantic_scholar"]
+    table_events = [row for row in metric_rows if row.get("phase") == "tables_build"]
+    validate_events = [row for row in metric_rows if row.get("phase") == "tables_validate"]
+    arxiv_wall = (sum(float(row["elapsed_seconds"]) for row in runtime_rows)
+                  if runtime_rows else seconds(arxiv_events))
+    phase_wall = seconds(s2_events + table_events + validate_events)
+    end_to_end = arxiv_wall + phase_wall
+    arxiv_papers = sum(int(row.get("papers_processed") or 0) for row in arxiv_events)
+    s2_papers = sum(int(row.get("papers_processed") or 0) for row in s2_events)
+    samples = [row for row in metric_rows if int(row.get("rss_samples") or 0) > 0]
+    rss_samples = sum(int(row.get("rss_samples") or 0) for row in samples)
+    rss_weighted = sum(int(row.get("average_rss_bytes") or 0)
+                       * int(row.get("rss_samples") or 0) for row in samples)
+    cpu_samples = [row for row in metric_rows if int(row.get("cpu_samples") or 0) > 0]
+    cpu_count = sum(int(row.get("cpu_samples") or 0) for row in cpu_samples)
+    cpu_weighted = sum(float(row.get("average_cpu_percent") or 0)
+                       * int(row.get("cpu_samples") or 0) for row in cpu_samples)
+    persistent_peaks = [int(row.get("persistent_output_bytes") or 0)
+                        for row in metric_rows]
+    scratch_peaks = [int(row.get("sampled_peak_scratch_bytes") or 0)
+                     for row in metric_rows]
+    estimated_disk = max((out + scratch for out, scratch in
+                          zip(persistent_peaks, scratch_peaks)), default=0)
+    return {
+        "arxiv_wall_seconds": round(arxiv_wall, 3),
+        "arxiv_wall_source": "runtime_history.csv" if runtime_rows
+        else "performance_metrics.csv batch events (command overhead unavailable)",
+        "semantic_scholar_wall_seconds": round(seconds(s2_events), 3),
+        "table_build_wall_seconds": round(seconds(table_events), 3),
+        "table_validation_wall_seconds": round(seconds(validate_events), 3),
+        "end_to_end_wall_seconds": round(end_to_end, 3),
+        "end_to_end_seconds_per_unique_paper": round(end_to_end / total_papers, 3)
+        if total_papers else None,
+        "arxiv_seconds_per_processed_paper": round(seconds(arxiv_events) / arxiv_papers, 3)
+        if arxiv_papers else None,
+        "semantic_scholar_seconds_per_api_attempt": round(seconds(s2_events) / s2_papers, 3)
+        if s2_papers else None,
+        "arxiv_papers_processed_including_retries": arxiv_papers,
+        "semantic_scholar_api_attempts_including_retries": s2_papers,
+        "discovery_seconds_including_retries": round(sum(
+            float(row.get("discovery_seconds") or 0) for row in arxiv_events
+        ), 3),
+        "peak_process_tree_rss_bytes": max(
+            (int(row.get("peak_rss_bytes") or 0) for row in samples), default=0
+        ),
+        "average_process_tree_rss_bytes": round(rss_weighted / rss_samples)
+        if rss_samples else 0,
+        "average_process_tree_cpu_percent": round(cpu_weighted / cpu_count, 2)
+        if cpu_count else 0,
+        "peak_process_tree_cpu_percent": round(max(
+            (float(row.get("peak_cpu_percent") or 0) for row in cpu_samples), default=0
+        ), 2),
+        "sampled_peak_scratch_bytes": max(scratch_peaks, default=0),
+        "peak_persistent_output_bytes": max(persistent_peaks, default=0),
+        "estimated_peak_disk_bytes": estimated_disk,
+        "measurement_note": (
+            "End-to-end is the sum of sequential arXiv command wall times and recorded "
+            "S2/build/validation phase wall times. RSS/CPU are sampled process-tree values. "
+            "Disk peak estimates persistent output plus sampled scratch; final output bytes "
+            "are measured separately."
+        ),
+    }
+
+
 def _sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as file:
@@ -196,8 +329,20 @@ def export_reports(backup_dir: Path, report_dir: Path | None = None,
     # describe only the latest run of each batch and must NOT be summed as history.
     runtime_rows = read_runtime_history(backup_dir)
     runtime_summary = summarize_runtime(runtime_rows, len(records))
+    phase_file = backup_dir / "reports" / "performance_metrics.csv"
+    phase_rows = _read_phase_metrics(phase_file)
+    # Retain historical measurements recorded under earlier filenames.
+    for legacy_name in ("metric_CPU.csv", "phase_metrics.csv"):
+        legacy_rows = _read_phase_metrics(backup_dir / "reports" / legacy_name)
+        known_run_ids = {row.get("run_id") for row in phase_rows}
+        phase_rows.extend(row for row in legacy_rows
+                          if row.get("run_id") not in known_run_ids)
+    phase_summary = _summarize_phase_metrics(phase_rows)
+    performance = _performance_summary(runtime_rows, phase_rows, len(records))
     summary = {
         **runtime_summary,
+        "phase_metrics": phase_summary,
+        "performance": performance,
         "issue_counts": issue_counts,
         "issue_rows": len(issues),
         "checkpoint_archive_bytes": checkpoint_bytes,
@@ -224,6 +369,9 @@ def export_reports(backup_dir: Path, report_dir: Path | None = None,
     _write_csv(report_dir / "failed_versions.csv", failed, FAILED_FIELDS)
     _write_csv(report_dir / "issues_explained_vi.csv", issues, ISSUE_FIELDS)
     _write_csv(report_dir / "runtime_history.csv", runtime_rows, HISTORY_FIELDS)
+    if phase_rows:
+        _write_csv(report_dir / "performance_metrics.csv", phase_rows,
+                   list(phase_rows[0].keys()))
     report_text = [
         "BÁO CÁO CRAWL ARXIV — DỄ ĐỌC",
         f"Số batch: {len(batches)} | Số ID: {len(records)}",
@@ -254,9 +402,23 @@ def export_reports(backup_dir: Path, report_dir: Path | None = None,
         "- Chỉ xóa bản sao nếu đã kiểm tra checkpoint hiện tại và không cần khôi phục lịch sử.",
         "", "LƯU Ý: 'error' có thể chỉ là 1 phiên bản thất bại, không nhất thiết mọi phiên bản của bài đều lỗi.",
     ]
+    report_text += [
+        "", "PERFORMANCE SUMMARY (seconds / bytes):",
+        f"- End-to-end wall time: {performance['end_to_end_wall_seconds']}",
+        f"- End-to-end seconds per unique paper: {performance['end_to_end_seconds_per_unique_paper']}",
+        f"- Discovery, including retries: {performance['discovery_seconds_including_retries']}",
+        f"- Peak / average process-tree RSS: {performance['peak_process_tree_rss_bytes']} / {performance['average_process_tree_rss_bytes']}",
+        f"- Estimated peak disk (persistent + scratch): {performance['estimated_peak_disk_bytes']}",
+        "- Detailed rows: performance_metrics.csv; arXiv command wall times: runtime_history.csv.",
+    ]
     (report_dir / "README_BAO_CAO.txt").write_text("\n".join(report_text) + "\n", encoding="utf-8")
-    (report_dir / "summary.json").write_text(
-        json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summary_path = report_dir / "summary.json"
+    for _ in range(2):
+        (final_bytes, output_breakdown) = _output_size_report(backup_dir)
+        summary["performance"]["final_output_bytes"] = final_bytes
+        summary["performance"]["final_output_breakdown_bytes"] = output_breakdown
+        summary_path.write_text(
+            json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
 
 

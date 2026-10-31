@@ -23,6 +23,7 @@ from typing import Any, Iterable, Optional
 from src.common.ids import normalize_arxiv_id
 from src.common.io import write_json
 from src.common.schemas import PaperRow, ReferenceRow
+from .phase_tracking import track_phase
 from .tables import ref_row_from_record, write_m1_tables
 
 LOG = logging.getLogger(__name__)
@@ -141,8 +142,8 @@ def collect_references(data_dir: Path, paper_ids: set[str], *,
     return rows, stats
 
 
-def build_tables(data_dir: Path, tables_dir: Optional[Path] = None, *,
-                 batch_names: Optional[Iterable[str]] = None) -> dict:
+def _build_tables_impl(data_dir: Path, tables_dir: Optional[Path] = None, *,
+                       batch_names: Optional[Iterable[str]] = None) -> dict:
     """Write papers.json, references.json and build_report.json; return the report."""
     data_dir = Path(data_dir)
     tables_dir = Path(tables_dir) if tables_dir is not None else data_dir / "tables"
@@ -163,6 +164,18 @@ def build_tables(data_dir: Path, tables_dir: Optional[Path] = None, *,
               "papers": paper_stats, "references": reference_stats}
     write_json(tables_dir / "build_report.json", report)
     return report
+
+
+def build_tables(data_dir: Path, tables_dir: Optional[Path] = None, *,
+                 batch_names: Optional[Iterable[str]] = None) -> dict:
+    """Build tables and record wall-clock/process-RSS metrics for this run."""
+    names = list(batch_names) if batch_names is not None else None
+    batch_label = ",".join(names) if names else "all"
+    with track_phase(data_dir, "tables_build", batch=batch_label) as performance:
+        report = _build_tables_impl(data_dir, tables_dir=tables_dir, batch_names=names)
+        performance["papers_requested"] = report["papers_rows"]
+        performance["papers_processed"] = report["papers_rows"]
+        return report
 
 
 def build_batch_tables(data_dir: Path, batch_name: str) -> dict:

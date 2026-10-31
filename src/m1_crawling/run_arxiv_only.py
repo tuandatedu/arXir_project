@@ -39,6 +39,7 @@ from src.m1_crawling.discover import API_URL, ATOM, _identifier, fetch_papers_by
 from src.m1_crawling.download import (
     cleanup_temp_archive, detect_archive_kind, download_source_archive, extract_tex_and_bib,
 )
+from src.m1_crawling.phase_tracking import append_metric_row, directory_size
 
 LOG = logging.getLogger("arxiv-crawler")
 TERMINAL = {"ok", "no_tex", "not_found"}
@@ -72,29 +73,52 @@ def _size(path: Path) -> int:
     return sum(p.stat().st_size for p in path.rglob("*") if p.is_file()) if path.exists() else 0
 
 class ResourceSampler:
-    """Sample current process RSS (1s) and scratch disk (5s) during a batch.
-
-    These values describe this arXiv-only process, not the complete M1+S2
-    system benchmark required by the lab book.
-    """
+    """Sample Colab process-tree CPU/RSS (1s) and crawler scratch disk (5s)."""
     def __init__(self, path: Path):
         self.path = path
+        self.root_pid = int(os.environ.get("M1_METRICS_ROOT_PID", os.getpid()))
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, name="arxiv-metrics", daemon=True)
         self.rss_total = 0
         self.rss_samples = 0
         self.peak_rss_bytes = 0
         self.peak_scratch_bytes = 0
+        self.cpu_samples: list[float] = []
+        self._previous_cpu: dict[int, float] = {}
+        self._previous_cpu_at: float | None = None
 
     def _loop(self) -> None:
-        process = psutil.Process()
         count = 0
         while not self._stop.is_set():
             try:
-                memory = process.memory_info().rss
+                try:
+                    root = psutil.Process(self.root_pid)
+                    processes = [root, *root.children(recursive=True)]
+                except psutil.Error:
+                    processes = [psutil.Process()]
+                memory = 0
+                current_cpu = {}
+                now = time.monotonic()
+                cpu_total = 0.0
+                for process in processes:
+                    try:
+                        memory += process.memory_info().rss
+                        times = process.cpu_times()
+                        used = times.user + times.system
+                        current_cpu[process.pid] = used
+                        if process.pid in self._previous_cpu and self._previous_cpu_at is not None:
+                            cpu_total += max(0.0, used - self._previous_cpu[process.pid]) * 100.0 / max(
+                                now - self._previous_cpu_at, 1e-6
+                            )
+                    except psutil.Error:
+                        continue
                 self.rss_total += memory
                 self.rss_samples += 1
                 self.peak_rss_bytes = max(self.peak_rss_bytes, memory)
+                if self._previous_cpu_at is not None:
+                    self.cpu_samples.append(cpu_total)
+                self._previous_cpu = current_cpu
+                self._previous_cpu_at = now
                 if count % 5 == 0:
                     self.peak_scratch_bytes = max(self.peak_scratch_bytes, _size(self.path))
             except (OSError, psutil.Error):
@@ -108,10 +132,15 @@ class ResourceSampler:
     def finish(self) -> dict:
         self._stop.set()
         self._thread.join(timeout=6)
+        scratch_peak = max(self.peak_scratch_bytes, _size(self.path))
         return {"peak_rss_bytes": self.peak_rss_bytes,
                 "average_rss_bytes": round(self.rss_total / max(1, self.rss_samples)),
                 "rss_samples": self.rss_samples,
-                "sampled_peak_scratch_bytes": max(self.peak_scratch_bytes, _size(self.path))}
+                "average_cpu_percent": round(sum(self.cpu_samples) / len(self.cpu_samples), 2)
+                if self.cpu_samples else 0,
+                "peak_cpu_percent": round(max(self.cpu_samples, default=0), 2),
+                "cpu_samples": len(self.cpu_samples),
+                "sampled_peak_scratch_bytes": scratch_peak}
 
 
 
@@ -439,6 +468,7 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     if batch_work.exists():
         shutil.rmtree(batch_work)
     batch_work.mkdir(parents=True)
+    batch_started_at = _now()
     old_status: dict[str, dict] = {}
     if previous and retry_failed:
         _safe_restore(backup_dir / f"{name}.tar.gz", batch_work)
@@ -540,6 +570,25 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
     manifest["archive_seconds"] = round(time.monotonic() - start_upload, 3)
     # Always keep an explicit archived manifest describing backup duration.
     _write_json(backup_dir / (name + ".json"), manifest)
+    append_metric_row(backup_dir, {
+        "phase": "arxiv_crawl",
+        "batch": name,
+        "started_at_utc": batch_started_at,
+        "finished_at_utc": _now(),
+        "elapsed_seconds": manifest["runtime_seconds_this_run"],
+        "papers_requested": len(ids),
+        "papers_processed": len(pending),
+        "discovery_seconds": manifest["discovery_seconds_this_run"],
+        "average_cpu_percent": resource_metrics["average_cpu_percent"],
+        "peak_cpu_percent": resource_metrics["peak_cpu_percent"],
+        "cpu_samples": resource_metrics["cpu_samples"],
+        "peak_rss_bytes": resource_metrics["peak_rss_bytes"],
+        "average_rss_bytes": resource_metrics["average_rss_bytes"],
+        "rss_samples": resource_metrics["rss_samples"],
+        "persistent_output_bytes": directory_size(backup_dir),
+        "sampled_peak_scratch_bytes": resource_metrics["sampled_peak_scratch_bytes"],
+        "status": "partial" if manifest["failed"] else "ok",
+    })
     _print_batch_summary(name, manifest, paper_rows)
 
     shutil.rmtree(batch_work)

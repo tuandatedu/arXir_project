@@ -18,6 +18,7 @@ from typing import Any, Iterable, Optional
 
 from src.common.ids import normalize_arxiv_id
 from src.common.io import read_json, read_jsonl, write_json
+from .phase_tracking import track_phase
 
 PAPER_COLUMNS = ("arxiv_id", "title", "authors", "submission_date", "revised_dates", "venue")
 REFERENCE_COLUMNS = ("arxiv_id", "ref_arxiv_id", "ref_title", "ref_authors",
@@ -163,6 +164,15 @@ def summarize(issues: Iterable[dict], n_rows: int) -> dict:
 
 
 def validate_tables(tables_dir: Path, *, verbose: bool = True) -> dict:
+    tables_dir = Path(tables_dir)
+    with track_phase(tables_dir.parent, "tables_validate") as performance:
+        report = _validate_tables_impl(tables_dir, verbose=verbose)
+        performance["papers_requested"] = report["papers"]["rows"]
+        performance["papers_processed"] = report["papers"]["rows"]
+        return report
+
+
+def _validate_tables_impl(tables_dir: Path, *, verbose: bool = True) -> dict:
     """Validate papers.json/references.json; write validation_report.json."""
     tables_dir = Path(tables_dir)
     def load_table(name: str) -> list[dict]:

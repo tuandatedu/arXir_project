@@ -26,7 +26,7 @@ def fetch_s2_references(arxiv_id: str, api_key: Optional[str] = None) -> list[di
     try:
         # Ask only for fields the corpus needs; this keeps the response compact.
         response = request_with_retry("GET", url, headers=headers,
-                                      params={"fields": ",".join(S2_FIELDS)}, max_retries=4)
+                                      params={"fields": ",".join(S2_FIELDS)}, max_retries=6)
         try:
             payload = response.json()
         finally:

@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from src.common.ids import folder_name_for_arxiv_id
+from .phase_tracking import track_phase
 from .runtime_tracking import utc_now
 from .semantic_scholar import fetch_s2_references, s2_ref_to_local_record
 
@@ -65,7 +66,7 @@ def fetch_one(arxiv_id: str, api_key: Optional[str] = None) -> dict:
     except Exception as exc:  # network loss, 429 after retries, 5xx, malformed payload
         record["status"] = "error"
         record["error"] = f"{type(exc).__name__}: {exc}"
-        LOG.warning("Semantic Scholar failed for %s: %s", arxiv_id, record["error"])
+        LOG.debug("Semantic Scholar failed for %s: %s", arxiv_id, record["error"])
     return record
 
 
@@ -109,9 +110,25 @@ def _save_cumulative_reference_totals(data_dir: Path) -> dict:
 def crawl_references(data_dir: Path, *, batch_names: Optional[Iterable[str]] = None,
                      retry_empty: bool = False, api_key: Optional[str] = None) -> list[str]:
     """Fetch missing references for valid checkpoints. Returns the batches it processed."""
+    names = list(batch_names) if batch_names is not None else None
+    batch_label = ",".join(names) if names else "all"
+    with track_phase(data_dir, "semantic_scholar", batch=batch_label) as performance:
+        return _crawl_references_impl(
+            data_dir, batch_names=names, retry_empty=retry_empty, api_key=api_key,
+            performance=performance,
+        )
+
+
+def _crawl_references_impl(data_dir: Path, *, batch_names: Optional[Iterable[str]] = None,
+                           retry_empty: bool = False,
+                           api_key: Optional[str] = None,
+                           performance: Optional[dict] = None) -> list[str]:
+    """Implementation; public wrapper records elapsed time and process RSS."""
     data_dir = Path(data_dir)
     wanted = set(batch_names) if batch_names is not None else None
     processed: list[str] = []
+    if performance is not None:
+        performance.update(papers_requested=0, papers_processed=0)
     for marker in sorted(data_dir.glob("batch_*.json")):
         name = marker.stem
         if wanted is not None and name not in wanted:
@@ -138,6 +155,8 @@ def crawl_references(data_dir: Path, *, batch_names: Optional[Iterable[str]] = N
             if crawl_status.get(arxiv_id) == "not_found":
                 per_paper[arxiv_id] = {"status": "skipped", "n_refs": 0, "n_with_arxiv_id": 0}
                 continue
+            if performance is not None:
+                performance["papers_requested"] += 1
             path = out_dir / f"{folder_name_for_arxiv_id(arxiv_id)}.json"
             record = None
             if path.is_file():
@@ -149,12 +168,15 @@ def crawl_references(data_dir: Path, *, batch_names: Optional[Iterable[str]] = N
                                        or (retry_empty and record.get("status") == "empty")):
                 record = None
             if record is None:
+                if performance is not None:
+                    performance["papers_processed"] += 1
                 record = fetch_one(arxiv_id, api_key)
                 _write_json_atomic(path, record)
-                info = paper_summary(record)
-                print(f"  [{i}/{len(ids)}] {arxiv_id}: {record['status']} "
-                      f"({info['n_refs']} ref, {info['n_with_arxiv_id']} có arXiv ID)"
-                      + (f" - {record['error']}" if record["error"] else ""), flush=True)
+                if record["status"] != "error":
+                    info = paper_summary(record)
+                    print(f"  [{i}/{len(ids)}] {arxiv_id}: {record['status']} "
+                          f"({info['n_refs']} ref, {info['n_with_arxiv_id']} c? arXiv ID)",
+                          flush=True)
             per_paper[arxiv_id] = paper_summary(record)
 
         statuses = [p["status"] for p in per_paper.values()]
