@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 
 from src.common.config import ASSIGNED_IDS_FILE, WORKING_DIR
+from src.common.config import TABLES_DIR
 from .pipeline import run_milestone1
 
 
@@ -33,8 +34,24 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     if not args.ids.is_file():
         raise FileNotFoundError(f"Assigned ID file not found: {args.ids}")
-    run_milestone1(args.ids, s2_api_key=args.semantic_scholar_api_key,
-                   output_dir=args.output)
+    papers, references = run_milestone1(
+        args.ids, s2_api_key=args.semantic_scholar_api_key, output_dir=args.output
+    )
+    # The crawler writes full records to disk; show a short console summary too,
+    # since otherwise a successful CLI run appears to do nothing.
+    print(f"Crawled papers: {len(papers)}")
+    print(f"References with arXiv ID: {len(references)}")
+    print(f"Corpus: {args.output}")
+    print(f"Tables: {TABLES_DIR}")
+    if references:
+        print("\nReference samples:")
+        for ref in references[:5]:
+            print(f"- {ref.ref_title or '(untitled)'} [{ref.ref_arxiv_id}] "
+                  f"(cited by {ref.arxiv_id})")
+    else:
+        print("No references with arXiv IDs were exported. Check each paper's "
+              "references.json for all Semantic Scholar references, including "
+              "references without arXiv IDs.")
     return 0
 
 

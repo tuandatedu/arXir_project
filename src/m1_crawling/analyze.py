@@ -96,9 +96,11 @@ def corpus_stats(
     # Use per-run records for measurements that disappear with the temporary archives.
     archive_bytes = sum(int(row.get("archive_bytes", 0) or 0) for row in run_rows)
     archive_papers = sum(int(row.get("archive_bytes", 0) or 0) > 0 for row in run_rows)
-    successful = sum(row.get("status") == "success" for row in run_rows)
-    partial = sum(row.get("status") == "partial" for row in run_rows)
-    failed = sum(row.get("status") == "failed" for row in run_rows)
+    # Status vocabulary: ok | error | no_tex | not_found.
+    ok = sum(row.get("status") == "ok" for row in run_rows)
+    no_tex = sum(row.get("status") == "no_tex" for row in run_rows)
+    not_found = sum(row.get("status") == "not_found" for row in run_rows)
+    errors = sum(row.get("status") == "error" for row in run_rows)
     durations = [float(row["duration_sec"]) for row in run_rows
                  if row.get("duration_sec") is not None]
     discovery_durations = [float(row["discovery_seconds"]) for row in run_rows
@@ -123,10 +125,14 @@ def corpus_stats(
         # Discovery and crawl coverage.
         "n_assigned": n_assigned,
         "n_resolved": n_resolved,
-        "n_successful": successful,
-        "n_partial": partial,
-        "n_failed": failed,
-        "overall_success_rate": successful / n_assigned if n_assigned else None,
+        "n_ok": ok,
+        "n_no_tex": no_tex,
+        "n_not_found": not_found,
+        "n_error": errors,
+        # Strict rate: every version fetched, at least one has TeX/Bib.
+        "overall_success_rate": ok / n_assigned if n_assigned else None,
+        # Lenient rate: also counts papers whose versions are all legitimately PDF-only.
+        "crawl_completed_rate": (ok + no_tex) / n_assigned if n_assigned else None,
         "n_versions": n_versions,
         "n_empty_versions": n_empty_versions,
         # Source size before/after extraction (the archive is measured during the run).

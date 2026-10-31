@@ -36,7 +36,9 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
     http = http or ArxivHTTP()
     started = time.perf_counter()
     # Accumulate simple values that are safe to write into the JSON metrics file.
-    result = {"arxiv_id": arxiv_id, "status": "failed", "n_versions": 0,
+    # Paper status: ok | error | no_tex | not_found (same vocabulary as export_reports.py).
+    # Per-version outcomes go to result["versions"] so a retry can target only bad versions.
+    result = {"arxiv_id": arxiv_id, "status": "error", "n_versions": 0, "versions": [],
               "n_empty_versions": 0, "n_tex_bib_files": 0,
               "archive_bytes": 0, "extracted_bytes": 0,
               "semantic_scholar_reference_count": 0,
@@ -53,6 +55,8 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
             return result
         result["discovery_seconds"] = round(time.perf_counter() - discovery_started, 6)
         if meta is None:
+            # The API answered but the ID is absent: not an HTTP/parse failure.
+            result["status"] = "not_found"
             result["errors"].append({"stage": "discovery", "error": "paper_not_found"})
             return result
         # Save metadata before downloads so a later failure does not lose the paper record.
@@ -80,6 +84,8 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
                     if not files:
                         result["n_empty_versions"] += 1
                         reason = "pdf_only" if kind == "pdf" else "no_tex_or_bib"
+                        result["versions"].append(
+                            {"version": version, "status": "no_tex", "reason": reason})
                         save_version_sources(arxiv_id, version, [], empty=True, reason=reason,
                                              working_dir=working_dir)
                     else:
@@ -88,9 +94,13 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
                         # The extractor already wrote into the final folder.
                         save_version_sources(arxiv_id, version, files, empty=False,
                                              working_dir=working_dir)
+                        result["versions"].append(
+                            {"version": version, "status": "ok", "reason": ""})
                 except Exception as exc:
                     # Record the failure and continue with the next version.
                     result["errors"].append({"version": version, "error": str(exc)})
+                    result["versions"].append(
+                        {"version": version, "status": "error", "reason": str(exc)})
                     result["n_empty_versions"] += 1
                     save_version_sources(arxiv_id, version, [], empty=True,
                                          reason=f"download_or_extract_error: {exc}",
@@ -113,7 +123,16 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None,
         # Preserve all references locally; the references table filters by arXiv ID later.
         save_references(arxiv_id, local_refs, working_dir)
         result["semantic_scholar_reference_count"] = len(local_refs)
-        result["status"] = "success" if not result["errors"] else "partial"
+        # error: any version failed to download/extract, or the S2 request failed.
+        # no_tex: every version was fetched fine but none contains .tex/.bib.
+        # ok: everything fetched and at least one version has TeX/Bib.
+        version_status = [v["status"] for v in result["versions"]]
+        if result["errors"]:
+            result["status"] = "error"
+        elif version_status and all(s == "no_tex" for s in version_status):
+            result["status"] = "no_tex"
+        else:
+            result["status"] = "ok"
         return result
     finally:
         # Include elapsed time even if discovery or processing raises an exception.
@@ -165,7 +184,7 @@ def run_milestone1(ids_file: Path, *, s2_api_key: Optional[str] = None,
                 LOG.exception("Could not crawl assigned paper %s", arxiv_id)
                 crawl_results.append({
                     "arxiv_id": arxiv_id,
-                    "status": "failed",
+                    "status": "error",
                     "duration_sec": round(time.perf_counter() - paper_started, 6),
                     "error": str(exc),
                 })
