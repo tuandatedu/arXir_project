@@ -75,6 +75,37 @@ def paper_summary(record: dict) -> dict:
             "n_with_arxiv_id": sum(bool(r.get("ref_arxiv_id")) for r in refs)}
 
 
+def _save_cumulative_reference_totals(data_dir: Path) -> dict:
+    """Store totals across batches in every batch manifest for easy inspection."""
+    manifests = []
+    summaries = []
+    for marker in sorted(data_dir.glob("batch_*.json")):
+        try:
+            manifest = json.loads(marker.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            LOG.warning("Cannot read batch manifest while aggregating references: %s", marker)
+            continue
+        manifests.append((marker, manifest))
+        summary = manifest.get("references")
+        if isinstance(summary, dict):
+            summaries.append(summary)
+
+    totals = {
+        "batches_with_reference_summary": len(summaries),
+        "total_refs": sum(int(s.get("total_refs", 0) or 0) for s in summaries),
+        "refs_with_arxiv_id": sum(int(s.get("refs_with_arxiv_id", 0) or 0)
+                                   for s in summaries),
+        "papers_ok": sum(int(s.get("papers_ok", 0) or 0) for s in summaries),
+        "papers_empty": sum(int(s.get("papers_empty", 0) or 0) for s in summaries),
+        "papers_error": sum(int(s.get("papers_error", 0) or 0) for s in summaries),
+        "papers_skipped": sum(int(s.get("papers_skipped", 0) or 0) for s in summaries),
+    }
+    for marker, manifest in manifests:
+        manifest["references_total"] = totals
+        _write_json_atomic(marker, manifest)
+    return totals
+
+
 def crawl_references(data_dir: Path, *, batch_names: Optional[Iterable[str]] = None,
                      retry_empty: bool = False, api_key: Optional[str] = None) -> list[str]:
     """Fetch missing references for valid checkpoints. Returns the batches it processed."""
@@ -145,4 +176,9 @@ def crawl_references(data_dir: Path, *, batch_names: Optional[Iterable[str]] = N
               f"error={summary['papers_error']} skipped={summary['papers_skipped']} | "
               f"{summary['total_refs']} ref, {summary['refs_with_arxiv_id']} có arXiv ID", flush=True)
         processed.append(name)
+    # Keep a cumulative snapshot in the JSON manifests, not only in console output.
+    totals = _save_cumulative_reference_totals(data_dir)
+    print(f"\n[REFERENCES TOTAL] {totals['batches_with_reference_summary']} batches | "
+          f"{totals['total_refs']} references | "
+          f"{totals['refs_with_arxiv_id']} with arXiv ID", flush=True)
     return processed

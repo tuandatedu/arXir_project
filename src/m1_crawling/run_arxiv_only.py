@@ -176,6 +176,30 @@ def _has_error(manifest: dict) -> bool:
     return manifest.get("failed", 0) > 0
 
 
+def _is_discovery_failed_checkpoint(backup: Path, name: str, manifest: dict) -> bool:
+    """Detect batches where discovery failed globally, so normal resume retries them."""
+    if manifest.get("discovery_error"):
+        return True
+    requested = int(manifest.get("requested", 0) or 0)
+    if (requested == 0 or int(manifest.get("failed", 0) or 0) != requested
+            or int(manifest.get("not_found", 0) or 0) != 0):
+        return False
+    archive = Path(backup) / f"{name}.tar.gz"
+    try:
+        with tarfile.open(archive, "r:gz") as tf:
+            member = tf.extractfile("crawl_records.jsonl")
+            if member is None:
+                return False
+            rows = [json.loads(line) for line in member if line.strip()]
+    except (OSError, tarfile.TarError, KeyError, json.JSONDecodeError):
+        return False
+    return len(rows) == requested and all(
+        row.get("status") == "error"
+        and str(row.get("error") or "").startswith("discovery:")
+        for row in rows
+    )
+
+
 def _enrich_revision_dates(metas: dict[str, PaperMeta], http: ArxivHTTP) -> None:
     """Fill intermediate revision dates with version-qualified Atom lookups.
 
@@ -400,7 +424,11 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
                http: ArxivHTTP, verify_checksum: bool,
                retry_failed: bool, revision_dates: bool, workers: int = 1) -> dict:
     previous = _existing_manifest(backup_dir, name, ids, verify_checksum)
-    if previous and (not retry_failed or not _has_error(previous)):
+    retry_discovery = bool(
+        previous and not retry_failed
+        and _is_discovery_failed_checkpoint(backup_dir, name, previous)
+    )
+    if previous and not retry_discovery and (not retry_failed or not _has_error(previous)):
         print(f"[SKIP] {name} complete checkpoint: {previous.get('ok',0)} OK, "
               f"{previous.get('failed',0)} errors (use --retry-failed)", flush=True)
         return previous
@@ -494,6 +522,7 @@ def _run_batch(ids: list[str], name: str, output_root: Path, backup_dir: Path,
                 "no_tex": sum(x["status"] == "no_tex" for x in ordered),
                 "not_found": sum(x["status"] == "not_found" for x in ordered),
                 "failed": sum(x["status"] == "error" for x in ordered),
+                "discovery_error": discovery_error,
                 "api_requests_this_run": http.request_count - requests_before,
                 "api_retries_this_run": http.retry_count - retries_before,
                 "discovery_seconds_this_run": round(discovery_sec, 3),
@@ -601,7 +630,13 @@ def main(argv: list[str] | None = None) -> int:
                 if previous is None or not _has_error(previous):
                     continue
             else:
-                # Fast Crawl resumes from the next unfinished checkpoint.
+                # Retry checkpoints that never got metadata because discovery failed.
+                if previous is not None and _is_discovery_failed_checkpoint(
+                        args.backup_dir, name, previous):
+                    print(f"[RETRY] {name}: previous discovery failed; retrying this batch",
+                          flush=True)
+                    previous = None
+                # Fast Crawl skips other completed checkpoints.
                 if previous is not None:
                     continue
             result = _run_batch(paper_ids, name, args.output_root, args.backup_dir, http,

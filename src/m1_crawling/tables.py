@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.common.config import TABLES_DIR
 from src.common.ids import normalize_arxiv_id
-from src.common.io import dataclass_to_dict, write_jsonl
+from src.common.io import dataclass_to_dict, write_json, write_jsonl
 from src.common.schemas import PaperRow, ReferenceRow
 from .discover import PaperMeta
 
@@ -65,5 +65,9 @@ def write_m1_tables(papers: list[PaperRow], references: list[ReferenceRow],
     # Convert typed rows to plain dictionaries before serializing to JSONL.
     paper_rows = [dataclass_to_dict(row) for row in papers]
     reference_rows = [dataclass_to_dict(row) for row in references]
+    # Write one JSON array per table for convenient inspection and sharing.
+    write_json(output_dir / "papers.json", paper_rows)
+    write_json(output_dir / "references.json", reference_rows)
+    # Keep JSONL outputs for existing downstream tools that stream rows.
     write_jsonl(output_dir / "papers.jsonl", paper_rows)
     write_jsonl(output_dir / "references.jsonl", reference_rows)

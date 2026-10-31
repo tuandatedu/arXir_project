@@ -18,7 +18,7 @@ import logging
 import tarfile
 from collections import Counter
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Iterable, Optional
 
 from src.common.ids import normalize_arxiv_id
 from src.common.io import write_json
@@ -46,13 +46,17 @@ def _read_member_jsonl(archive: Path, member_name: str) -> list[dict]:
     raise ValueError(f"{member_name} missing in {archive}")
 
 
-def collect_papers(data_dir: Path) -> tuple[list[PaperRow], dict]:
+def collect_papers(data_dir: Path, *, batch_names: Optional[Iterable[str]] = None
+                   ) -> tuple[list[PaperRow], dict]:
     rows: list[PaperRow] = []
     seen: set[str] = set()
+    wanted_batches = set(batch_names) if batch_names is not None else None
     stats: dict[str, Any] = {"batches_read": 0, "batches_skipped_invalid": [],
                              "paper_rows_read": 0, "papers_invalid_id": 0,
                              "papers_duplicates_removed": 0}
     for marker in sorted(Path(data_dir).glob("batch_*.json")):
+        if wanted_batches is not None and marker.stem not in wanted_batches:
+            continue
         manifest = json.loads(marker.read_text(encoding="utf-8"))
         archive = marker.with_suffix(".tar.gz")
         if not archive.is_file() or archive.stat().st_size != manifest.get("archive_bytes"):
@@ -82,8 +86,14 @@ def collect_papers(data_dir: Path) -> tuple[list[PaperRow], dict]:
     return rows, stats
 
 
-def collect_references(data_dir: Path, paper_ids: set[str]) -> tuple[list[ReferenceRow], dict]:
+def collect_references(data_dir: Path, paper_ids: set[str], *,
+                       batch_names: Optional[Iterable[str]] = None
+                       ) -> tuple[list[ReferenceRow], dict]:
     rows: list[ReferenceRow] = []
+    wanted_reference_dirs = (
+        {"reference_" + name.removeprefix("batch_") for name in batch_names}
+        if batch_names is not None else None
+    )
     seen: set[tuple[str, str]] = set()
     file_status: Counter = Counter()
     stats: dict[str, Any] = {"reference_files": 0, "reference_files_unreadable": [],
@@ -92,6 +102,8 @@ def collect_references(data_dir: Path, paper_ids: set[str]) -> tuple[list[Refere
                              "references_duplicates_removed": 0}
     papers_with_file: set[str] = set()
     for ref_dir in sorted(p for p in Path(data_dir).glob("reference_*") if p.is_dir()):
+        if wanted_reference_dirs is not None and ref_dir.name not in wanted_reference_dirs:
+            continue
         for path in sorted(ref_dir.glob("*.json")):
             try:
                 record = json.loads(path.read_text(encoding="utf-8-sig"))
@@ -129,15 +141,35 @@ def collect_references(data_dir: Path, paper_ids: set[str]) -> tuple[list[Refere
     return rows, stats
 
 
-def build_tables(data_dir: Path, tables_dir: Optional[Path] = None) -> dict:
+def build_tables(data_dir: Path, tables_dir: Optional[Path] = None, *,
+                 batch_names: Optional[Iterable[str]] = None) -> dict:
     """Write papers.jsonl, references.jsonl and build_report.json; return the report."""
     data_dir = Path(data_dir)
     tables_dir = Path(tables_dir) if tables_dir is not None else data_dir / "tables"
-    papers, paper_stats = collect_papers(data_dir)
-    references, reference_stats = collect_references(data_dir, {p.arxiv_id for p in papers})
+    wanted_batches = set(batch_names) if batch_names is not None else None
+    papers, paper_stats = collect_papers(data_dir, batch_names=wanted_batches)
+    if paper_stats["batches_read"] and not papers:
+        raise RuntimeError(
+            "No paper rows were found in valid batch archives. "
+            "The batches may have failed during arXiv discovery; rerun the crawler "
+            "to retry those checkpoints before building tables."
+        )
+    references, reference_stats = collect_references(
+        data_dir, {p.arxiv_id for p in papers}, batch_names=wanted_batches
+    )
     write_m1_tables(papers, references, tables_dir=tables_dir)
     report = {"tables_dir": str(tables_dir), "papers_rows": len(papers),
               "references_rows": len(references),
               "papers": paper_stats, "references": reference_stats}
     write_json(tables_dir / "build_report.json", report)
     return report
+
+
+def build_batch_tables(data_dir: Path, batch_name: str) -> dict:
+    """Write one batch's tables under its matching ``reference_XXXXX/tables`` folder."""
+    data_dir = Path(data_dir)
+    if not batch_name.startswith("batch_"):
+        raise ValueError("batch_name must look like 'batch_00000'")
+    suffix = batch_name.removeprefix("batch_")
+    tables_dir = data_dir / f"reference_{suffix}" / "tables"
+    return build_tables(data_dir, tables_dir=tables_dir, batch_names=[batch_name])

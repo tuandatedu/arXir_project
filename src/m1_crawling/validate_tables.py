@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any, Iterable, Optional
 
 from src.common.ids import normalize_arxiv_id
-from src.common.io import read_jsonl, write_json
+from src.common.io import read_json, read_jsonl, write_json
 
 PAPER_COLUMNS = ("arxiv_id", "title", "authors", "submission_date", "revised_dates", "venue")
 REFERENCE_COLUMNS = ("arxiv_id", "ref_arxiv_id", "ref_title", "ref_authors",
@@ -165,8 +165,18 @@ def summarize(issues: Iterable[dict], n_rows: int) -> dict:
 def validate_tables(tables_dir: Path, *, verbose: bool = True) -> dict:
     """Validate papers.jsonl and references.jsonl; write validation_report.json."""
     tables_dir = Path(tables_dir)
-    papers = read_jsonl(tables_dir / "papers.jsonl")
-    references = read_jsonl(tables_dir / "references.jsonl")
+    def load_table(name: str) -> list[dict]:
+        # Prefer the standalone JSON table, with JSONL as a backward-compatible fallback.
+        json_path = tables_dir / f"{name}.json"
+        if json_path.is_file():
+            rows = read_json(json_path)
+            if not isinstance(rows, list):
+                raise ValueError(f"{json_path} must contain a JSON array")
+            return rows
+        return read_jsonl(tables_dir / f"{name}.jsonl")
+
+    papers = load_table("papers")
+    references = load_table("references")
     paper_ids = {r["arxiv_id"] for r in papers if isinstance(r.get("arxiv_id"), str)}
     paper_issues = validate_papers(papers)
     reference_issues = validate_references(references, paper_ids)
