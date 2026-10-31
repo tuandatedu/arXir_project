@@ -1,4 +1,4 @@
-"""Validate the two M1 tables: missing information, wrong types, duplicates.
+"""Validate the two M1 JSON tables: missing information, wrong types, duplicates.
 
 Severity: ``error`` = violates the table schema or integrity (fix before submitting);
 ``warning`` = legal but information is missing (report it, e.g. a paper without venue).
@@ -163,10 +163,10 @@ def summarize(issues: Iterable[dict], n_rows: int) -> dict:
 
 
 def validate_tables(tables_dir: Path, *, verbose: bool = True) -> dict:
-    """Validate papers.jsonl and references.jsonl; write validation_report.json."""
+    """Validate papers.json/references.json; write validation_report.json."""
     tables_dir = Path(tables_dir)
     def load_table(name: str) -> list[dict]:
-        # Prefer the standalone JSON table, with JSONL as a backward-compatible fallback.
+        # JSON is the current format; keep JSONL as a fallback for old table folders.
         json_path = tables_dir / f"{name}.json"
         if json_path.is_file():
             rows = read_json(json_path)

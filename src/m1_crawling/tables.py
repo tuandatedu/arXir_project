@@ -5,7 +5,7 @@ from pathlib import Path
 
 from src.common.config import TABLES_DIR
 from src.common.ids import normalize_arxiv_id
-from src.common.io import dataclass_to_dict, write_json, write_jsonl
+from src.common.io import dataclass_to_dict, write_json
 from src.common.schemas import PaperRow, ReferenceRow
 from .discover import PaperMeta
 
@@ -59,15 +59,16 @@ def s2_records_to_reference_rows(citing_arxiv_id: str,
 
 def write_m1_tables(papers: list[PaperRow], references: list[ReferenceRow],
                     tables_dir: Path | None = None) -> None:
-    """Write UTF-8 JSONL working tables in schema field order."""
+    """Write the M1 tables as UTF-8 JSON arrays in schema field order."""
     # Use the default project data folder, or a Drive folder in Colab.
     output_dir = Path(tables_dir) if tables_dir is not None else TABLES_DIR
-    # Convert typed rows to plain dictionaries before serializing to JSONL.
+    # Convert typed rows to plain dictionaries before serializing.
     paper_rows = [dataclass_to_dict(row) for row in papers]
     reference_rows = [dataclass_to_dict(row) for row in references]
-    # Write one JSON array per table for convenient inspection and sharing.
     write_json(output_dir / "papers.json", paper_rows)
     write_json(output_dir / "references.json", reference_rows)
-    # Keep JSONL outputs for existing downstream tools that stream rows.
-    write_jsonl(output_dir / "papers.jsonl", paper_rows)
-    write_jsonl(output_dir / "references.jsonl", reference_rows)
+    # Remove duplicate table files created by older versions of this writer.
+    for name in ("papers.jsonl", "references.jsonl"):
+        legacy_file = output_dir / name
+        if legacy_file.exists():
+            legacy_file.unlink()
