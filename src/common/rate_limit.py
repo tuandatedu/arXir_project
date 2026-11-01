@@ -85,8 +85,12 @@ def request_with_retry(
                 response.close()
                 wait = min(120.0, retry_after if retry_after is not None
                            else (2 ** attempt or 1.0))
-                LOG.warning("HTTP %s on %s; retry in %.1fs",
-                            response.status_code, url, wait)
+                # 429 là expected khi vượt rate limit — debug để không spam log.
+                if response.status_code == 429:
+                    LOG.debug("HTTP 429 on %s; retry in %.1fs", url, wait)
+                else:
+                    LOG.warning("HTTP %s on %s; retry in %.1fs",
+                                response.status_code, url, wait)
             elif response.status_code in RETRYABLE_STATUS:
                 # Hết retry nhưng vẫn 429/5xx: trả response cho caller tự xử lý.
                 return response

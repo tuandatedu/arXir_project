@@ -114,6 +114,7 @@ def test_fetch_s2_references_handles_404_and_parses(monkeypatch):
 
     monkeypatch.setattr(s2, "request_with_retry", fake_request)
     monkeypatch.setattr(s2, "S2_MIN_DELAY_SEC", 0.0)
+    monkeypatch.setattr(s2, "S2_MIN_DELAY_UNAUTH_SEC", 0.0)
 
     missing = fetch_s2_references("2310.99999")
     assert missing == []

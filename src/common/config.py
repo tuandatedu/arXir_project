@@ -57,8 +57,12 @@ S2_FIELDS = (
     "references.venue",
     "references.externalIds",
 )
-# Unauthenticated: 1 req/s và 100 req / 5 phút. API key (S2_API_KEY) ổn định hơn.
+# Unauthenticated: 1 req/s và 100 req / 5 phút (= 1 req / 3s trung bình).
+# API key (S2_API_KEY) cho phép nhanh hơn nhưng vẫn bị 429 khi dồn dập.
 S2_MIN_DELAY_SEC = 1.0
+S2_MIN_DELAY_UNAUTH_SEC = 3.1
+# Chờ chung sau khi hết retry vẫn 429 — tránh spam request vào cửa sổ bị chặn.
+S2_429_COOLDOWN_SEC = 60.0
 
 # ---------------------------------------------------------------------------
 # Hugging Face — Milestone 3 (6 bảng, Parquet sharded)

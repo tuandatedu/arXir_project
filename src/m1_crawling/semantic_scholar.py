@@ -18,7 +18,13 @@ from typing import Any, Optional
 
 import requests
 
-from src.common.config import S2_FIELDS, S2_MIN_DELAY_SEC, S2_PAPER_URL
+from src.common.config import (
+    S2_429_COOLDOWN_SEC,
+    S2_FIELDS,
+    S2_MIN_DELAY_SEC,
+    S2_MIN_DELAY_UNAUTH_SEC,
+    S2_PAPER_URL,
+)
 from src.common.ids import normalize_arxiv_id
 from src.common.rate_limit import request_with_retry, sleep_until_allowed
 
@@ -26,11 +32,17 @@ LOG = logging.getLogger(__name__)
 
 # Pace across every caller in this process (one connection at a time).
 _last_call_monotonic = 0.0
+# Shared cooldown after a 429 that outlived retries (monotonic deadline).
+_cooldown_until = 0.0
 
 
 def _resolve_api_key(api_key: Optional[str]) -> Optional[str]:
     key = (api_key or os.environ.get("S2_API_KEY") or "").strip()
     return key or None
+
+
+def _min_delay_sec(has_key: bool) -> float:
+    return S2_MIN_DELAY_SEC if has_key else S2_MIN_DELAY_UNAUTH_SEC
 
 
 def _s2_request(arxiv_id: str, api_key: Optional[str]) -> Optional[dict[str, Any]]:
@@ -43,14 +55,20 @@ def _s2_request(arxiv_id: str, api_key: Optional[str]) -> Optional[dict[str, Any
     - lỗi mạng sau retry → None.
     KHÔNG dùng nested field `authors.name` (API reject).
     """
-    global _last_call_monotonic
+    global _last_call_monotonic, _cooldown_until
     url = S2_PAPER_URL.format(arxiv_id=arxiv_id)
     headers: dict[str, str] = {}
     key = _resolve_api_key(api_key)
     if key:
         headers["x-api-key"] = key
     params = {"fields": ",".join(S2_FIELDS)}
-    _last_call_monotonic = sleep_until_allowed(S2_MIN_DELAY_SEC, _last_call_monotonic)
+    # Đợi hết cooldown 429 chung trước khi request kế tiếp.
+    remaining = _cooldown_until - time.monotonic()
+    if remaining > 0:
+        LOG.info("S2 rate-limit cooldown: sleeping %.0fs", remaining)
+        time.sleep(remaining)
+    _last_call_monotonic = sleep_until_allowed(
+        _min_delay_sec(bool(key)), _last_call_monotonic)
     try:
         response = request_with_retry(
             "GET", url, headers=headers or None, params=params,
@@ -70,7 +88,11 @@ def _s2_request(arxiv_id: str, api_key: Optional[str]) -> Optional[dict[str, Any
         LOG.warning("Semantic Scholar rejected arXiv:%s as invalid", arxiv_id)
         return None
     if status == 429:
-        LOG.warning("Semantic Scholar rate limit exhausted for arXiv:%s", arxiv_id)
+        _cooldown_until = time.monotonic() + S2_429_COOLDOWN_SEC
+        LOG.warning(
+            "Semantic Scholar rate limit exhausted for arXiv:%s "
+            "— cooling down %.0fs before next paper",
+            arxiv_id, S2_429_COOLDOWN_SEC)
         return None
     if status is None or status >= 400:
         LOG.warning("Semantic Scholar HTTP %s for arXiv:%s", status, arxiv_id)
@@ -93,8 +115,8 @@ def fetch_s2_references(arxiv_id: str, api_key: Optional[str] = None) -> list[di
     Gọi S2, trả list raw reference objects.
 
     - URL = S2_PAPER_URL.format(arxiv_id=arxiv_id), params fields=S2_FIELDS.
-    - Header x-api-key nếu có (env S2_API_KEY) — unauth: 1 req/s + 100/5 phút.
-    - Rate-limit S2_MIN_DELAY_SEC, retry 429.
+    - Header x-api-key nếu có (env S2_API_KEY) — unauth: delay 3.1s (100/5 phút);
+      có key: delay 1s. Rate-limit S2_MIN_DELAY_SEC, retry 429 + cooldown chung.
     - Paper mới / chưa index: trả [] và log warning, không crash pipeline.
     - KHÔNG dùng nested field `authors.name` (API reject).
     """
