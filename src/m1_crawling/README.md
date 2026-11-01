@@ -18,11 +18,23 @@ Không harvest cả arXiv. OAI-PMH / Kaggle chỉ là toolbox tùy chọn cho re
 
 Phụ thuộc: xong `src/common` (xem `src/common/README.md`).
 
-Chạy (sau khi đã code):
+## Cách chạy phần đã hiện thực
+
+Phần **Semantic Scholar references + 2 bảng `papers`/`references` + pipeline đầy đủ**
+đã code xong và có test offline. Hai cách chạy (chi tiết: [`README_S2_REFERENCES_VI.md`](README_S2_REFERENCES_VI.md)):
+
+1. **Colab trên checkpoint của người 1** (production) — notebook `colab_s2_references.ipynb`:
+   đọc `batch_*.tar.gz` trên Drive → crawl references (resume) → xuất 2 bảng + validate.
+2. **Pipeline đầy đủ trên máy** (discover + download + S2 + tables trong một lệnh):
 
 ```bash
-python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
+python -m pip install -r src/requirements.txt
+python -m pytest -q tests/test_m1_pipeline.py        # test offline, không gọi API
+python -m src.m1_crawling.run_m1 --ids assigned_ids.txt   # env S2_API_KEY=... nếu có
 ```
+
+Crawler arXiv (tải source `.tex`/`.bib` hàng loạt, chạy riêng trước phần này) do người 1 phụ trách:
+[`README_ARXIV_CRAWLER.md`](README_ARXIV_CRAWLER.md), [`README_CONCURRENT_VI.md`](README_CONCURRENT_VI.md).
 
 ---
 
@@ -53,8 +65,8 @@ data/working/2310-12345/
   v1/sources/*.tex, *.bib
   v2/sources/...
   v3/empty.json           # ví dụ PDF-only: {"empty": true, "reason": "pdf"}
-data/tables/papers.jsonl
-data/tables/references.jsonl   # CHỈ ref có arXiv ID
+data/tables/papers.json
+data/tables/references.json   # CHỈ ref có arXiv ID
 data/tables/metrics_m1.json
 ```
 
@@ -119,7 +131,7 @@ Gọi **một lần / publication** (S2 không phân version).
 | --- | --- |
 | `paper_meta_to_row` | 1 hàng / **publication** (không / version). `arxiv_id` **không** kèm `vN`. |
 | `s2_records_to_reference_rows` | Bỏ ref thiếu ArXiv ID |
-| `write_m1_tables` | `papers.jsonl` + `references.jsonl` |
+| `write_m1_tables` | `papers.json` + `references.json` |
 
 Cột `papers`: `arxiv_id`, `title`, `authors`, `submission_date`, `revised_dates`, `venue`  
 Cột `references`: `arxiv_id` (citing), `ref_arxiv_id`, `ref_title`, `ref_authors`, `ref_submission_date`, `ref_s2_id`
@@ -155,6 +167,6 @@ Một connection tại một thời điểm (đề API etiquette).
 - [ ] Mọi ID trong `assigned_ids.txt` có folder; mọi `v1..vN` được xử lý
 - [ ] Version PDF-only vẫn còn paper + empty marker
 - [ ] Folder chỉ còn `.tex`/`.bib` (+ json metadata)
-- [ ] `papers.jsonl` 1 hàng / paper; `references.jsonl` chỉ ref có arXiv ID
+- [ ] `papers.json` 1 hàng / paper; `references.json` chỉ ref có arXiv ID
 - [ ] `references_s2.json` vẫn chứa ref không có arXiv ID
 - [ ] Có `metrics_m1.json` (time + RAM) để nhóm viết book
