@@ -29,38 +29,68 @@ def paper_meta_to_row(meta: PaperMeta) -> PaperRow:
         venue=meta.venue.strip() if isinstance(meta.venue, str) and meta.venue.strip() else None,
     )
 
+def dedupe_reference_rows(rows: list[ReferenceRow]) -> list[ReferenceRow]:
+    """
+    Khử trùng lặp danh sách ReferenceRow dựa trên bộ 3 biến số:
+    (arxiv_id, ref_arxiv_id, ref_s2_id).
+    
+    Đảm bảo đồng bộ với bộ kiểm tra validate_m1_tables.
+    """
+    seen: set[tuple[str, str, str]] = set()
+    deduped: list[ReferenceRow] = []
+
+    for row in rows:
+        # Tạo key từ 3 biến số: bài báo gốc, bài báo trích dẫn, và mã Semantic Scholar ID
+        key = (
+            str(row.arxiv_id or "").strip(),
+            str(row.ref_arxiv_id or "").strip(),
+            str(row.ref_s2_id or "").strip(),
+        )
+        
+        # Chỉ giữ lại bản ghi đầu tiên xuất hiện
+        if key not in seen:
+            seen.add(key)
+            deduped.append(row)
+
+    return deduped
 
 def s2_records_to_reference_rows(
     citing_arxiv_id: str,
     records: list[dict],
 ) -> list[ReferenceRow]:
-    """
-    Lọc local S2 records → chỉ hàng có ref_arxiv_id.
-
-    - Bỏ record thiếu ArXiv (vẫn nằm trong references_s2.json).
-    - ref_submission_date: string (ISO nếu có, không thì year dạng '2017').
-    """
     citing = normalize_arxiv_id(citing_arxiv_id)
     rows: list[ReferenceRow] = []
+
     for record in records:
         if not isinstance(record, dict):
             continue
+
         ref_arxiv_id = record.get("ref_arxiv_id")
-        if not ref_arxiv_id or not isinstance(ref_arxiv_id, str):
+        if not isinstance(ref_arxiv_id, str) or not ref_arxiv_id.strip():
             continue
+
+        ref_arxiv_id = normalize_arxiv_id(ref_arxiv_id)
+
         date = record.get("ref_submission_date") or ""
         if not date and record.get("year") is not None:
             date = str(record["year"])
+
         authors = record.get("ref_authors") or []
+
         rows.append(ReferenceRow(
             arxiv_id=citing,
             ref_arxiv_id=ref_arxiv_id,
             ref_title=(record.get("ref_title") or "").strip(),
-            ref_authors=[a.strip() for a in authors if isinstance(a, str) and a.strip()],
+            ref_authors=[
+                a.strip()
+                for a in authors
+                if isinstance(a, str) and a.strip()
+            ],
             ref_submission_date=str(date),
-            ref_s2_id=str(record.get("ref_s2_id") or ""),
+            ref_s2_id=str(record.get("ref_s2_id") or "").strip(),
         ))
-    return rows
+
+    return dedupe_reference_rows(rows)
 
 
 def write_m1_tables(papers: list[PaperRow], references: list[ReferenceRow]) -> None:
