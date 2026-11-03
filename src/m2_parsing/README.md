@@ -16,11 +16,22 @@ Biến TeX thô thành dữ liệu có cấu trúc:
 4. **`\\bibitem` → BibTeX**.
 5. **Dedup giữa các version** của cùng paper (nội dung + reference).
 
-Chạy:
+### Phần cây trước chuẩn hóa — đã xong
+
+Gather + hierarchy + CLI + test. **Người follow-up đọc file này trước** (báo cáo kỹ thuật, cài đặt, pytest, dry-run corpus giả, chạy M1, đọc output, troubleshooting, API bước sau):
+
+**[`README_HIERARCHY_REPORT.md`](README_HIERARCHY_REPORT.md)**
+
+Tóm tắt lệnh (luôn chạy từ **root repo**):
 
 ```bash
-python -m src.m2_parsing.run_m2
+export PYTHONPATH=.
+python -m pip install -r src/requirements.txt pytest
+python -m pytest tests/test_m2_hierarchy.py -q          # 14 passed, không cần M1
+python -m src.m2_parsing.run_m2 --working-dir data/working   # cần corpus M1
 ```
+
+Phần dưới là skeleton **cả M2** (kể cả cleanup / BibTeX / dedup chưa làm).
 
 ---
 
@@ -168,10 +179,10 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 
 ## Xong M2 khi nào?
 
-- [ ] Mọi publication M1 được parse; empty version vẫn được ghi
-- [ ] Chỉ file trên compilation path
-- [ ] Leaf chỉ gồm sentence / block math / figure (table = figure)
+- [x] Mọi publication M1 được parse; empty version vẫn được ghi *(cây raw)*
+- [x] Chỉ file trên compilation path
+- [x] Leaf gồm sentence / block math / figure (table = figure)
 - [ ] Math đã unified; clutter `\centering`/`[htbp]`/`\midrule` đã gỡ
 - [ ] BibTeX 1 key / reference / paper; field đã union
 - [ ] Element trùng giữa version dùng chung `element_id`
-- [ ] Có `metrics_m2.json`
+- [x] Có `metrics_m2.json` *(phần trước dedup; field sau dedup = null)*
