@@ -1,0 +1,4 @@
+# Minimal install to run the independent M1 arXiv crawler (Colab or Windows).
+requests>=2.31,<3
+psutil>=5.9,<8
+pytest>=8,<10
