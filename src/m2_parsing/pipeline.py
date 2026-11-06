@@ -18,6 +18,7 @@ from src.common.schemas import BibtexRow, ElementRow, HierarchyRow
 from .gather import compilation_path, concatenate_compilation_tex, find_document_root, unused_tex_files
 from .hierarchy import ParseNode, nodes_and_edges, parse_tex_to_tree
 from .bibitem import collect_version_bibtex
+from .cleanup import cleanup_element_content
 from .dedup import assign_element_ids, dedup_bibtex_across_versions, flatten_tree_with_placeholders, rewrite_citations
 from .tables import save_publication_parsed, write_m2_tables
 
@@ -37,6 +38,7 @@ class VersionParseResult:
     unused_files: list[str] = field(default_factory=list)
     n_nodes: int = 0
     n_edges: int = 0
+    source_tex: str = ""  # transient; omitted from serialized parse metadata
 
     def to_payload(self) -> dict[str, Any]:
         nodes, edges = nodes_and_edges(self.tree, version=self.version)
@@ -106,9 +108,9 @@ def parse_one_version(
     if root is None:
         return empty("no \\documentclass root")
 
-    path = compilation_path(source_dir)
-    unused = unused_tex_files(source_dir)
-    tex = concatenate_compilation_tex(source_dir)
+    path = compilation_path(source_dir, root=root)
+    unused = unused_tex_files(source_dir, used_paths=path)
+    tex = concatenate_compilation_tex(source_dir, root=root)
     tree = parse_tex_to_tree(tex)
     nodes, edges = nodes_and_edges(tree, version=version)
     return VersionParseResult(
@@ -120,6 +122,7 @@ def parse_one_version(
         unused_files=[_rel(source_dir, p) for p in unused],
         n_nodes=len(nodes),
         n_edges=len(edges),
+        source_tex=tex,
     )
 
 
@@ -137,7 +140,7 @@ def parse_one_publication(
             references[version] = []
         else:
             source_dir = _version_source_dir(base, version, working_dir)
-            references[version] = collect_version_bibtex(source_dir, concatenate_compilation_tex(source_dir))
+            references[version] = collect_version_bibtex(source_dir, result.source_tex)
     return _finalize_publication(base, trees, references)
 
 
@@ -152,8 +155,28 @@ def _finalize_publication(
                        **{k.split(":", 1)[1]: v for k, v in key_map.items() if k.startswith(f"v{version}:")}}
         for node, _ in flatten_tree_with_placeholders(root):
             node.content = rewrite_citations(node.content, version_map)
+        _prune_empty_nodes(root)
+        _populate_container_content(root)
     elements, hierarchy = assign_element_ids(base, trees)
     return elements, hierarchy, bibtex
+
+
+def _prune_empty_nodes(node: ParseNode) -> bool:
+    """Drop leaves emptied by cleanup and their now-empty containers."""
+    node.children = [child for child in node.children if _prune_empty_nodes(child)]
+    if node.kind == "document":
+        return True
+    if node.kind in {"sentence", "formula", "figure"}:
+        return bool(cleanup_element_content(node.content))
+    return bool(node.children or cleanup_element_content(node.content))
+
+
+def _populate_container_content(node: ParseNode) -> str:
+    """Give anonymous containers their child text so distinct paragraphs stay distinct."""
+    child_texts = [_populate_container_content(child) for child in node.children]
+    if node.kind in {"paragraph", "list_item", "list"}:
+        node.content = " ".join(text for text in child_texts if text)
+    return cleanup_element_content(node.content)
 
 
 def run_raw_hierarchy(
@@ -221,7 +244,7 @@ def run_raw_hierarchy(
     from .analyze import parsing_stats, write_metrics
 
     stats = parsing_stats(root)
-    write_metrics(stats)
+    write_metrics(stats, tables / "metrics_m2_raw.json")
     return summaries
 
 
@@ -338,30 +361,46 @@ def run_milestone2(
         before_nodes = before_bib = parsed = 0
         parsed_versions: list[int] = []
         empty_versions: list[int] = []
+        failed_versions: list[dict[str, Any]] = []
         trees: dict[int, ParseNode] = {}
         references: dict[int, list[dict[str, Any]]] = {}
         for version in versions:
-            result = parse_one_version(base, version, root)
-            trees[version] = result.tree
-            if not result.empty:
-                parsed += 1
-                parsed_versions.append(version)
-                before_nodes += result.n_nodes
-                source_dir = _version_source_dir(base, version, root)
-                references[version] = collect_version_bibtex(source_dir, concatenate_compilation_tex(source_dir))
-            else:
-                empty_versions.append(version)
+            try:
+                result = parse_one_version(base, version, root)
+                trees[version] = result.tree
+                if not result.empty:
+                    source_dir = _version_source_dir(base, version, root)
+                    references[version] = collect_version_bibtex(source_dir, result.source_tex)
+                    parsed += 1
+                    parsed_versions.append(version)
+                    before_nodes += result.n_nodes
+                else:
+                    empty_versions.append(version)
+                    references[version] = []
+                before_bib += len(references[version])
+            except Exception as exc:
+                LOG.exception("M2 failed to parse %sv%d", base, version)
+                failed_versions.append({"version": version, "error": str(exc)})
+                trees[version] = ParseNode(kind="document", content="")
                 references[version] = []
-            before_bib += len(references[version])
-        elements, edges, bibtex = _finalize_publication(base, trees, references)
-        save_publication_parsed(base, elements, edges, bibtex, root)
+        try:
+            elements, edges, bibtex = _finalize_publication(base, trees, references)
+            save_publication_parsed(base, elements, edges, bibtex, root)
+        except Exception as exc:
+            LOG.exception("M2 failed to finalize %s", base)
+            failed_versions = [{"version": version, "error": str(exc)} for version in versions if version not in empty_versions]
+            parsed_versions = []
+            parsed = 0
+            elements, edges, bibtex = [], [], []
         all_elements.extend(elements)
         all_edges.extend(edges)
         all_bibtex.extend(bibtex)
         coverage.append({"arxiv_id": base, "versions": versions,
                          "parsed_versions": parsed_versions, "empty_versions": empty_versions,
+                         "failed_versions": failed_versions,
                          "n_versions": len(versions),
-                         "n_parsed": parsed, "n_empty": len(versions) - parsed,
+                         "n_parsed": parsed, "n_empty": len(empty_versions),
+                         "n_failed": len(failed_versions),
                          "n_elements_before_dedup": before_nodes,
                          "n_elements_after_dedup": len(elements),
                          "n_bib_before": before_bib, "n_bib_after": len(bibtex)})
@@ -377,6 +416,7 @@ def run_milestone2(
         "n_publications": len(coverage), "n_versions_total": sum(x["n_versions"] for x in coverage),
         "n_versions_parsed": sum(x["n_parsed"] for x in coverage),
         "n_versions_empty": sum(x["n_empty"] for x in coverage),
+        "n_versions_failed": sum(x["n_failed"] for x in coverage),
         "n_elements_before_dedup": sum(x["n_elements_before_dedup"] for x in coverage),
         "n_elements_after_dedup": len(all_elements),
         "n_bib_before": sum(x["n_bib_before"] for x in coverage),

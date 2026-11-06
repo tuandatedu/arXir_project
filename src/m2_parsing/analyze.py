@@ -142,7 +142,7 @@ def _raw_output_bytes(working_dir: Path) -> int:
     for parsed in working_dir.glob("*/parsed/raw"):
         total += directory_size_bytes(parsed)
     tables = Path(config.TABLES_DIR)
-    for name in ("raw_nodes.jsonl", "raw_edges.jsonl", "raw_parse_index.json", "metrics_m2.json"):
+    for name in ("raw_nodes.jsonl", "raw_edges.jsonl", "raw_parse_index.json", "metrics_m2_raw.json"):
         file_path = tables / name
         if file_path.exists():
             total += file_path.stat().st_size

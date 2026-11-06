@@ -153,7 +153,7 @@ def find_document_root(source_dir: Path) -> Path | None:
     return chosen
 
 
-def compilation_path(source_dir: Path) -> list[Path]:
+def compilation_path(source_dir: Path, root: Path | None = None) -> list[Path]:
     """
     DFS/BFS từ root, trả list file .tex theo thứ tự compile (không trùng).
 
@@ -163,7 +163,7 @@ def compilation_path(source_dir: Path) -> list[Path]:
     - File không nằm trên path = auxiliary, IGNORE (không parse).
     """
     source_dir = Path(source_dir)
-    root = find_document_root(source_dir)
+    root = root if root is not None else find_document_root(source_dir)
     if root is None:
         return []
 
@@ -186,7 +186,7 @@ def compilation_path(source_dir: Path) -> list[Path]:
     return ordered
 
 
-def concatenate_compilation_tex(source_dir: Path) -> str:
+def concatenate_compilation_tex(source_dir: Path, root: Path | None = None) -> str:
     """
     Ghép nội dung các file trên compilation path (để parser 1 pass).
 
@@ -195,7 +195,7 @@ def concatenate_compilation_tex(source_dir: Path) -> str:
     - Có thể chèn marker `% FILE: relpath` để debug, miễn parser bỏ comment.
     """
     source_dir = Path(source_dir)
-    root = find_document_root(source_dir)
+    root = root if root is not None else find_document_root(source_dir)
     if root is None:
         return ""
     return _expand_file(source_dir, root, visited=set())
@@ -248,12 +248,12 @@ def _expand_includes(
     return "".join(out)
 
 
-def unused_tex_files(source_dir: Path) -> list[Path]:
+def unused_tex_files(source_dir: Path, used_paths: list[Path] | None = None) -> list[Path]:
     """Mọi .tex trong source_dir không nằm trên compilation path."""
     source_dir = Path(source_dir)
     if not source_dir.is_dir():
         return []
-    used = {p.resolve() for p in compilation_path(source_dir)}
+    used = {p.resolve() for p in (used_paths if used_paths is not None else compilation_path(source_dir))}
     unused: list[Path] = []
     for tex_file in sorted(source_dir.rglob("*.tex")):
         if tex_file.resolve() not in used:

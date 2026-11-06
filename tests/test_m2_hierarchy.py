@@ -221,7 +221,12 @@ Beta.
     assert tree2.children[0].children[0].kind in {"paragraph", "heading"}
 
 
-def test_parse_one_version_pipeline(tmp_path: Path):
+def test_parse_one_version_pipeline(tmp_path: Path, monkeypatch):
+    from src.common import config
+    tables = tmp_path / "tables"
+    tables.mkdir()
+    (tables / "metrics_m2.json").write_text('{"normalized": true}', encoding="utf-8")
+    monkeypatch.setattr(config, "TABLES_DIR", tables)
     pub = tmp_path / "2310-12345"
     v1 = pub / "v1" / "sources"
     v1.mkdir(parents=True)
@@ -248,6 +253,8 @@ def test_parse_one_version_pipeline(tmp_path: Path):
     assert summaries[0]["n_empty"] == 1
     assert (pub / "parsed" / "raw" / "v1" / "tree.json").exists()
     assert (pub / "parsed" / "raw" / "v1" / "edges.jsonl").exists()
+    assert (tables / "metrics_m2_raw.json").exists()
+    assert (tables / "metrics_m2.json").read_text(encoding="utf-8") == '{"normalized": true}'
 
 
 def test_two_versions_different_trees(tmp_path: Path):

@@ -55,7 +55,7 @@ analyze.py      → số report
 data/working/2310-12345/parsed/
   elements.jsonl
   hierarchy.jsonl
-  bibtex.json
+  bibtex.jsonl
 data/tables/elements.jsonl
 data/tables/hierarchy.jsonl
 data/tables/bibtex.jsonl
@@ -154,7 +154,7 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 | `union_bib_fields` | Field non-empty thắng |
 | `dedup_bibtex_across_versions` | Cluster (union-find) → `list[BibtexRow]` + `dict[old_key, canonical]` |
 | `flatten_tree_with_placeholders` | Preorder `(node, parent)` |
-| `assign_element_ids` | Lần đầu thấy content → discriminant mới (`s1`, `h1`, `root1`…). Version sau trùng → tái sử dụng id. `HierarchyRow` mỗi cạnh. `parent_id` non-null: không emit hàng cho root (hoặc quy ước sentinel — **chọn 1 cách, ghi vào đây khi implement**) |
+| `assign_element_ids` | Gán ID theo thứ tự xuất hiện của `(kind, content)`: đoạn lặp trong cùng version vẫn là các nút riêng; version sau tái sử dụng ID tương ứng. Mỗi version có root riêng và không emit hierarchy row cho root. |
 
 ### `tables.py` / `pipeline.py` / `run_m2.py` / `analyze.py`
 
@@ -185,6 +185,19 @@ python -m src.m2_parsing.run_m2 --working-dir data/working
 python -m pytest tests/test_m2_hierarchy.py tests/test_m2_standardization.py -q
 ```
 
+Nếu M1 được giao dưới dạng checkpoint `range_1_dev/batch_*.tar.gz`, chạy:
+
+```bash
+python -m src.m2_parsing.run_m2 --batch-dir range_1_dev --workers 4 --resume
+```
+
+Lệnh này xác thực checksum từng batch, giải nén `working/` an toàn vào `data/working`,
+parse theo batch để hạn chế RAM, rồi ghép ba bảng và metrics toàn bộ corpus.
+`--resume` chỉ dùng lại batch đã hoàn tất với đúng checksum của archive và phiên bản pipeline;
+batch dở sẽ được xử lý lại.
+`range_1/tables/references.json` là bảng Semantic Scholar của M1 để dùng ở M3;
+`bibtex.jsonl` của M2 được trích từ `.tex`/`.bib` trong `range_1_dev`.
+
 CLI mặc định ghi `data/tables/elements.jsonl`, `hierarchy.jsonl`, `bibtex.jsonl`,
 `metrics_m2.json`; mỗi publication còn có `parsed/{elements,hierarchy,bibtex}.jsonl`.
 Notebook `src/m2_parsing/report_m2.ipynb` là phần báo cáo có thể đưa vào
@@ -194,6 +207,9 @@ Version không có TeX vẫn xuất hiện trong `metrics_m2.json` với `n_empt
 element hay hierarchy edge. Root của version có element riêng nhưng không có
 hierarchy row, vì `parent_id` bắt buộc non-null. Citation key sau dedup được
 đổi trong nội dung sentence/figure và BibTeX row; bản TeX gốc không bị sửa.
+Paragraph/list/list_item lấy nội dung từ các node con trước khi dedup, tránh
+gộp nhầm mọi container vốn có `content=""` trong cây thô. Leaf rỗng sau cleanup
+được loại khỏi cây.
 
 Math một dòng được chuẩn hóa về `$...$` và `equation`. `align`/`gather` nhiều dòng
 giữ nguyên environment để không mất dấu căn hàng, số dòng và cấu trúc công thức.

@@ -7,8 +7,9 @@ from pathlib import Path
 
 from src.m2_parsing.bibitem import extract_bibitems, parse_bib_file
 from src.m2_parsing.cleanup import cleanup_element_content
-from src.m2_parsing.dedup import dedup_bibtex_across_versions, rewrite_citations
-from src.m2_parsing.pipeline import run_milestone2
+from src.m2_parsing.dedup import assign_element_ids, dedup_bibtex_across_versions, references_similar, rewrite_citations
+from src.m2_parsing.pipeline import _populate_container_content, _prune_empty_nodes, run_milestone2
+from src.m2_parsing.hierarchy import ParseNode
 
 
 def test_cleanup_keeps_semantics_and_unifies_math():
@@ -41,6 +42,80 @@ def test_reference_union_and_multi_key_citations():
     })
     assert len(rows) == 1 and rows[0].year == 2020 and rows[0].doi == "10.1234/test"
     assert rewrite_citations(r"See \citep[Sec. 2]{new,other}.", aliases) == r"See \citep[Sec. 2]{old,other}."
+
+
+def test_indexed_reference_matching_agrees_with_pairwise_matching():
+    entries = [
+        {"citation_key": "a", "title": "Same title", "doi": "10.1/a"},
+        {"citation_key": "b", "title": "Same title", "doi": "10.1/b"},
+        {"citation_key": "c", "title": "Same title"},
+        {"citation_key": "d", "title": "Other title", "doi": "10.1/a"},
+        {"citation_key": "e", "title": "Unique", "year": 2020},
+        {"citation_key": "e", "year": 2020},
+        {"citation_key": "f", "title": "Unrelated"},
+    ]
+    parents = list(range(len(entries)))
+    def find(i):
+        while parents[i] != i:
+            i = parents[i]
+        return i
+    for i, entry in enumerate(entries):
+        for j in range(i):
+            if references_similar(entry, entries[j]):
+                parents[find(i)] = find(j)
+    _, aliases = dedup_bibtex_across_versions({i + 1: [entry] for i, entry in enumerate(entries)})
+    for i, first in enumerate(entries):
+        for j, second in enumerate(entries):
+            assert (aliases[f"v{i + 1}:{first['citation_key']}"] == aliases[f"v{j + 1}:{second['citation_key']}"]) == (find(i) == find(j))
+
+
+def test_cleanup_drops_empty_sentence_and_parent_paragraph():
+    root = ParseNode("document", "", [ParseNode("paragraph", "", [ParseNode("sentence", r"\centering")])])
+    _prune_empty_nodes(root)
+    assert root.children == []
+
+
+def test_paragraph_content_reflects_its_sentences():
+    root = ParseNode("document", "", [
+        ParseNode("paragraph", "", [ParseNode("sentence", "First sentence.")]),
+        ParseNode("paragraph", "", [ParseNode("sentence", "Second sentence.")]),
+    ])
+    _populate_container_content(root)
+    assert [child.content for child in root.children] == ["First sentence.", "Second sentence."]
+
+
+def test_repeated_text_keeps_distinct_occurrences_within_version():
+    def tree():
+        return ParseNode("document", "", [
+            ParseNode("paragraph", "", [ParseNode("sentence", "Repeated.")]),
+            ParseNode("paragraph", "", [ParseNode("sentence", "Repeated.")]),
+        ])
+    trees = {1: tree(), 2: tree()}
+    for root in trees.values():
+        _populate_container_content(root)
+    elements, edges = assign_element_ids("2310.12345", trees)
+    sentences = [row for row in elements if row.kind == "sentence"]
+    assert len(sentences) == 2
+    assert len({row.element_id for row in sentences}) == 2
+    assert all({edge.version for edge in edges if edge.element_id == row.element_id} == {1, 2}
+               for row in sentences)
+
+
+def test_reference_read_failure_is_not_counted_as_parsed(tmp_path: Path, monkeypatch):
+    source = tmp_path / "working" / "2310-12345" / "v1" / "sources"
+    source.mkdir(parents=True)
+    (source / "main.tex").write_text(
+        r"\documentclass{article}\begin{document}Hello.\end{document}", encoding="utf-8"
+    )
+
+    def fail_read(*_args):
+        raise OSError("bibliography unavailable")
+
+    monkeypatch.setattr("src.m2_parsing.pipeline.collect_version_bibtex", fail_read)
+    run_milestone2(tmp_path / "working", ["2310.12345"], tmp_path / "tables")
+    metrics = json.loads((tmp_path / "tables" / "metrics_m2.json").read_text(encoding="utf-8"))
+    assert (metrics["n_versions_total"], metrics["n_versions_parsed"], metrics["n_versions_failed"]) == (1, 0, 1)
+    assert metrics["coverage"][0]["parsed_versions"] == []
 
 
 def test_full_pipeline_two_versions_and_empty(tmp_path: Path):

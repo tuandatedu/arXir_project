@@ -77,10 +77,31 @@ def dedup_bibtex_across_versions(
             i = roots[i]
         return i
 
+    # Only pairs sharing a DOI, title, or a sparse record's key can match.
+    # Indexing these candidates avoids a quadratic scan of large .bib files.
+    by_doi: dict[str, list[int]] = defaultdict(list)
+    by_title: dict[str, list[int]] = defaultdict(list)
+    by_key: dict[str, list[int]] = defaultdict(list)
+    sparse_by_key: dict[str, list[int]] = defaultdict(list)
     for i, entry in enumerate(all_entries):
-        for j in range(i):
+        doi, title = _norm(entry.get("doi")), _norm(entry.get("title"))
+        key = entry["citation_key"]
+        candidates = set(by_doi[doi]) if doi else set()
+        if title:
+            candidates.update(by_title[title])
+            candidates.update(sparse_by_key[key])
+        else:
+            candidates.update(by_key[key])
+        for j in sorted(candidates):
             if references_similar(entry, all_entries[j]):
                 roots[find(i)] = find(j)
+        if doi:
+            by_doi[doi].append(i)
+        if title:
+            by_title[title].append(i)
+        else:
+            sparse_by_key[key].append(i)
+        by_key[key].append(i)
     groups: dict[int, list[dict[str, Any]]] = defaultdict(list)
     for i, entry in enumerate(all_entries):
         groups[find(i)].append(entry)
@@ -144,7 +165,7 @@ def assign_element_ids(
     """Share IDs for identical cleaned kind/content across a publication's versions."""
     prefix = folder_name_for_arxiv_id(arxiv_id)
     counts: dict[str, int] = defaultdict(int)
-    seen: dict[tuple[str, str], str] = {}
+    seen: dict[tuple[str, str], list[str]] = defaultdict(list)
     elements: list[ElementRow] = []
     edges: list[HierarchyRow] = []
     codes = {"document": "root", "heading": "h", "sentence": "s", "paragraph": "p",
@@ -154,20 +175,24 @@ def assign_element_ids(
         if not root.children and not root.content.strip():
             continue  # Empty M1 versions have no elements.
         ids: dict[int, str] = {}
+        occurrence: dict[tuple[str, str], int] = defaultdict(int)
         for node, parent in flatten_tree_with_placeholders(root):
             if node.kind not in ELEMENT_KINDS:
                 raise ValueError(f"Unknown element kind: {node.kind}")
             content = cleanup_element_content(node.content)
             key = (node.kind, content)
-            if node is root:
-                key = (node.kind, f"{content}\0v{version}")  # per-version root
-            if key not in seen:
+            index = occurrence[key]
+            occurrence[key] += 1
+            if node is root or index == len(seen[key]):
                 code = codes[node.kind]
                 counts[code] += 1
                 eid = f"{prefix}#{code}{counts[code]}"
-                seen[key] = eid
+                ids[id(node)] = eid
+                if node is not root:
+                    seen[key].append(eid)
                 elements.append(ElementRow(eid, arxiv_id, node.kind, content))
-            ids[id(node)] = seen[key]
+            else:
+                ids[id(node)] = seen[key][index]
             if parent is not None:
                 edges.append(HierarchyRow(arxiv_id, version, ids[id(node)], ids[id(parent)]))
     # The schema has one row per node-parent edge, even if repeated identical leaves collapse.

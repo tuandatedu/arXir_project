@@ -1,4 +1,6 @@
 data/
+range_1_dev/
+range_1/
 assigned_ids.txt
 .venv/
 __pycache__/

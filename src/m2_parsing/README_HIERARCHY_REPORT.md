@@ -262,7 +262,7 @@ Lưu ý: dù `--working-dir` là `/tmp/m2_demo`, file tổng hợp vẫn ghi và
 data/tables/raw_parse_index.json
 data/tables/raw_nodes.jsonl
 data/tables/raw_edges.jsonl
-data/tables/metrics_m2.json
+data/tables/metrics_m2_raw.json
 ```
 
 (`src/common/config.py`: `TABLES_DIR = data/tables`, không theo `--working-dir`.)
@@ -403,10 +403,10 @@ data/working/2310-12345/parsed/raw/index.json
 data/tables/raw_parse_index.json
 data/tables/raw_nodes.jsonl
 data/tables/raw_edges.jsonl
-data/tables/metrics_m2.json
+data/tables/metrics_m2_raw.json
 ```
 
-`metrics_m2.json` (cây raw) có các key như:
+`metrics_m2_raw.json` (cây raw) có các key như:
 
 | Key | Ý nghĩa |
 | --- | --- |
@@ -422,7 +422,7 @@ data/tables/metrics_m2.json
 Xem JSON:
 
 ```bash
-python3 -m json.tool data/tables/metrics_m2.json
+python3 -m json.tool data/tables/metrics_m2_raw.json
 ```
 
 ---
@@ -574,7 +574,7 @@ python -m src.m2_parsing.run_m2 --working-dir data/working --arxiv-id 2310.12345
 | `src/m2_parsing/hierarchy.py` | scanner cây + tách câu |
 | `src/m2_parsing/pipeline.py` | `parse_one_version`, `run_raw_hierarchy`, ghi disk |
 | `src/m2_parsing/run_m2.py` | CLI |
-| `src/m2_parsing/analyze.py` | `metrics_m2.json` raw |
+| `src/m2_parsing/analyze.py` | `metrics_m2_raw.json` |
 | `tests/test_m2_hierarchy.py` | 14 unit/integration test |
 | `src/m2_parsing/cleanup.py` | stub — bước sau |
 | `src/m2_parsing/bibitem.py` | stub — bước sau |

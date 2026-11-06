@@ -16,6 +16,7 @@ from pathlib import Path
 from src.common import config
 
 from .pipeline import run_milestone2, run_raw_hierarchy
+from .batch_pipeline import run_checkpoint_batches
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -45,6 +46,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--raw-only", action="store_true", help="Write only the parser's raw trees")
     parser.add_argument("--tables-dir", type=Path, default=config.TABLES_DIR,
                         help="Directory for final elements, hierarchy, bibtex and metrics")
+    parser.add_argument("--batch-dir", type=Path, help="Restore M1 batch_*.tar.gz checkpoints before parsing")
+    parser.add_argument("--workers", type=int, default=1,
+                        help="Parallel checkpoint batches (default: 1; use with --batch-dir)")
+    parser.add_argument("--resume", action="store_true",
+                        help="Reuse completed checkpoint batches after an interrupted run")
     return parser.parse_args(argv)
 
 
@@ -54,6 +60,17 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
+    if args.batch_dir is not None and not args.raw_only:
+        metrics = run_checkpoint_batches(args.batch_dir, args.working_dir, args.tables_dir,
+                                         workers=args.workers, resume=args.resume)
+        print(f"M2: {metrics['n_publications']} publications, "
+              f"{metrics['n_elements_after_dedup']} elements, "
+              f"{metrics['n_bib_after']} BibTeX entries, "
+              f"{metrics['n_versions_failed']} failed versions. Tables: {args.tables_dir}")
+        return 2 if metrics["n_versions_failed"] else 0
+    if args.batch_dir is not None:
+        parser_error = "--batch-dir requires the full M2 pipeline (omit --raw-only)"
+        raise ValueError(parser_error)
     if args.raw_only:
         summaries = run_raw_hierarchy(working_dir=args.working_dir, arxiv_ids=args.arxiv_ids)
     else:
@@ -65,7 +82,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"M2: {len(ids)} publications, {len(elements)} elements, "
               f"{len(hierarchy)} hierarchy edges, {len(bibtex)} BibTeX entries. "
               f"Tables: {args.tables_dir}")
-        return 0 if ids else 1
+        from src.common.io import read_json
+        failed = read_json(args.tables_dir / "metrics_m2.json")["n_versions_failed"]
+        return 2 if failed else (0 if ids else 1)
     n_pub = len(summaries)
     n_ver = sum(item["n_versions"] for item in summaries)
     n_ok = sum(item["n_parsed"] for item in summaries)
