@@ -2,6 +2,8 @@
 
 **Người làm M2 đọc file này trước khi mở code.**
 
+Kiến trúc, flow và bảng chức năng/hàm/helper: [README_KIEN_TRUC_M2.md](README_KIEN_TRUC_M2.md).
+
 Đề đầy đủ: <https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/parsing>
 
 Phụ thuộc: **M1 đã chạy xong**, có `data/working/{id}/vN/sources/`.

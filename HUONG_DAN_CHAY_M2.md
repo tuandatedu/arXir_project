@@ -52,11 +52,17 @@ python -c "import json; m=json.load(open('data/tables/metrics_m2.json',encoding=
 ```
 
 `n_versions_empty` chỉ tính version có marker rỗng của M1. Version thiếu source
-hoặc không tìm thấy `\documentclass` nằm trong `failed_versions`; lệnh trả mã
-thoát 2 nếu còn version lỗi. Bộ `range_1_dev` ban đầu có 5 version thiếu source
+hoặc không tìm thấy `\documentclass` nằm trong `failed_versions`. Code revision 4
+còn tách version có include chưa đọc được thành `partial_versions`, thống kê ở
+`n_versions_partial`; chúng có thể tạo element nhưng chưa được tính parsed hoàn chỉnh.
+Lệnh trả mã thoát 2 nếu còn failed hoặc partial. Bộ `range_1_dev` ban đầu có 5 version thiếu source
 vì thư viện `.bib` lớn hơn giới hạn của lần crawl cũ.
 Thông báo `Missing include` báo file không tìm thấy hoặc include dùng macro;
 cần xem source cụ thể, không tự hiểu là toàn bộ version hoàn chỉnh.
+
+Các kết quả 5.000 bài đã có trong `data/tables` và `data/tables_repaired` là snapshot
+revision 3. `--resume` của revision 4 sẽ xử lý lại các batch cũ để tạo metrics mới,
+thay vì dùng lại số liệu cũ chưa có trạng thái partial.
 
 ## Chạy bộ checkpoint đã phục hồi năm bài
 

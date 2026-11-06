@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import json
 import threading
 import time
 from dataclasses import dataclass, field
@@ -36,6 +37,8 @@ class VersionParseResult:
     tree: ParseNode = field(default_factory=lambda: ParseNode(kind="document", content=""))
     compilation_files: list[str] = field(default_factory=list)
     unused_files: list[str] = field(default_factory=list)
+    missing_includes: list[str] = field(default_factory=list)
+    partial: bool = False
     n_nodes: int = 0
     n_edges: int = 0
     source_tex: str = ""  # transient; omitted from serialized parse metadata
@@ -51,6 +54,8 @@ class VersionParseResult:
             "n_edges": len(edges),
             "compilation_files": self.compilation_files,
             "unused_files": self.unused_files,
+            "missing_includes": self.missing_includes,
+            "partial": self.partial,
             "tree": self.tree.to_dict(),
             "nodes": nodes,
             "edges": edges,
@@ -58,15 +63,47 @@ class VersionParseResult:
 
 
 def list_local_versions(arxiv_id: str, working_dir: Path | None = None) -> list[int]:
-    """Các thư mục vN có mặt trong corpus M1 (kể cả empty)."""
+    """Cross-check vN directories against M1 status and latest_version metadata.
+
+    Missing directories that M1 reports are returned as versions so that the
+    parser records a failure instead of silently overstating success coverage.
+    """
     pub = _publication_dir(arxiv_id, working_dir)
     if not pub.is_dir():
         return []
-    versions: list[int] = []
-    for child in pub.iterdir():
-        if child.is_dir() and child.name.startswith("v") and child.name[1:].isdigit():
-            versions.append(int(child.name[1:]))
+    versions: set[int] = {int(child.name[1:]) for child in pub.iterdir()
+                          if child.is_dir() and child.name.startswith('v') and child.name[1:].isdigit()}
+    for filename in ('status.json', 'paper.json'):
+        path = pub / filename
+        if not path.is_file():
+            continue
+        try:
+            obj = json.loads(path.read_text(encoding='utf-8'))
+        except (OSError, ValueError):
+            continue
+        if filename == 'status.json':
+            for item in obj.get('versions', []):
+                try:
+                    versions.add(int(item['version']))
+                except (KeyError, TypeError, ValueError):
+                    continue
+        else:
+            latest = obj.get('latest_version')
+            if isinstance(latest, int) and latest > 0:
+                versions.update(range(1, min(latest, 1000) + 1))
     return sorted(versions)
+
+
+def _m1_version_is_empty(arxiv_id: str, version: int, working_dir: Path | None) -> bool:
+    path = _publication_dir(arxiv_id, working_dir) / 'status.json'
+    if not path.exists():
+        return False
+    try:
+        status = json.loads(path.read_text(encoding='utf-8'))
+    except (OSError, ValueError):
+        return False
+    return any(int(item.get('version', -1)) == version and item.get('status') in
+               {'empty', 'no_source', 'pdf_only'} for item in status.get('versions', []))
 
 
 def parse_one_version(
@@ -99,7 +136,7 @@ def parse_one_version(
             n_edges=len(edges),
         )
 
-    if empty_marker.exists():
+    if empty_marker.exists() or _m1_version_is_empty(base, version, working_dir):
         return empty("empty record from M1")
     if not source_dir.is_dir():
         return empty("missing sources directory")
@@ -108,11 +145,15 @@ def parse_one_version(
     if root is None:
         return empty("no \\documentclass root")
 
-    path = compilation_path(source_dir, root=root)
+    missing: list[str] = []
+    path = compilation_path(source_dir, root=root, missing=missing)
+    missing = sorted(set(missing))
     unused = unused_tex_files(source_dir, used_paths=path)
     tex = concatenate_compilation_tex(source_dir, root=root)
     tree = parse_tex_to_tree(tex)
     nodes, edges = nodes_and_edges(tree, version=version)
+    if not edges and len(tex.strip()) > 500:
+        return empty("no parsed content in nonempty TeX source")
     return VersionParseResult(
         arxiv_id=base,
         version=version,
@@ -120,6 +161,9 @@ def parse_one_version(
         tree=tree,
         compilation_files=[_rel(source_dir, p) for p in path],
         unused_files=[_rel(source_dir, p) for p in unused],
+        missing_includes=missing,
+        partial=bool(missing),
+        reason="unresolved TeX includes" if missing else "",
         n_nodes=len(nodes),
         n_edges=len(edges),
         source_tex=tex,
@@ -310,6 +354,8 @@ def _save_raw_version(
             "n_edges": result.n_edges,
             "compilation_files": result.compilation_files,
             "unused_files": result.unused_files,
+            "missing_includes": result.missing_includes,
+            "partial": result.partial,
             "normalized": False,
         },
     )
@@ -360,6 +406,7 @@ def run_milestone2(
         versions = list_local_versions(base, root)
         before_nodes = before_bib = parsed = 0
         parsed_versions: list[int] = []
+        partial_versions: list[dict[str, Any]] = []
         empty_versions: list[int] = []
         failed_versions: list[dict[str, Any]] = []
         trees: dict[int, ParseNode] = {}
@@ -371,8 +418,13 @@ def run_milestone2(
                 if not result.empty:
                     source_dir = _version_source_dir(base, version, root)
                     references[version] = collect_version_bibtex(source_dir, result.source_tex)
-                    parsed += 1
-                    parsed_versions.append(version)
+                    if result.partial:
+                        partial_versions.append({"version": version,
+                                                 "reason": result.reason,
+                                                 "missing_includes": result.missing_includes})
+                    else:
+                        parsed += 1
+                        parsed_versions.append(version)
                     before_nodes += result.n_nodes
                 else:
                     if result.reason == "empty record from M1":
@@ -393,6 +445,7 @@ def run_milestone2(
             LOG.exception("M2 failed to finalize %s", base)
             failed_versions = [{"version": version, "error": str(exc)} for version in versions if version not in empty_versions]
             parsed_versions = []
+            partial_versions = []
             parsed = 0
             elements, edges, bibtex = [], [], []
         all_elements.extend(elements)
@@ -401,9 +454,11 @@ def run_milestone2(
         coverage.append({"arxiv_id": base, "versions": versions,
                          "parsed_versions": parsed_versions, "empty_versions": empty_versions,
                          "failed_versions": failed_versions,
+                         "partial_versions": partial_versions,
                          "n_versions": len(versions),
                          "n_parsed": parsed, "n_empty": len(empty_versions),
                          "n_failed": len(failed_versions),
+                         "n_partial": len(partial_versions),
                          "n_elements_before_dedup": before_nodes,
                          "n_elements_after_dedup": len(elements),
                          "n_bib_before": before_bib, "n_bib_after": len(bibtex)})
@@ -420,6 +475,7 @@ def run_milestone2(
         "n_versions_parsed": sum(x["n_parsed"] for x in coverage),
         "n_versions_empty": sum(x["n_empty"] for x in coverage),
         "n_versions_failed": sum(x["n_failed"] for x in coverage),
+        "n_versions_partial": sum(x["n_partial"] for x in coverage),
         "n_elements_before_dedup": sum(x["n_elements_before_dedup"] for x in coverage),
         "n_elements_after_dedup": len(all_elements),
         "n_bib_before": sum(x["n_bib_before"] for x in coverage),

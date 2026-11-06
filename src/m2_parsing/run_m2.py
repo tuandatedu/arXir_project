@@ -66,8 +66,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"M2: {metrics['n_publications']} publications, "
               f"{metrics['n_elements_after_dedup']} elements, "
               f"{metrics['n_bib_after']} BibTeX entries, "
-              f"{metrics['n_versions_failed']} failed versions. Tables: {args.tables_dir}")
-        return 2 if metrics["n_versions_failed"] else 0
+              f"{metrics['n_versions_failed']} failed, {metrics['n_versions_partial']} partial versions. "
+              f"Tables: {args.tables_dir}")
+        return 2 if metrics["n_versions_failed"] or metrics["n_versions_partial"] else 0
     if args.batch_dir is not None:
         parser_error = "--batch-dir requires the full M2 pipeline (omit --raw-only)"
         raise ValueError(parser_error)
@@ -84,7 +85,8 @@ def main(argv: list[str] | None = None) -> int:
               f"Tables: {args.tables_dir}")
         from src.common.io import read_json
         failed = read_json(args.tables_dir / "metrics_m2.json")["n_versions_failed"]
-        return 2 if failed else (0 if ids else 1)
+        partial = read_json(args.tables_dir / "metrics_m2.json")["n_versions_partial"]
+        return 2 if failed or partial else (0 if ids else 1)
     n_pub = len(summaries)
     n_ver = sum(item["n_versions"] for item in summaries)
     n_ok = sum(item["n_parsed"] for item in summaries)

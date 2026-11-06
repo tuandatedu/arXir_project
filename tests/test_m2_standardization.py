@@ -10,7 +10,7 @@ from src.m2_parsing.cleanup import cleanup_element_content
 from src.m2_parsing.dedup import assign_element_ids, dedup_bibtex_across_versions, references_similar, rewrite_citations
 from src.m2_parsing.pipeline import _populate_container_content, _prune_empty_nodes, run_milestone2
 from src.m2_parsing.hierarchy import ParseNode
-from src.m2_parsing.gather import concatenate_compilation_tex
+from src.m2_parsing.gather import active_tex, concatenate_compilation_tex
 
 
 def test_cleanup_keeps_semantics_and_unifies_math():
@@ -65,6 +65,33 @@ def test_include_repeats_but_cycles_stop(tmp_path):
     (tmp_path / 'main.tex').write_text(r'\documentclass{article}\input{a}\input{a}', encoding='utf-8')
     (tmp_path / 'a.tex').write_text(r'Repeated.\input{main}', encoding='utf-8')
     assert concatenate_compilation_tex(tmp_path).count('Repeated.') == 2
+
+
+def test_conditionals_mask_known_inactive_branch_without_guessing_unknown_macro():
+    known = active_tex(r'\iffalse Hidden.\else Visible.\fi')
+    assert 'Hidden.' not in known and 'Visible.' in known
+    unknown = active_tex(r'\ifdefined\packageMacro First.\else Second.\fi')
+    assert 'First.' in unknown and 'Second.' in unknown
+
+
+def test_missing_include_is_partial_and_still_preserves_available_content(tmp_path):
+    source = tmp_path / 'working' / '2310-12345' / 'v1' / 'sources'
+    source.mkdir(parents=True)
+    (source / 'main.tex').write_text(
+        r'\documentclass{article}\begin{document}Available text.\input{missing}\end{document}',
+        encoding='utf-8')
+    elements, _, _ = run_milestone2(tmp_path / 'working', ['2310.12345'], tmp_path / 'tables')
+    metrics = json.loads((tmp_path / 'tables' / 'metrics_m2.json').read_text(encoding='utf-8'))
+    assert metrics['n_versions_partial'] == 1 and metrics['n_versions_parsed'] == 0
+    assert metrics['coverage'][0]['partial_versions'][0]['missing_includes']
+    assert any(row.kind == 'sentence' and 'Available text.' in row.content for row in elements)
+
+
+def test_bibitem_newblock_keeps_title_separate_from_emphasized_journal():
+    rows = extract_bibitems(r'\begin{thebibliography}{9}\bibitem{k} Jane Doe. '
+                            r'\newblock A Study.\newblock \emph{Journal of Tests}, 2020.\end{thebibliography}')
+    assert rows[0]['title'] == 'A Study'
+    assert rows[0]['journal'] == 'Journal of Tests'
 
 
 def test_multiline_math_normalization_preserves_alignment():

@@ -15,7 +15,7 @@ from .archive_input import restore_batch
 from .pipeline import run_milestone2
 
 LOG = logging.getLogger(__name__)
-PIPELINE_REVISION = 3
+PIPELINE_REVISION = 4
 
 
 def _process_batch(args: tuple[Path, Path, Path, bool]) -> tuple[str, int, dict, bool]:
@@ -106,7 +106,7 @@ def run_checkpoint_batches(batch_dir: Path, working_dir: Path, tables_dir: Path,
         if parent_process is not None:
             sampler.join(timeout=0.2)
 
-    summed = ("n_publications", "n_versions_total", "n_versions_parsed", "n_versions_empty", "n_versions_failed",
+    summed = ("n_publications", "n_versions_total", "n_versions_parsed", "n_versions_empty", "n_versions_failed", "n_versions_partial",
               "n_elements_before_dedup", "n_elements_after_dedup", "n_bib_before", "n_bib_after",
               "n_hierarchy_edges", "output_bytes")
     result = {key: sum(item[key] for item in batch_metrics) for key in summed}

@@ -180,6 +180,7 @@ def assign_element_ids(
     """Share IDs for identical cleaned kind/content across a publication's versions."""
     prefix = folder_name_for_arxiv_id(arxiv_id)
     counts: dict[str, int] = defaultdict(int)
+    # One content store per publication; edges carry the version/parent.
     seen: dict[tuple[str, str], str] = {}
     elements: list[ElementRow] = []
     edges: list[HierarchyRow] = []
@@ -212,6 +213,6 @@ def assign_element_ids(
             ancestors[id(node)] = parent_ancestors
             if parent is not None:
                 edges.append(HierarchyRow(arxiv_id, version, ids[id(node)], ids[id(parent)]))
-    # The schema has one row per node-parent edge, even if repeated identical leaves collapse.
+    # The schema stores unique node-parent edges, not occurrence counts.
     edges = list(dict.fromkeys((r.arxiv_id, r.version, r.element_id, r.parent_id) for r in edges))
     return elements, [HierarchyRow(*edge) for edge in edges]

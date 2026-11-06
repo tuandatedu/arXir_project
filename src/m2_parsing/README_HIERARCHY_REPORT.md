@@ -3,6 +3,8 @@
 > Tài liệu này mô tả trạng thái bàn giao của phần parser thô. Pipeline M2 đầy đủ
 > hiện đã chạy qua `python -m src.m2_parsing.run_m2`; xem `README.md` và
 > `report_m2.ipynb` để biết phần chuẩn hóa, BibTeX, dedup và thống kê cuối.
+> Kiến trúc M2 hiện tại: [README_KIEN_TRUC_M2.md](README_KIEN_TRUC_M2.md).
+> Các bảng trạng thái bên dưới chỉ mô tả phạm vi của cây thô, không phải tiến độ toàn M2.
 
 File này ghi lại phần M2 đã làm: build cây document → section → subsection … từ TeX nguồn, trước khi đi qua cleanup / BibTeX / dedup. Mục tiêu là có một cây raw đúng theo cấu trúc bài báo, để các bước sau dễ nối vào.
 
@@ -12,8 +14,8 @@ File này ghi lại phần M2 đã làm: build cây document → section → sub
 | Phần đã hoàn thành | Gathering + cây cha–con theo từng version, chưa cleanup / BibTeX / dedup |
 | Code | `src/m2_parsing/{gather,hierarchy,pipeline,run_m2,analyze}.py` |
 | Test | `tests/test_m2_hierarchy.py` (14 test) |
-| CLI | `python -m src.m2_parsing.run_m2` |
-| Còn lại của nhóm | `cleanup.py`, `bibitem.py`, `dedup.py`, bảng HF `elements` / `hierarchy` / `bibtex` |
+| CLI cây thô | `python -m src.m2_parsing.run_m2 --raw-only` |
+| Phần xử lý tiếp theo | Đã có trong pipeline đầy đủ; xem `README_KIEN_TRUC_M2.md` |
 
 ---
 
@@ -50,7 +52,7 @@ Nếu fail, xem mục 9.
 7. Xử lý nhiều kiểu bài, nhiều version.
 8. Bàn giao cây raw ở từng version.
 
-Tình trạng hiện tại:
+Phạm vi riêng của chế độ cây thô:
 
 | Yêu cầu đề M2 | Trạng thái | File |
 | --- | --- | --- |
@@ -62,11 +64,11 @@ Tình trạng hiện tại:
 | Acknowledgements + Appendix | xong | `hierarchy.py` |
 | References không vào cây | xong | skip heading + `thebibliography` |
 | Version empty M1 vẫn ghi rõ | xong | `pipeline.parse_one_version` |
-| Cleanup `\centering` / `[htbp]` / `\midrule` | chưa | `cleanup.py` |
-| Unify math `$...$` / `equation` | chưa | `cleanup.py` |
-| `\bibitem` → BibTeX | chưa | `bibitem.py` |
-| Dedup nội dung + BibTeX across versions | chưa | `dedup.py` |
-| Bảng HF `elements` / `hierarchy` / `bibtex` | chưa | local ID hiện là `vN#nK` |
+| Cleanup `\centering` / `[htbp]` / `\midrule` | ngoài phạm vi raw | `cleanup.py` |
+| Unify math `$...$` / `equation` | ngoài phạm vi raw | `cleanup.py` |
+| `\bibitem` → BibTeX | ngoài phạm vi raw | `bibitem.py` |
+| Dedup nội dung + BibTeX across versions | ngoài phạm vi raw | `dedup.py` |
+| Bảng HF `elements` / `hierarchy` / `bibtex` | ngoài phạm vi raw | local ID hiện là `vN#nK` |
 
 
 ---
@@ -226,7 +228,7 @@ cat > /tmp/m2_demo/2310-12345/v2/empty.json << 'EOF'
 {"empty": true, "reason": "pdf"}
 EOF
 
-python -m src.m2_parsing.run_m2 --working-dir /tmp/m2_demo --arxiv-id 2310.12345 -v
+python -m src.m2_parsing.run_m2 --raw-only --working-dir /tmp/m2_demo --arxiv-id 2310.12345 -v
 ```
 
 Kỳ vọng stdout dạng:
@@ -290,20 +292,20 @@ Nếu `data/working` rỗng: M1 chưa chạy, hoặc data nằm chỗ khác -> d
 
 ```bash
 export PYTHONPATH=.
-python -m src.m2_parsing.run_m2 --working-dir data/working --arxiv-id 2310.12345 -v
+python -m src.m2_parsing.run_m2 --raw-only --working-dir data/working --arxiv-id 2310.12345 -v
 ```
 
 `--arxiv-id` có thể lặp:
 
 ```bash
-python -m src.m2_parsing.run_m2 --arxiv-id 2310.12345 --arxiv-id 2310.99999
+python -m src.m2_parsing.run_m2 --raw-only --arxiv-id 2310.12345 --arxiv-id 2310.99999
 ```
 
 ### 5.3. Cả corpus
 
 ```bash
 export PYTHONPATH=.
-python -m src.m2_parsing.run_m2 --working-dir data/working
+python -m src.m2_parsing.run_m2 --raw-only --working-dir data/working
 ```
 
 CLI sẽ tự liệt kê folder có `paper.json` (hoặc đoán id từ tên folder).
@@ -315,14 +317,11 @@ Exit code:
 | `0` | Có ít nhất 1 publication được xét, kể cả empty |
 | `1` | Không tìm thấy publication nào |
 
-### 5.4. Không gọi `run_milestone2()`
+### 5.4. Phân biệt hai chế độ hiện tại
 
-```python
-from src.m2_parsing.pipeline import run_milestone2
-run_milestone2()  # ghi cây raw rồi raise NotImplementedError
-```
+`run_raw_hierarchy()` lưu cây trước chuẩn hóa. Chọn `--raw-only` khi muốn xem các file raw được mô tả trong tài liệu này.
 
-Hàm đó dành cho M2 hoàn chỉnh (cleanup + dedup). CLI `run_m2` chỉ gọi `run_raw_hierarchy()`.
+`run_milestone2()` đã được triển khai cho pipeline đầy đủ: parse, chuẩn hóa, BibTeX, dedup và ba bảng. CLI không có `--raw-only` chạy pipeline đầy đủ; hàm này không còn là stub.
 
 ---
 
@@ -545,13 +544,13 @@ Không parse lại TeX nếu đã có `parsed/raw/` rồi, trừ khi đổi `gat
 | Cây thiếu chương | file nằm ngoài compilation path, xem `meta.json` -> `unused_files` |
 | References vẫn ở trong cây | tiêu đề không nằm trong từ điển (`References`, `Bibliography`, …) - bổ sung `_REF_TITLES` |
 | Tách câu sai ở URL / `i.e.` | sửa `split_sentences` + thêm case vào test |
-| `run_milestone2` raise | đúng thiết kế; dùng `python -m src.m2_parsing.run_m2` |
+| `run_milestone2` báo lỗi | Đọc traceback và kiểm tra source/cấu hình; pipeline đầy đủ đã được triển khai. Dùng `--raw-only` nếu chỉ cần cây thô. |
 | Bảng raw không ở cạnh `--working-dir` | luôn ghi vào `data/tables/` theo `config.TABLES_DIR` |
 
 Log thiếu include:
 
 ```bash
-python -m src.m2_parsing.run_m2 --working-dir data/working --arxiv-id 2310.12345 -v
+python -m src.m2_parsing.run_m2 --raw-only --working-dir data/working --arxiv-id 2310.12345 -v
 # WARNING src.m2_parsing.gather: Missing include 'foo' from ...
 ```
 

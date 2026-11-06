@@ -326,6 +326,10 @@ def split_sentences(prose: str) -> list[str]:
     if not prose or not prose.strip():
         return []
 
+    # Styling macros are transparent to sentence boundaries. Unwrap only
+    # non-semantic text styles; math/citation commands remain protected.
+    from .cleanup import remove_non_semantic_commands
+    prose = remove_non_semantic_commands(prose)
     text = prose.replace("\r\n", "\n").replace("\r", "\n")
     text = re.sub(r"[ \t]+", " ", text)
     n = len(text)
@@ -469,6 +473,8 @@ def _plain_title(title: str) -> str:
 
 
 def _extract_title(tex: str) -> str:
+    from .gather import active_tex
+    tex = active_tex(tex)
     match = re.search(r"\\title\s*(?:\[[^\]]*\])?\s*\{", tex)
     if not match:
         return ""
@@ -477,13 +483,17 @@ def _extract_title(tex: str) -> str:
 
 
 def _document_body(tex: str) -> tuple[str, int]:
-    begin = re.search(r"\\begin\s*\{document\}", tex)
+    # Scan visible TeX, never a commented document delimiter. Keep offsets in
+    # sync with original source so returned content preserves LaTeX formatting.
+    from .gather import active_tex
+    visible = active_tex(tex)
+    begin = re.search(r"\\begin\s*\{document\}", visible)
     if not begin:
         return tex, 0
-    end = re.search(r"\\end\s*\{document\}", tex)
-    if end and end.start() > begin.end():
-        return tex[begin.end() : end.start()], begin.end()
-    return tex[begin.end() :], begin.end()
+    end = re.search(r"\\end\s*\{document\}", visible[begin.end():])
+    if end:
+        return tex[begin.end():begin.end() + end.start()], begin.end()
+    return tex[begin.end():], begin.end()
 
 
 def _is_sentence_boundary(text: str, index: int) -> bool:

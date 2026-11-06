@@ -20,11 +20,16 @@ _CITATIONS = re.compile(r"\\(?:[A-Za-z]*cite[A-Za-z]*|nocite)\*?(?:\s*\[[^\]]*\]
 def _plain(text: str) -> str:
     text = re.sub(r"\\(?:emph|textit|textbf|url|href)\s*\{([^{}]*)\}", r"\1", text)
     text = re.sub(r"\\[a-zA-Z]+\b", " ", text)
-    return re.sub(r"\s+", " ", text.replace("{", "").replace("}", "")).strip(" .;,\n")
+    return re.sub(r"\s+", " ", text.replace("~", " ").replace("{", "").replace("}", "")).strip(" .;,\n")
 
 
 def extract_bibitems(tex: str) -> list[dict[str, Any]]:
-    """Convert each reachable ``\bibitem`` to a best-effort BibTeX record."""
+    """Extract \\bibitem metadata conservatively, retaining real titles.
+
+    Common LaTeX/natbib form is ``Authors. \\newblock Title.
+    \\newblock \\emph{Journal}, Year.``. An emphasized journal is not
+    evidence that it is the title of a paper.
+    """
     tex = strip_tex_line_comments(tex)
     entries: list[dict[str, Any]] = []
     for env in re.finditer(r"\\begin\{thebibliography\}(?:\{[^{}]*\})?(.*?)\\end\{thebibliography\}", tex, re.S):
@@ -32,26 +37,43 @@ def extract_bibitems(tex: str) -> list[dict[str, Any]]:
         matches = list(_BIBITEM.finditer(body))
         for index, match in enumerate(matches):
             raw = body[match.end():matches[index + 1].start() if index + 1 < len(matches) else len(body)]
-            raw = re.sub(r"(?<!\\)%[^\n]*", " ", raw)
+            raw = re.sub(r"(?<!\\)%[^\n]*", " ", raw).strip()
             doi_match = _DOI.search(raw)
             url_match = _URL.search(raw)
             year_match = _YEAR.search(raw)
-            title_match = re.search(r"\\(?:emph|textit|textbf|textsl)\s*\{([^{}]+)\}", raw)
-            plain = re.sub(r"\b([A-Z])\.", r"\1<period>", _plain(raw))
-            pieces = [p.replace("<period>", ".").strip() for p in re.split(r"(?<!\\)[.;]", plain) if p.strip()]
-            authors = _split_authors(pieces[0]) if pieces else []
-            title = _plain(title_match[1]) if title_match else (pieces[1] if len(pieces) > 1 else None)
-            journal_match = re.search(r"\\(?:emph|textit)\s*\{([^{}]+)\}", raw)
-            journal = _plain(journal_match[1]) if journal_match and title_match != journal_match else None
-            entry = {
+            blocks = [part.strip(" \n.;,") for part in re.split(r"\\newblock\b", raw) if part.strip(" \n.;,")]
+            authors: list[str] = []
+            title: str | None = None
+            venue = ""
+            if len(blocks) >= 2:
+                authors = _split_authors(blocks[0])
+                second = blocks[1].strip()
+                if len(blocks) >= 3 or not re.match(r"(?i)^(?:in\s+)?\\(?:emph|textit)\s*\{", second):
+                    title = _plain(second) or None
+                venue = " ".join(blocks[2:]) if len(blocks) >= 3 else (second if title is None else "")
+            elif blocks:
+                # Legacy one-block bibliographies: split at sentence punctuation
+                # but do not mistake a trailing italic venue for the title.
+                plain = re.sub(r"\b([A-Z])\.", r"\1<period>", _plain(blocks[0]))
+                pieces = [x.replace("<period>", ".").strip() for x in re.split(r"(?<!\\)\.\s+(?=[A-Z\\0-9])", plain) if x.strip()]
+                if pieces:
+                    authors = _split_authors(pieces[0])
+                if len(pieces) > 1:
+                    title = pieces[1].rstrip(" .;, ") or None
+                if len(pieces) > 2:
+                    venue = " ".join(pieces[2:])
+            journal_match = re.search(r"\\(?:emph|textit|textsl)\s*\{([^{}]+)\}", venue)
+            venue_plain = _plain(journal_match[1]) if journal_match else ""
+            is_arxiv = bool(re.search(r"(?i)arxiv\s*(?:preprint|:)", venue))
+            journal = venue_plain if venue_plain and not is_arxiv and not re.search(r"(?i)^\s*in\s+", venue) else None
+            entry_type = "inproceedings" if re.search(r"(?i)^\s*in\s+", venue) else ("article" if journal else "misc")
+            entries.append({
                 "citation_key": match[1].strip(), "title": title,
                 "authors": authors, "year": int(year_match[0]) if year_match else None,
-                "doi": doi_match[0].rstrip(".") if doi_match else None,
-                "url": url_match[0].rstrip(".,") if url_match else None,
-                "journal": journal,
-            }
-            entry["entry_type"] = infer_entry_type(entry)
-            entries.append(entry)
+                "doi": doi_match[0].rstrip(".,)") if doi_match else None,
+                "url": url_match[0].rstrip(".,)") if url_match else None,
+                "journal": journal, "entry_type": entry_type,
+            })
     return entries
 
 
@@ -148,9 +170,20 @@ def collect_version_bibtex(source_dir: Path, cleaned_tex: str) -> list[dict[str,
                 # arXiv source bundles sometimes place the .bib beside a subfile.
                 targets.update(path for path in source_dir.rglob(candidate.name)
                                if path.is_file() and path.resolve().is_relative_to(source_dir.resolve()))
-    # Some sources contain an external .bib without an explicit \bibliography command.
-    if not targets and not entries:
-        targets.update(source_dir.rglob("*.bib"))
+    # A source bundle may omit its bibliography command. Only recover a .bib
+    # when at least one actual \cite key matches; never import every unused
+    # entry simply because the .bib exists in the archive.
+    if not targets and not entries and cited and "*" not in cited:
+        for path in source_dir.rglob("*.bib"):
+            if not path.is_file():
+                continue
+            try:
+                keys = set(re.findall(r"@\w+\s*[({]\s*([^,\s]+)",
+                                      path.read_text(encoding="utf-8", errors="replace")))
+            except OSError:
+                continue
+            if keys & cited:
+                targets.add(path)
     for path in sorted(targets):
         parsed = parse_bib_file(path.read_text(encoding="utf-8", errors="replace"))
         entries.extend(entry for entry in parsed if use_all or entry["citation_key"] in cited)
