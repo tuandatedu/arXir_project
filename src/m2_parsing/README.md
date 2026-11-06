@@ -25,13 +25,12 @@ Gather + hierarchy + CLI + test. **Người follow-up đọc file này trước*
 Tóm tắt lệnh (luôn chạy từ **root repo**):
 
 ```bash
-export PYTHONPATH=.
 python -m pip install -r src/requirements.txt pytest
-python -m pytest tests/test_m2_hierarchy.py -q          # 14 passed, không cần M1
+python -m pytest tests/test_m2_hierarchy.py tests/test_m2_standardization.py -q
 python -m src.m2_parsing.run_m2 --working-dir data/working   # cần corpus M1
 ```
 
-Phần dưới là skeleton **cả M2** (kể cả cleanup / BibTeX / dedup chưa làm).
+Phần dưới mô tả giao diện các module; phần chuẩn hóa và tích hợp đã được cài đặt.
 
 ---
 
@@ -177,12 +176,36 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 - Không bỏ Acknowledgements/Appendix.
 - Không parse section References vào `elements`.
 
+## Chạy M2 đầy đủ (nhánh M2-standardization)
+
+Từ root repo, sau khi có `data/working` của M1:
+
+```bash
+python -m src.m2_parsing.run_m2 --working-dir data/working
+python -m pytest tests/test_m2_hierarchy.py tests/test_m2_standardization.py -q
+```
+
+CLI mặc định ghi `data/tables/elements.jsonl`, `hierarchy.jsonl`, `bibtex.jsonl`,
+`metrics_m2.json`; mỗi publication còn có `parsed/{elements,hierarchy,bibtex}.jsonl`.
+Notebook `src/m2_parsing/report_m2.ipynb` là phần báo cáo có thể đưa vào
+Jupyter Book của nhóm; nó chạy M2 và tạo bảng/biểu đồ trong lúc biên dịch.
+`--raw-only` giữ cách chạy cây thô của Đức. `--tables-dir` đổi chỗ ghi ba bảng.
+Version không có TeX vẫn xuất hiện trong `metrics_m2.json` với `n_empty`, không có
+element hay hierarchy edge. Root của version có element riêng nhưng không có
+hierarchy row, vì `parent_id` bắt buộc non-null. Citation key sau dedup được
+đổi trong nội dung sentence/figure và BibTeX row; bản TeX gốc không bị sửa.
+
+Math một dòng được chuẩn hóa về `$...$` và `equation`. `align`/`gather` nhiều dòng
+giữ nguyên environment để không mất dấu căn hàng, số dòng và cấu trúc công thức.
+Bibitem được tách bằng heuristic, nên metadata không có trong nguồn để `null`;
+các trường có trong `.bib` được gộp vào cùng reference khi DOI hoặc title khớp.
+
 ## Xong M2 khi nào?
 
 - [x] Mọi publication M1 được parse; empty version vẫn được ghi *(cây raw)*
 - [x] Chỉ file trên compilation path
 - [x] Leaf gồm sentence / block math / figure (table = figure)
-- [ ] Math đã unified; clutter `\centering`/`[htbp]`/`\midrule` đã gỡ
-- [ ] BibTeX 1 key / reference / paper; field đã union
-- [ ] Element trùng giữa version dùng chung `element_id`
-- [x] Có `metrics_m2.json` *(phần trước dedup; field sau dedup = null)*
+- [x] Math một dòng đã unified; clutter `\centering`/`[htbp]`/`\midrule` đã gỡ
+- [x] BibTeX 1 key / reference / paper; field đã union và cite được đổi
+- [x] Element trùng giữa version dùng chung `element_id`
+- [x] Có `metrics_m2.json` với coverage, đếm trước/sau dedup, runtime, RAM và output size

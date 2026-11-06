@@ -1,61 +1,57 @@
-"""
-Cleanup + math normalization TRƯỚC full-text dedup.
-
-- Bỏ lệnh formatting không semantic: \\centering, [htpb] placement, \\midrule, ...
-- Inline math → $...$
-- Block math → \\begin{equation}...\\end{equation}
-- KHÔNG xóa figure env / \\includegraphics (cấu trúc M2 cần).
-"""
+"""Conservative LaTeX cleanup applied to parsed elements before deduplication."""
 
 from __future__ import annotations
 
+import re
+
+
+_SPACING = re.compile(r"\\(?:centering|raggedright|raggedleft|hfill|vfill|newpage|clearpage|pagebreak|noindent|smallskip|medskip|bigskip|hline|toprule|midrule|bottomrule|maketitle|tableofcontents)\b(?:\[\d+\])?")
+_SPACE_ARGS = re.compile(r"\\(?:vspace|hspace|vskip|hskip)\*?\s*\{[^{}]*\}")
+_FLOAT_PLACEMENT = re.compile(r"(\\begin\{(?:figure|figure\*|table|table\*|subfigure)\})\s*\[(?:[!htbpH]+)\]")
+_TEXT_STYLE = re.compile(r"\\(?:textbf|textit|textsc|textsf|textrm|texttt|textnormal|emph|underline|mbox)\s*\{([^{}]*)\}")
+_FONT_SWITCH = re.compile(r"\\(?:bfseries|itshape|slshape|scshape|rmfamily|sffamily|ttfamily|small|footnotesize|scriptsize|tiny|normalsize|large|Large|LARGE|huge|Huge)\b")
+
 
 def remove_non_semantic_commands(tex: str) -> str:
-    """
-    Gỡ clutter formatting.
-
-    Cần code bên trong (tối thiểu theo đề):
-    - \\centering, \\hfill, \\vspace, \\hspace, \\newpage, \\clearpage
-    - optional args placement [htbp] / [H] trên figure/table
-    - \\hline, \\toprule, \\midrule, \\bottomrule
-    - \\maketitle / \\tableofcontents nếu không chứa nội dung
-    - Collapse whitespace sau khi xóa (để full-text match ổn định)
-    """
-    raise NotImplementedError("TODO(M2): remove_non_semantic_commands")
+    """Remove presentation-only tokens without deleting figures or semantic commands."""
+    tex = _FLOAT_PLACEMENT.sub(r"\1", tex)
+    while True:
+        unwrapped = _TEXT_STYLE.sub(r"\1", tex)
+        if unwrapped == tex:
+            break
+        tex = unwrapped
+    tex = _SPACE_ARGS.sub(" ", tex)
+    tex = _SPACING.sub(" ", tex)
+    tex = _FONT_SWITCH.sub(" ", tex)
+    return re.sub(r"\s+", " ", tex).strip()
 
 
 def normalize_inline_math(tex: str) -> str:
-    """
-    \\(...\\), \\begin{math}, \\ensuremath → $...$
-
-    Cần code bên trong: không đụng block math; cẩn thận nested.
-    """
-    raise NotImplementedError("TODO(M2): normalize_inline_math")
+    """Use dollar delimiters for inline math, preserving the math body."""
+    tex = re.sub(r"\\\((.*?)\\\)", lambda m: f"${m[1].strip()}$", tex, flags=re.S)
+    tex = re.sub(r"\\begin\{math\}(.*?)\\end\{math\}", lambda m: f"${m[1].strip()}$", tex, flags=re.S)
+    return re.sub(r"\\ensuremath\{([^{}]*)\}", lambda m: f"${m[1].strip()}$", tex)
 
 
 def normalize_block_math(tex: str) -> str:
-    """
-    $$, \\[...\\], equation*, align, gather, displaymath → equation env thống nhất.
+    """Normalize single display blocks; preserve multi-line align/gather semantics."""
+    tex = re.sub(r"\$\$(.*?)\$\$", lambda m: _equation(m[1]), tex, flags=re.S)
+    tex = re.sub(r"\\\[(.*?)\\\]", lambda m: _equation(m[1]), tex, flags=re.S)
+    for env in ("equation*", "displaymath", "mathdisplay"):
+        tex = re.sub(r"\\begin\{" + re.escape(env) + r"\}(.*?)\\end\{" + re.escape(env) + r"\}",
+                     lambda m: _equation(m[1]), tex, flags=re.S)
+    return tex
 
-    Cần code bên trong:
-    - Giữ body toán, chỉ đổi wrapper.
-    - align nhiều dòng: có thể giữ nguyên env HOẶC bọc equation + comment trong report.
-      Đề gợi ý equation; nếu giữ align thì ghi rõ trong Jupyter Book.
-    """
-    raise NotImplementedError("TODO(M2): normalize_block_math")
+
+def _equation(body: str) -> str:
+    return "\\begin{equation}" + body.strip() + "\\end{equation}"
 
 
 def cleanup_element_content(content: str) -> str:
-    """
-    Cleanup 1 node (heading/sentence/formula/figure) trước khi so khớp full-text.
-
-    Cần code bên trong:
-    - strip, normalize space, unicode dash/quote nếu cần.
-    - Công thức đã unified thì so khớp chuỗi sau bước này.
-    """
-    raise NotImplementedError("TODO(M2): cleanup_element_content")
+    """Return a stable, semantically equivalent string for an element."""
+    return remove_non_semantic_commands(normalize_block_math(normalize_inline_math(content)))
 
 
 def cleanup_document(tex: str) -> str:
-    """Pipeline: non-semantic → inline math → block math."""
-    raise NotImplementedError("TODO(M2): cleanup_document")
+    """Normalize TeX before parsing when a caller explicitly needs that form."""
+    return remove_non_semantic_commands(normalize_block_math(normalize_inline_math(tex)))

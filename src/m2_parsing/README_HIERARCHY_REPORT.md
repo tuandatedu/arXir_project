@@ -1,5 +1,9 @@
 # Báo cáo kỹ thuật M2 — cây phân cấp trước chuẩn hóa
 
+> Tài liệu này mô tả trạng thái bàn giao của phần parser thô. Pipeline M2 đầy đủ
+> hiện đã chạy qua `python -m src.m2_parsing.run_m2`; xem `README.md` và
+> `report_m2.ipynb` để biết phần chuẩn hóa, BibTeX, dedup và thống kê cuối.
+
 File này ghi lại phần M2 đã làm: build cây document → section → subsection … từ TeX nguồn, trước khi đi qua cleanup / BibTeX / dedup. Mục tiêu là có một cây raw đúng theo cấu trúc bài báo, để các bước sau dễ nối vào.
 
 | Mục | Thông tin |

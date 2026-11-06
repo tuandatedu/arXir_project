@@ -39,7 +39,7 @@ Lab Instructors provide the ID range. Put one canonical arXiv ID per line in
 # M1 — crawl assigned papers (export.arxiv.org only, ≥ 3 s between calls)
 python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
 
-# M2 — parse every publication produced by M1
+# M2 — parse, standardize and deduplicate every version produced by M1
 python -m src.m2_parsing.run_m2
 
 # M3 — matching + local Hugging Face export

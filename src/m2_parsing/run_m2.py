@@ -1,5 +1,5 @@
 """
-CLI Milestone 2 — cây phân cấp trước chuẩn hóa.
+CLI Milestone 2 — full pipeline, with optional raw hierarchy mode.
 
   python -m src.m2_parsing.run_m2
   python -m src.m2_parsing.run_m2 --working-dir data/working
@@ -15,13 +15,13 @@ from pathlib import Path
 
 from src.common import config
 
-from .pipeline import run_raw_hierarchy
+from .pipeline import run_milestone2, run_raw_hierarchy
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     """--working-dir optional, mặc định data/working."""
     parser = argparse.ArgumentParser(
-        description="Parse M1 TeX sources into per-version trees (before cleanup/dedup)."
+        description="Parse, standardize and deduplicate every M1 publication."
     )
     parser.add_argument(
         "--working-dir",
@@ -42,6 +42,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         action="store_true",
         help="Debug logging",
     )
+    parser.add_argument("--raw-only", action="store_true", help="Write only the parser's raw trees")
+    parser.add_argument("--tables-dir", type=Path, default=config.TABLES_DIR,
+                        help="Directory for final elements, hierarchy, bibtex and metrics")
     return parser.parse_args(argv)
 
 
@@ -51,10 +54,18 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(levelname)s %(name)s: %(message)s",
     )
-    summaries = run_raw_hierarchy(
-        working_dir=args.working_dir,
-        arxiv_ids=args.arxiv_ids,
-    )
+    if args.raw_only:
+        summaries = run_raw_hierarchy(working_dir=args.working_dir, arxiv_ids=args.arxiv_ids)
+    else:
+        elements, hierarchy, bibtex = run_milestone2(
+            working_dir=args.working_dir, arxiv_ids=args.arxiv_ids, tables_dir=args.tables_dir,
+        )
+        from .pipeline import _iter_publications
+        ids = args.arxiv_ids if args.arxiv_ids is not None else _iter_publications(args.working_dir)
+        print(f"M2: {len(ids)} publications, {len(elements)} elements, "
+              f"{len(hierarchy)} hierarchy edges, {len(bibtex)} BibTeX entries. "
+              f"Tables: {args.tables_dir}")
+        return 0 if ids else 1
     n_pub = len(summaries)
     n_ver = sum(item["n_versions"] for item in summaries)
     n_ok = sum(item["n_parsed"] for item in summaries)

@@ -1,12 +1,10 @@
-"""Orchestrator M2: mỗi publication M1 → tree / version (trước chuẩn hóa).
-
-Cleanup, BibTeX và dedup across versions thuộc phần việc khác của nhóm.
-Module này bàn giao cây cha–con thô của từng version.
-"""
+"""M2 orchestration: preserve raw parsing and build normalized final tables."""
 
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -19,6 +17,9 @@ from src.common.schemas import BibtexRow, ElementRow, HierarchyRow
 
 from .gather import compilation_path, concatenate_compilation_tex, find_document_root, unused_tex_files
 from .hierarchy import ParseNode, nodes_and_edges, parse_tex_to_tree
+from .bibitem import collect_version_bibtex
+from .dedup import assign_element_ids, dedup_bibtex_across_versions, flatten_tree_with_placeholders, rewrite_citations
+from .tables import save_publication_parsed, write_m2_tables
 
 LOG = logging.getLogger(__name__)
 
@@ -122,12 +123,37 @@ def parse_one_version(
     )
 
 
-def parse_one_publication(arxiv_id: str) -> tuple[list[ElementRow], list[HierarchyRow], list[BibtexRow]]:
-    """Mọi version của 1 paper: parse → assign_element_ids → dedup_bibtex_across_versions."""
-    raise NotImplementedError(
-        "TODO(M2): parse_one_publication needs cleanup + dedup. "
-        "Use parse_one_version / run_raw_hierarchy for the pre-normalization tree."
-    )
+def parse_one_publication(
+    arxiv_id: str, working_dir: Path | None = None,
+) -> tuple[list[ElementRow], list[HierarchyRow], list[BibtexRow]]:
+    """Parse all versions, merge references, rewrite citations and deduplicate."""
+    base = normalize_arxiv_id(arxiv_id)
+    trees: dict[int, ParseNode] = {}
+    references: dict[int, list[dict[str, Any]]] = {}
+    for version in list_local_versions(base, working_dir):
+        result = parse_one_version(base, version, working_dir)
+        trees[version] = result.tree
+        if result.empty:
+            references[version] = []
+        else:
+            source_dir = _version_source_dir(base, version, working_dir)
+            references[version] = collect_version_bibtex(source_dir, concatenate_compilation_tex(source_dir))
+    return _finalize_publication(base, trees, references)
+
+
+def _finalize_publication(
+    base: str, trees: dict[int, ParseNode], references: dict[int, list[dict[str, Any]]],
+) -> tuple[list[ElementRow], list[HierarchyRow], list[BibtexRow]]:
+    bibtex, key_map = dedup_bibtex_across_versions(references)
+    for row in bibtex:
+        row.arxiv_id = base
+    for version, root in trees.items():
+        version_map = {**{k: v for k, v in key_map.items() if not k.startswith("v") or ":" not in k},
+                       **{k.split(":", 1)[1]: v for k, v in key_map.items() if k.startswith(f"v{version}:")}}
+        for node, _ in flatten_tree_with_placeholders(root):
+            node.content = rewrite_citations(node.content, version_map)
+    elements, hierarchy = assign_element_ids(base, trees)
+    return elements, hierarchy, bibtex
 
 
 def run_raw_hierarchy(
@@ -197,19 +223,6 @@ def run_raw_hierarchy(
     stats = parsing_stats(root)
     write_metrics(stats)
     return summaries
-
-
-def run_milestone2() -> tuple[list[ElementRow], list[HierarchyRow], list[BibtexRow]]:
-    """
-    Entry chính M2.
-
-    Phần cây trước chuẩn hóa chạy qua run_raw_hierarchy.
-    Bảng elements/hierarchy/bibtex (sau cleanup + dedup) vẫn là TODO nhóm.
-    """
-    run_raw_hierarchy()
-    raise NotImplementedError(
-        "Raw trees written. Full M2 tables require cleanup.py, bibitem.py, dedup.py."
-    )
 
 
 def _publication_dir(arxiv_id: str, working_dir: Path | None) -> Path:
@@ -284,3 +297,96 @@ def _save_raw_publication_index(
 ) -> None:
     dest = _publication_dir(arxiv_id, working_dir) / "parsed" / "raw" / "index.json"
     write_json(dest, summary)
+
+
+def run_milestone2(
+    working_dir: Path | None = None, arxiv_ids: list[str] | None = None,
+    tables_dir: Path | None = None,
+) -> tuple[list[ElementRow], list[HierarchyRow], list[BibtexRow]]:
+    """Run complete M2 and store per-publication plus global tables and metrics."""
+    from src.common.metrics import directory_size_bytes
+    from .analyze import write_metrics
+
+    root = Path(working_dir) if working_dir is not None else Path(config.WORKING_DIR)
+    out = Path(tables_dir) if tables_dir is not None else Path(config.TABLES_DIR)
+    ids = arxiv_ids if arxiv_ids is not None else _iter_publications(root)
+    all_elements: list[ElementRow] = []
+    all_edges: list[HierarchyRow] = []
+    all_bibtex: list[BibtexRow] = []
+    coverage: list[dict[str, Any]] = []
+    start = time.perf_counter()
+    try:
+        import psutil
+        process = psutil.Process()
+        samples = [process.memory_info().rss]
+    except ImportError:
+        process = None
+        samples = []
+    stop_sampling = threading.Event()
+    def sample_memory() -> None:
+        while not stop_sampling.wait(0.05):
+            try:
+                samples.append(process.memory_info().rss)
+            except Exception:
+                return
+    sampler = threading.Thread(target=sample_memory, daemon=True)
+    if process is not None:
+        sampler.start()
+    for raw_id in ids:
+        base = normalize_arxiv_id(raw_id)
+        versions = list_local_versions(base, root)
+        before_nodes = before_bib = parsed = 0
+        parsed_versions: list[int] = []
+        empty_versions: list[int] = []
+        trees: dict[int, ParseNode] = {}
+        references: dict[int, list[dict[str, Any]]] = {}
+        for version in versions:
+            result = parse_one_version(base, version, root)
+            trees[version] = result.tree
+            if not result.empty:
+                parsed += 1
+                parsed_versions.append(version)
+                before_nodes += result.n_nodes
+                source_dir = _version_source_dir(base, version, root)
+                references[version] = collect_version_bibtex(source_dir, concatenate_compilation_tex(source_dir))
+            else:
+                empty_versions.append(version)
+                references[version] = []
+            before_bib += len(references[version])
+        elements, edges, bibtex = _finalize_publication(base, trees, references)
+        save_publication_parsed(base, elements, edges, bibtex, root)
+        all_elements.extend(elements)
+        all_edges.extend(edges)
+        all_bibtex.extend(bibtex)
+        coverage.append({"arxiv_id": base, "versions": versions,
+                         "parsed_versions": parsed_versions, "empty_versions": empty_versions,
+                         "n_versions": len(versions),
+                         "n_parsed": parsed, "n_empty": len(versions) - parsed,
+                         "n_elements_before_dedup": before_nodes,
+                         "n_elements_after_dedup": len(elements),
+                         "n_bib_before": before_bib, "n_bib_after": len(bibtex)})
+        if process is not None:
+            samples.append(process.memory_info().rss)
+    write_m2_tables(all_elements, all_edges, all_bibtex, out)
+    stop_sampling.set()
+    if process is not None:
+        sampler.join(timeout=0.2)
+        samples.append(process.memory_info().rss)
+    duration = time.perf_counter() - start
+    metrics = {
+        "n_publications": len(coverage), "n_versions_total": sum(x["n_versions"] for x in coverage),
+        "n_versions_parsed": sum(x["n_parsed"] for x in coverage),
+        "n_versions_empty": sum(x["n_empty"] for x in coverage),
+        "n_elements_before_dedup": sum(x["n_elements_before_dedup"] for x in coverage),
+        "n_elements_after_dedup": len(all_elements),
+        "n_bib_before": sum(x["n_bib_before"] for x in coverage),
+        "n_bib_after": len(all_bibtex), "n_hierarchy_edges": len(all_edges),
+        "duration_sec": round(duration, 3),
+        "avg_publication_sec": round(duration / len(coverage), 3) if coverage else None,
+        "peak_rss_bytes": max(samples) if samples else None,
+        "output_bytes": sum(directory_size_bytes(out / f"{name}.jsonl") for name in ("elements", "hierarchy", "bibtex")),
+        "coverage": coverage, "normalized": True,
+    }
+    metrics["version_success_rate"] = metrics["n_versions_parsed"] / metrics["n_versions_total"] if metrics["n_versions_total"] else 0.0
+    write_metrics(metrics, out / "metrics_m2.json")
+    return all_elements, all_edges, all_bibtex
