@@ -34,17 +34,31 @@ def normalize_inline_math(tex: str) -> str:
 
 
 def normalize_block_math(tex: str) -> str:
-    """Normalize single display blocks; preserve multi-line align/gather semantics."""
-    tex = re.sub(r"\$\$(.*?)\$\$", lambda m: _equation(m[1]), tex, flags=re.S)
-    tex = re.sub(r"\\\[(.*?)\\\]", lambda m: _equation(m[1]), tex, flags=re.S)
-    for env in ("equation*", "displaymath", "mathdisplay"):
+    """Canonicalize display delimiters, preserving alignment and star status."""
+    tex = re.sub(r"\$\$(.*?)\$\$", lambda m: _equation(m[1], starred=True), tex, flags=re.S)
+    tex = re.sub(r"\\\[(.*?)\\\]", lambda m: _equation(m[1], starred=True), tex, flags=re.S)
+    for env in ("displaymath", "mathdisplay"):
         tex = re.sub(r"\\begin\{" + re.escape(env) + r"\}(.*?)\\end\{" + re.escape(env) + r"\}",
-                     lambda m: _equation(m[1]), tex, flags=re.S)
+                     lambda m: _equation(m[1], starred=True), tex, flags=re.S)
+    for env, inner in (("align", "aligned"), ("gather", "gathered")):
+        for star in ("", "*"):
+            name = env + star
+            pattern = r"\\begin\{" + re.escape(name) + r"\}(.*?)\\end\{" + re.escape(name) + r"\}"
+            def convert(match: re.Match[str], i: str = inner, s: str = star) -> str:
+                body = match[1].strip()
+                # Numbered multi-row displays have per-row labels/numbers;
+                # equation+aligned would silently change those semantics.
+                if not s and (r"\\" in body or re.search(r"\\(?:label|tag|notag|nonumber)\b", body)):
+                    return match[0]
+                return ("\\begin{equation" + s + "}\\begin{" + i + "}" + body
+                        + "\\end{" + i + "}\\end{equation" + s + "}")
+            tex = re.sub(pattern, convert, tex, flags=re.S)
     return tex
 
 
-def _equation(body: str) -> str:
-    return "\\begin{equation}" + body.strip() + "\\end{equation}"
+def _equation(body: str, starred: bool = False) -> str:
+    env = "equation*" if starred else "equation"
+    return "\\begin{" + env + "}" + body.strip() + "\\end{" + env + "}"
 
 
 def cleanup_element_content(content: str) -> str:

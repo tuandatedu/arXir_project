@@ -31,8 +31,16 @@ def references_similar(a: dict[str, Any], b: dict[str, Any]) -> bool:
         aa = {_norm(x) for x in a.get("authors") or []}
         bb = {_norm(x) for x in b.get("authors") or []}
         return not aa or not bb or bool(aa & bb)
-    # Same key is useful when a sparse version lacks identifying metadata.
-    return bool(a.get("citation_key") == b.get("citation_key") and not (ta and tb))
+    # A key alone is not proof of identity; reject conflicting sparse metadata.
+    if a.get("citation_key") != b.get("citation_key"):
+        return False
+    if a.get("year") and b.get("year") and a["year"] != b["year"]:
+        return False
+    aa = {_norm(x) for x in a.get("authors") or []}
+    bb = {_norm(x) for x in b.get("authors") or []}
+    if aa and bb and not aa & bb:
+        return False
+    return bool((aa and bb) or (a.get("year") and b.get("year")) or (da and db))
 
 
 def choose_canonical_key(keys: list[str]) -> str:
@@ -70,6 +78,7 @@ def dedup_bibtex_across_versions(
     all_entries = [{**entry, "_version": version} for version in sorted(per_version_entries)
                    for entry in per_version_entries[version] if entry.get("citation_key")]
     roots = list(range(len(all_entries)))
+    cluster_dois = [{doi} if (doi := _norm(entry.get("doi"))) else set() for entry in all_entries]
 
     def find(i: int) -> int:
         while roots[i] != i:
@@ -94,7 +103,13 @@ def dedup_bibtex_across_versions(
             candidates.update(by_key[key])
         for j in sorted(candidates):
             if references_similar(entry, all_entries[j]):
-                roots[find(i)] = find(j)
+                left, right = find(i), find(j)
+                if left == right:
+                    continue
+                if cluster_dois[left] and cluster_dois[right] and cluster_dois[left].isdisjoint(cluster_dois[right]):
+                    continue
+                roots[left] = right
+                cluster_dois[right].update(cluster_dois[left])
         if doi:
             by_doi[doi].append(i)
         if title:
@@ -137,7 +152,7 @@ def dedup_bibtex_across_versions(
     return rows, mapping
 
 
-_CITE = re.compile(r"\\(cite[a-zA-Z]*\*?)(\[[^\]]*\])*\{([^{}]+)\}")
+_CITE = re.compile(r"\\([a-zA-Z]*cite[a-zA-Z]*\*?)(\s*\[[^\]]*\])*\s*\{([^{}]+)\}", re.I)
 
 
 def rewrite_citations(content: str, mapping: dict[str, str]) -> str:
@@ -165,7 +180,7 @@ def assign_element_ids(
     """Share IDs for identical cleaned kind/content across a publication's versions."""
     prefix = folder_name_for_arxiv_id(arxiv_id)
     counts: dict[str, int] = defaultdict(int)
-    seen: dict[tuple[str, str], list[str]] = defaultdict(list)
+    seen: dict[tuple[str, str], str] = {}
     elements: list[ElementRow] = []
     edges: list[HierarchyRow] = []
     codes = {"document": "root", "heading": "h", "sentence": "s", "paragraph": "p",
@@ -175,24 +190,26 @@ def assign_element_ids(
         if not root.children and not root.content.strip():
             continue  # Empty M1 versions have no elements.
         ids: dict[int, str] = {}
-        occurrence: dict[tuple[str, str], int] = defaultdict(int)
+        ancestors: dict[int, set[str]] = {}
         for node, parent in flatten_tree_with_placeholders(root):
             if node.kind not in ELEMENT_KINDS:
                 raise ValueError(f"Unknown element kind: {node.kind}")
             content = cleanup_element_content(node.content)
             key = (node.kind, content)
-            index = occurrence[key]
-            occurrence[key] += 1
-            if node is root or index == len(seen[key]):
+            parent_ancestors = ancestors[id(parent)] | {ids[id(parent)]} if parent else set()
+            existing = seen.get(key)
+            # A repeated ancestor cannot reuse its own ID without creating a cycle.
+            if node is root or existing is None or existing in parent_ancestors:
                 code = codes[node.kind]
                 counts[code] += 1
                 eid = f"{prefix}#{code}{counts[code]}"
                 ids[id(node)] = eid
-                if node is not root:
-                    seen[key].append(eid)
+                if node is not root and existing is None:
+                    seen[key] = eid
                 elements.append(ElementRow(eid, arxiv_id, node.kind, content))
             else:
-                ids[id(node)] = seen[key][index]
+                ids[id(node)] = existing
+            ancestors[id(node)] = parent_ancestors
             if parent is not None:
                 edges.append(HierarchyRow(arxiv_id, version, ids[id(node)], ids[id(parent)]))
     # The schema has one row per node-parent edge, even if repeated identical leaves collapse.

@@ -5,11 +5,12 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from src.m2_parsing.bibitem import extract_bibitems, parse_bib_file
+from src.m2_parsing.bibitem import collect_version_bibtex, extract_bibitems, parse_bib_file
 from src.m2_parsing.cleanup import cleanup_element_content
 from src.m2_parsing.dedup import assign_element_ids, dedup_bibtex_across_versions, references_similar, rewrite_citations
 from src.m2_parsing.pipeline import _populate_container_content, _prune_empty_nodes, run_milestone2
 from src.m2_parsing.hierarchy import ParseNode
+from src.m2_parsing.gather import concatenate_compilation_tex
 
 
 def test_cleanup_keeps_semantics_and_unifies_math():
@@ -19,7 +20,7 @@ def test_cleanup_keeps_semantics_and_unifies_math():
     assert r"\includegraphics{plot}" in cleaned
     assert cleanup_element_content(r"A \textbf{nested \emph{word}}.") == "A nested word."
     assert cleanup_element_content(r"Value \(x + 1\) and $$y=2$$") == (
-        r"Value $x + 1$ and \begin{equation}y=2\end{equation}"
+        r"Value $x + 1$ and \begin{equation*}y=2\end{equation*}"
     )
 
 
@@ -44,10 +45,39 @@ def test_reference_union_and_multi_key_citations():
     assert rewrite_citations(r"See \citep[Sec. 2]{new,other}.", aliases) == r"See \citep[Sec. 2]{old,other}."
 
 
+def test_sparse_same_key_conflicting_years_are_not_merged():
+    rows, aliases = dedup_bibtex_across_versions({
+        1: [{"citation_key": "ref", "year": 2020}],
+        2: [{"citation_key": "ref", "year": 2024}],
+    })
+    assert len(rows) == 2 and aliases['v1:ref'] != aliases['v2:ref']
+
+
+def test_bibtex_selects_citations_and_honors_nocite_star(tmp_path):
+    (tmp_path / 'refs.bib').write_text('@article{used, title={Used}}\n@article{unused, title={Unused}}', encoding='utf-8')
+    tex = r'\bibliography{refs} \parencite[see]{used}'
+    assert [x['citation_key'] for x in collect_version_bibtex(tmp_path, tex)] == ['used']
+    assert len(collect_version_bibtex(tmp_path, tex + r' \nocite{*}')) == 2
+    assert rewrite_citations(r'\parencite[see]{used}', {'used': 'new'}) == r'\parencite[see]{new}'
+
+
+def test_include_repeats_but_cycles_stop(tmp_path):
+    (tmp_path / 'main.tex').write_text(r'\documentclass{article}\input{a}\input{a}', encoding='utf-8')
+    (tmp_path / 'a.tex').write_text(r'Repeated.\input{main}', encoding='utf-8')
+    assert concatenate_compilation_tex(tmp_path).count('Repeated.') == 2
+
+
+def test_multiline_math_normalization_preserves_alignment():
+    result = cleanup_element_content(r'\begin{align*}x&=1\\ y&=2\end{align*}')
+    assert result == r'\begin{equation*}\begin{aligned}x&=1\\ y&=2\end{aligned}\end{equation*}'
+    numbered = r'\begin{align}x&=1\\ y&=2\end{align}'
+    assert cleanup_element_content(numbered) == numbered
+
+
 def test_indexed_reference_matching_agrees_with_pairwise_matching():
     entries = [
         {"citation_key": "a", "title": "Same title", "doi": "10.1/a"},
-        {"citation_key": "b", "title": "Same title", "doi": "10.1/b"},
+        {"citation_key": "b", "title": "Same title", "doi": "10.1/a"},
         {"citation_key": "c", "title": "Same title"},
         {"citation_key": "d", "title": "Other title", "doi": "10.1/a"},
         {"citation_key": "e", "title": "Unique", "year": 2020},
@@ -69,6 +99,16 @@ def test_indexed_reference_matching_agrees_with_pairwise_matching():
             assert (aliases[f"v{i + 1}:{first['citation_key']}"] == aliases[f"v{j + 1}:{second['citation_key']}"]) == (find(i) == find(j))
 
 
+def test_missing_doi_does_not_bridge_distinct_dois():
+    rows, aliases = dedup_bibtex_across_versions({
+        1: [{'citation_key': 'a', 'title': 'Paper', 'doi': '10.1/a'}],
+        2: [{'citation_key': 'b', 'title': 'Paper', 'doi': '10.1/b'}],
+        3: [{'citation_key': 'c', 'title': 'Paper'}],
+    })
+    assert len(rows) == 2
+    assert aliases['v1:a'] != aliases['v2:b']
+
+
 def test_cleanup_drops_empty_sentence_and_parent_paragraph():
     root = ParseNode("document", "", [ParseNode("paragraph", "", [ParseNode("sentence", r"\centering")])])
     _prune_empty_nodes(root)
@@ -84,7 +124,7 @@ def test_paragraph_content_reflects_its_sentences():
     assert [child.content for child in root.children] == ["First sentence.", "Second sentence."]
 
 
-def test_repeated_text_keeps_distinct_occurrences_within_version():
+def test_repeated_text_reuses_id_across_and_within_versions():
     def tree():
         return ParseNode("document", "", [
             ParseNode("paragraph", "", [ParseNode("sentence", "Repeated.")]),
@@ -95,8 +135,7 @@ def test_repeated_text_keeps_distinct_occurrences_within_version():
         _populate_container_content(root)
     elements, edges = assign_element_ids("2310.12345", trees)
     sentences = [row for row in elements if row.kind == "sentence"]
-    assert len(sentences) == 2
-    assert len({row.element_id for row in sentences}) == 2
+    assert len(sentences) == 1
     assert all({edge.version for edge in edges if edge.element_id == row.element_id} == {1, 2}
                for row in sentences)
 
@@ -116,6 +155,15 @@ def test_reference_read_failure_is_not_counted_as_parsed(tmp_path: Path, monkeyp
     metrics = json.loads((tmp_path / "tables" / "metrics_m2.json").read_text(encoding="utf-8"))
     assert (metrics["n_versions_total"], metrics["n_versions_parsed"], metrics["n_versions_failed"]) == (1, 0, 1)
     assert metrics["coverage"][0]["parsed_versions"] == []
+
+
+def test_missing_source_is_failure_not_empty_record(tmp_path: Path):
+    version = tmp_path / 'working' / '2310-12345' / 'v1'
+    version.mkdir(parents=True)
+    run_milestone2(tmp_path / 'working', ['2310.12345'], tmp_path / 'tables')
+    metrics = json.loads((tmp_path / 'tables' / 'metrics_m2.json').read_text(encoding='utf-8'))
+    assert (metrics['n_versions_empty'], metrics['n_versions_failed']) == (0, 1)
+    assert metrics['coverage'][0]['failed_versions'][0]['error'] == 'missing sources directory'
 
 
 def test_full_pipeline_two_versions_and_empty(tmp_path: Path):

@@ -87,7 +87,7 @@ Theo `\input` / `\include` **bắc cầu**. Lệnh đã comment (`%`) = chữ th
 
 | Hàm | Code cái gì |
 | --- | --- |
-| `find_document_root` | Scan `*.tex`; bỏ `documentclass` trong comment. 0 file → `None` (empty version). Nhiều file → heuristic (tên `main`, path nông) + log |
+| `find_document_root` | Scan `*.tex`; bỏ `documentclass` trong comment. Không tìm được root → ghi lỗi version; nhiều file → chọn theo heuristic và log. |
 | `strip_tex_line_comments` | Xóa từ `%` không escape tới hết dòng; giữ `\%` |
 | `extract_include_targets` | Argument `\input` / `\include` sau khi strip comment. Cân nhắc `\input file` không ngoặc |
 | `resolve_include_path` | Thử `target`, `target.tex`, relative current file rồi `source_dir`. Thiếu file → warning, không crash |
@@ -102,7 +102,7 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 | --- | --- |
 | `remove_non_semantic_commands` | Tối thiểu theo đề: `\centering`, option `[htbp]`/`[H]`, `\midrule` (và `\hline`, `\toprule`, `\vspace`, …). Collapse whitespace |
 | `normalize_inline_math` | `\(...\)`, `math` env → `$...$` |
-| `normalize_block_math` | `$$`, `\[`, `equation*`, `align`, `displaymath` → `\begin{equation}...\end{equation}` (nếu giữ `align`, ghi rõ trong report) |
+| `normalize_block_math` | Chuẩn hóa delimiter không đánh số sang `equation*`; chuyển các dạng align/gather khi giữ được semantics, giữ nguyên dạng nhiều dòng có đánh số/nhãn. |
 | `cleanup_element_content` | Strip/space cho **1 node** trước khi so chuỗi |
 | `cleanup_document` | Gọi 3 bước trên theo thứ tự |
 
@@ -154,7 +154,7 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 | `union_bib_fields` | Field non-empty thắng |
 | `dedup_bibtex_across_versions` | Cluster (union-find) → `list[BibtexRow]` + `dict[old_key, canonical]` |
 | `flatten_tree_with_placeholders` | Preorder `(node, parent)` |
-| `assign_element_ids` | Gán ID theo thứ tự xuất hiện của `(kind, content)`: đoạn lặp trong cùng version vẫn là các nút riêng; version sau tái sử dụng ID tương ứng. Mỗi version có root riêng và không emit hierarchy row cho root. |
+| `assign_element_ids` | Dùng chung ID theo `(kind, content)` trong một bài; nếu trùng với tổ tiên thì dùng ID riêng để tránh cạnh vòng. Mỗi version có root riêng và không emit hierarchy row cho root. |
 
 ### `tables.py` / `pipeline.py` / `run_m2.py` / `analyze.py`
 
@@ -203,16 +203,20 @@ CLI mặc định ghi `data/tables/elements.jsonl`, `hierarchy.jsonl`, `bibtex.j
 Notebook `src/m2_parsing/report_m2.ipynb` là phần báo cáo có thể đưa vào
 Jupyter Book của nhóm; nó chạy M2 và tạo bảng/biểu đồ trong lúc biên dịch.
 `--raw-only` giữ cách chạy cây thô của Đức. `--tables-dir` đổi chỗ ghi ba bảng.
-Version không có TeX vẫn xuất hiện trong `metrics_m2.json` với `n_empty`, không có
-element hay hierarchy edge. Root của version có element riêng nhưng không có
+Version có marker `empty.json` xuất hiện với `n_empty`; version thiếu source hoặc
+không tìm thấy root được ghi vào `failed_versions`, không tính nhầm là empty.
+Root của version có element riêng nhưng không có
 hierarchy row, vì `parent_id` bắt buộc non-null. Citation key sau dedup được
 đổi trong nội dung sentence/figure và BibTeX row; bản TeX gốc không bị sửa.
 Paragraph/list/list_item lấy nội dung từ các node con trước khi dedup, tránh
 gộp nhầm mọi container vốn có `content=""` trong cây thô. Leaf rỗng sau cleanup
 được loại khỏi cây.
 
-Math một dòng được chuẩn hóa về `$...$` và `equation`. `align`/`gather` nhiều dòng
-giữ nguyên environment để không mất dấu căn hàng, số dòng và cấu trúc công thức.
+Math một dòng được chuẩn hóa về `$...$`, block dùng `equation`/`equation*`.
+`align*`/`gather*` dùng `equation*` và `aligned`/`gathered` bên trong; các môi trường
+đánh số nhiều dòng hoặc có nhãn vẫn giữ nguyên để không mất cách đánh số từng dòng.
+Khi nhận diện được `\cite`, chỉ lấy những key được trích dẫn từ `.bib`; `\nocite{*}`
+giữ toàn bộ. Macro trích dẫn tự định nghĩa có thể cần kiểm tra thủ công.
 Bibitem được tách bằng heuristic, nên metadata không có trong nguồn để `null`;
 các trường có trong `.bib` được gộp vào cùng reference khi DOI hoặc title khớp.
 

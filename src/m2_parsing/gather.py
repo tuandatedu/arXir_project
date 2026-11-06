@@ -204,15 +204,19 @@ def concatenate_compilation_tex(source_dir: Path, root: Path | None = None) -> s
 def _expand_file(source_dir: Path, tex_file: Path, visited: set[Path]) -> str:
     resolved = tex_file.resolve()
     if resolved in visited:
+        LOG.warning("Include cycle at %s; skipping recursive expansion", resolved)
         return ""
     visited.add(resolved)
     try:
         rel = resolved.relative_to(Path(source_dir).resolve()).as_posix()
     except ValueError:
         rel = resolved.name
-    return f"% FILE: {rel}\n" + _expand_includes(
-        _read_tex(resolved), source_dir, resolved, visited
-    )
+    try:
+        return f"% FILE: {rel}\n" + _expand_includes(
+            _read_tex(resolved), source_dir, resolved, visited
+        )
+    finally:
+        visited.remove(resolved)
 
 
 def _expand_includes(

@@ -14,6 +14,7 @@ _BIBITEM = re.compile(r"\\bibitem(?:\[[^\]]*\])?\s*\{([^{}]+)\}")
 _YEAR = re.compile(r"(?<!\d)(?:19|20)\d{2}(?!\d)")
 _DOI = re.compile(r"10\.\d{4,9}/[^\s{},;]+", re.I)
 _URL = re.compile(r"https?://[^\s{}]+", re.I)
+_CITATIONS = re.compile(r"\\(?:[A-Za-z]*cite[A-Za-z]*|nocite)\*?(?:\s*\[[^\]]*\])*\s*\{([^{}]+)\}", re.I)
 
 
 def _plain(text: str) -> str:
@@ -131,6 +132,9 @@ def collect_version_bibtex(source_dir: Path, cleaned_tex: str) -> list[dict[str,
     """Collect cited TeX entries and referenced .bib files (when reachable)."""
     entries = extract_bibitems(cleaned_tex)
     cleaned_tex = strip_tex_line_comments(cleaned_tex)
+    cited = {key.strip() for group in _CITATIONS.findall(cleaned_tex)
+             for key in group.split(",") if key.strip()}
+    use_all = not cited or "*" in cited
     source_dir = Path(source_dir)
     targets: set[Path] = set()
     for group in re.findall(r"\\(?:bibliography|addbibresource)\s*\{([^{}]+)\}", cleaned_tex):
@@ -148,5 +152,6 @@ def collect_version_bibtex(source_dir: Path, cleaned_tex: str) -> list[dict[str,
     if not targets and not entries:
         targets.update(source_dir.rglob("*.bib"))
     for path in sorted(targets):
-        entries.extend(parse_bib_file(path.read_text(encoding="utf-8", errors="replace")))
+        parsed = parse_bib_file(path.read_text(encoding="utf-8", errors="replace"))
+        entries.extend(entry for entry in parsed if use_all or entry["citation_key"] in cited)
     return entries

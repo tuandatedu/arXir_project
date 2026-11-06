@@ -375,7 +375,10 @@ def run_milestone2(
                     parsed_versions.append(version)
                     before_nodes += result.n_nodes
                 else:
-                    empty_versions.append(version)
+                    if result.reason == "empty record from M1":
+                        empty_versions.append(version)
+                    else:
+                        failed_versions.append({"version": version, "error": result.reason})
                     references[version] = []
                 before_bib += len(references[version])
             except Exception as exc:

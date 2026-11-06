@@ -15,7 +15,7 @@ from .archive_input import restore_batch
 from .pipeline import run_milestone2
 
 LOG = logging.getLogger(__name__)
-PIPELINE_REVISION = 2
+PIPELINE_REVISION = 3
 
 
 def _process_batch(args: tuple[Path, Path, Path, bool]) -> tuple[str, int, dict, bool]:
@@ -120,6 +120,7 @@ def run_checkpoint_batches(batch_dir: Path, working_dir: Path, tables_dir: Path,
     result["normalized"] = True
     result["batch_count"] = len(archives)
     result["reused_batches"] = reused_batches
+    result["pipeline_revision"] = PIPELINE_REVISION
     result["end_to_end_sec"] = round(time.perf_counter() - start, 3)
     write_json(tables_dir / "metrics_m2.json", result)
     return result
