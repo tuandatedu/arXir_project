@@ -15,7 +15,7 @@ ArchiveKind = Literal["targz", "tar", "zip", "gz", "tex", "pdf", "unknown", "emp
 SOURCE_MIRROR = "https://export.arxiv.org/src"
 SUFFIXES = {".tex", ".bib"}
 MAX_ARCHIVE_BYTES = 400 * 1024 * 1024  # protect Colab disk
-MAX_FILE_BYTES = 32 * 1024 * 1024       # protect against decompression bombs
+MAX_FILE_BYTES = 64 * 1024 * 1024       # retain large arXiv bibliographies, still bounded
 MAX_TOTAL_EXTRACTED = 120 * 1024 * 1024
 MAX_FILES = 5000
 

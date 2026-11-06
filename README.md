@@ -39,7 +39,7 @@ Lab Instructors provide the ID range. Put one canonical arXiv ID per line in
 # M1 — crawl assigned papers (export.arxiv.org only, ≥ 3 s between calls)
 python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
 
-# M2 — parse every publication produced by M1
+# M2 — parse, standardize and deduplicate every version produced by M1
 python -m src.m2_parsing.run_m2
 
 # M3 — matching + local Hugging Face export
@@ -65,6 +65,7 @@ Thành viên **không cần đọc hết repo**: mở đúng README của việc
 | Utils dùng chung (làm trước) | [`src/common/README.md`](src/common/README.md) |
 | Milestone 1 — crawl | [`src/m1_crawling/README.md`](src/m1_crawling/README.md) |
 | Milestone 2 — parse / dedup | [`src/m2_parsing/README.md`](src/m2_parsing/README.md) |
+| M2 — cây trước chuẩn hóa (report) | [`src/m2_parsing/README_HIERARCHY_REPORT.md`](src/m2_parsing/README_HIERARCHY_REPORT.md) |
 | Milestone 3 — matching + HF | [`src/m3_matching/README.md`](src/m3_matching/README.md) |
 
 Mỗi file ghi: mục tiêu, thứ tự code, **từng hàm phải viết gì**, output trên đĩa, và checklist “xong khi nào”. Trong code, chỗ `TODO(M1/M2/M3)` trùng với README đó.

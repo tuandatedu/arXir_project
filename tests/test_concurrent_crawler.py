@@ -218,6 +218,24 @@ def test_recovery_cli_never_processes_missing_checkpoint(tmp_path, monkeypatch):
     assert calls == [("batch_00001", 3)]
 
 
+def test_http_pacing_waits_until_clock_reaches_deadline(monkeypatch):
+    clock = [100.0]
+    sleeps = []
+
+    def sleep(seconds):
+        sleeps.append(seconds)
+        clock[0] += min(seconds, 1.0)
+
+    monkeypatch.setattr(arxiv_http.time, 'monotonic', lambda: clock[0])
+    monkeypatch.setattr(arxiv_http.time, 'sleep', sleep)
+    with arxiv_http.ArxivHTTP(delay=3.1, retries=0) as http:
+        http.last_request = clock[0]
+        with http._state_lock:
+            http._pace()
+        assert http.last_request >= 103.1
+    assert len(sleeps) == 4
+
+
 def test_http_pacing_shared_across_workers_while_responses_overlap(monkeypatch):
     # Use a tiny test-only delay, never weaken the production 3.1s default.
     monkeypatch.setattr(arxiv_http, "ARXIV_MIN_DELAY_SEC", 0.025)
@@ -255,6 +273,17 @@ def test_http_pacing_shared_across_workers_while_responses_overlap(monkeypatch):
 
     monkeypatch.setattr(arxiv_http.requests, "Session", Session)
     with arxiv_http.ArxivHTTP(delay=.025, retries=0) as http:
+        reservations = []
+        original_pace = http._pace
+
+        def record_pacing_gate():
+            original_pace()
+            # _pace runs under the shared lock. Measure its reserved start,
+            # since a thread can be descheduled between leaving that gate and
+            # entering Session.get. Response overlap is verified separately.
+            reservations.append(http.last_request)
+
+        monkeypatch.setattr(http, "_pace", record_pacing_gate)
         def worker(_):
             with http.get("https://export.arxiv.org/src/test"):
                 pass
@@ -263,4 +292,5 @@ def test_http_pacing_shared_across_workers_while_responses_overlap(monkeypatch):
         assert http.request_count == 5
     assert peak >= 2
     assert len(started) == 5
-    assert all(b - a >= .019 for a, b in zip(started, started[1:]))
+    assert len(reservations) == 5
+    assert all(b - a >= .019 for a, b in zip(reservations, reservations[1:]))

@@ -73,8 +73,9 @@ class ArxivHTTP:
         earliest = self._cooldown_until
         if self.last_request is not None:
             earliest = max(earliest, self.last_request + self.delay)
-        remaining = earliest - time.monotonic()
-        if remaining > 0:
+        # Recheck the deadline: a coarse monotonic clock (notably Windows
+        # GetTickCount64) can still report a time before it after one sleep.
+        while (remaining := earliest - time.monotonic()) > 0:
             time.sleep(remaining)
         self.last_request = time.monotonic()
 

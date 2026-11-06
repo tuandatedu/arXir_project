@@ -2,6 +2,8 @@
 
 **Người làm M2 đọc file này trước khi mở code.**
 
+Kiến trúc, flow và bảng chức năng/hàm/helper: [README_KIEN_TRUC_M2.md](README_KIEN_TRUC_M2.md).
+
 Đề đầy đủ: <https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/parsing>
 
 Phụ thuộc: **M1 đã chạy xong**, có `data/working/{id}/vN/sources/`.
@@ -16,11 +18,21 @@ Biến TeX thô thành dữ liệu có cấu trúc:
 4. **`\\bibitem` → BibTeX**.
 5. **Dedup giữa các version** của cùng paper (nội dung + reference).
 
-Chạy:
+### Phần cây trước chuẩn hóa — đã xong
+
+Gather + hierarchy + CLI + test. **Người follow-up đọc file này trước** (báo cáo kỹ thuật, cài đặt, pytest, dry-run corpus giả, chạy M1, đọc output, troubleshooting, API bước sau):
+
+**[`README_HIERARCHY_REPORT.md`](README_HIERARCHY_REPORT.md)**
+
+Tóm tắt lệnh (luôn chạy từ **root repo**):
 
 ```bash
-python -m src.m2_parsing.run_m2
+python -m pip install -r src/requirements.txt pytest
+python -m pytest tests/test_m2_hierarchy.py tests/test_m2_standardization.py -q
+python -m src.m2_parsing.run_m2 --working-dir data/working   # cần corpus M1
 ```
+
+Phần dưới mô tả giao diện các module; phần chuẩn hóa và tích hợp đã được cài đặt.
 
 ---
 
@@ -45,7 +57,7 @@ analyze.py      → số report
 data/working/2310-12345/parsed/
   elements.jsonl
   hierarchy.jsonl
-  bibtex.json
+  bibtex.jsonl
 data/tables/elements.jsonl
 data/tables/hierarchy.jsonl
 data/tables/bibtex.jsonl
@@ -77,7 +89,7 @@ Theo `\input` / `\include` **bắc cầu**. Lệnh đã comment (`%`) = chữ th
 
 | Hàm | Code cái gì |
 | --- | --- |
-| `find_document_root` | Scan `*.tex`; bỏ `documentclass` trong comment. 0 file → `None` (empty version). Nhiều file → heuristic (tên `main`, path nông) + log |
+| `find_document_root` | Scan `*.tex`; bỏ `documentclass` trong comment. Không tìm được root → ghi lỗi version; nhiều file → chọn theo heuristic và log. |
 | `strip_tex_line_comments` | Xóa từ `%` không escape tới hết dòng; giữ `\%` |
 | `extract_include_targets` | Argument `\input` / `\include` sau khi strip comment. Cân nhắc `\input file` không ngoặc |
 | `resolve_include_path` | Thử `target`, `target.tex`, relative current file rồi `source_dir`. Thiếu file → warning, không crash |
@@ -92,7 +104,7 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 | --- | --- |
 | `remove_non_semantic_commands` | Tối thiểu theo đề: `\centering`, option `[htbp]`/`[H]`, `\midrule` (và `\hline`, `\toprule`, `\vspace`, …). Collapse whitespace |
 | `normalize_inline_math` | `\(...\)`, `math` env → `$...$` |
-| `normalize_block_math` | `$$`, `\[`, `equation*`, `align`, `displaymath` → `\begin{equation}...\end{equation}` (nếu giữ `align`, ghi rõ trong report) |
+| `normalize_block_math` | Chuẩn hóa delimiter không đánh số sang `equation*`; chuyển các dạng align/gather khi giữ được semantics, giữ nguyên dạng nhiều dòng có đánh số/nhãn. |
 | `cleanup_element_content` | Strip/space cho **1 node** trước khi so chuỗi |
 | `cleanup_document` | Gọi 3 bước trên theo thứ tự |
 
@@ -144,7 +156,7 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 | `union_bib_fields` | Field non-empty thắng |
 | `dedup_bibtex_across_versions` | Cluster (union-find) → `list[BibtexRow]` + `dict[old_key, canonical]` |
 | `flatten_tree_with_placeholders` | Preorder `(node, parent)` |
-| `assign_element_ids` | Lần đầu thấy content → discriminant mới (`s1`, `h1`, `root1`…). Version sau trùng → tái sử dụng id. `HierarchyRow` mỗi cạnh. `parent_id` non-null: không emit hàng cho root (hoặc quy ước sentinel — **chọn 1 cách, ghi vào đây khi implement**) |
+| `assign_element_ids` | Dùng chung ID theo `(kind, content)` trong một bài; nếu trùng với tổ tiên thì dùng ID riêng để tránh cạnh vòng. Mỗi version có root riêng và không emit hierarchy row cho root. |
 
 ### `tables.py` / `pipeline.py` / `run_m2.py` / `analyze.py`
 
@@ -166,12 +178,56 @@ Làm **trước** dedup full-text. **Không** xóa `figure` / `\includegraphics`
 - Không bỏ Acknowledgements/Appendix.
 - Không parse section References vào `elements`.
 
+## Chạy M2 đầy đủ (nhánh M2-standardization)
+
+Từ root repo, sau khi có `data/working` của M1:
+
+```bash
+python -m src.m2_parsing.run_m2 --working-dir data/working
+python -m pytest tests/test_m2_hierarchy.py tests/test_m2_standardization.py -q
+```
+
+Nếu M1 được giao dưới dạng checkpoint `range_1_dev/batch_*.tar.gz`, chạy:
+
+```bash
+python -m src.m2_parsing.run_m2 --batch-dir range_1_dev --workers 4 --resume
+```
+
+Lệnh này xác thực checksum từng batch, giải nén `working/` an toàn vào `data/working`,
+parse theo batch để hạn chế RAM, rồi ghép ba bảng và metrics toàn bộ corpus.
+`--resume` chỉ dùng lại batch đã hoàn tất với đúng checksum của archive và phiên bản pipeline;
+batch dở sẽ được xử lý lại.
+`range_1/tables/references.json` là bảng Semantic Scholar của M1 để dùng ở M3;
+`bibtex.jsonl` của M2 được trích từ `.tex`/`.bib` trong `range_1_dev`.
+
+CLI mặc định ghi `data/tables/elements.jsonl`, `hierarchy.jsonl`, `bibtex.jsonl`,
+`metrics_m2.json`; mỗi publication còn có `parsed/{elements,hierarchy,bibtex}.jsonl`.
+Notebook `src/m2_parsing/report_m2.ipynb` là phần báo cáo có thể đưa vào
+Jupyter Book của nhóm; nó chạy M2 và tạo bảng/biểu đồ trong lúc biên dịch.
+`--raw-only` giữ cách chạy cây thô của Đức. `--tables-dir` đổi chỗ ghi ba bảng.
+Version có marker `empty.json` xuất hiện với `n_empty`; version thiếu source hoặc
+không tìm thấy root được ghi vào `failed_versions`, không tính nhầm là empty.
+Root của version có element riêng nhưng không có
+hierarchy row, vì `parent_id` bắt buộc non-null. Citation key sau dedup được
+đổi trong nội dung sentence/figure và BibTeX row; bản TeX gốc không bị sửa.
+Paragraph/list/list_item lấy nội dung từ các node con trước khi dedup, tránh
+gộp nhầm mọi container vốn có `content=""` trong cây thô. Leaf rỗng sau cleanup
+được loại khỏi cây.
+
+Math một dòng được chuẩn hóa về `$...$`, block dùng `equation`/`equation*`.
+`align*`/`gather*` dùng `equation*` và `aligned`/`gathered` bên trong; các môi trường
+đánh số nhiều dòng hoặc có nhãn vẫn giữ nguyên để không mất cách đánh số từng dòng.
+Khi nhận diện được `\cite`, chỉ lấy những key được trích dẫn từ `.bib`; `\nocite{*}`
+giữ toàn bộ. Macro trích dẫn tự định nghĩa có thể cần kiểm tra thủ công.
+Bibitem được tách bằng heuristic, nên metadata không có trong nguồn để `null`;
+các trường có trong `.bib` được gộp vào cùng reference khi DOI hoặc title khớp.
+
 ## Xong M2 khi nào?
 
-- [ ] Mọi publication M1 được parse; empty version vẫn được ghi
-- [ ] Chỉ file trên compilation path
-- [ ] Leaf chỉ gồm sentence / block math / figure (table = figure)
-- [ ] Math đã unified; clutter `\centering`/`[htbp]`/`\midrule` đã gỡ
-- [ ] BibTeX 1 key / reference / paper; field đã union
-- [ ] Element trùng giữa version dùng chung `element_id`
-- [ ] Có `metrics_m2.json`
+- [x] Mọi publication M1 được parse; empty version vẫn được ghi *(cây raw)*
+- [x] Chỉ file trên compilation path
+- [x] Leaf gồm sentence / block math / figure (table = figure)
+- [x] Math một dòng đã unified; clutter `\centering`/`[htbp]`/`\midrule` đã gỡ
+- [x] BibTeX 1 key / reference / paper; field đã union và cite được đổi
+- [x] Element trùng giữa version dùng chung `element_id`
+- [x] Có `metrics_m2.json` với coverage, đếm trước/sau dedup, runtime, RAM và output size
