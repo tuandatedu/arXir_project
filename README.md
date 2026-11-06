@@ -64,8 +64,7 @@ Thành viên **không cần đọc hết repo**: mở đúng README của việc
 | --- | --- |
 | Utils dùng chung (làm trước) | [`src/common/README.md`](src/common/README.md) |
 | Milestone 1 — crawl | [`src/m1_crawling/README.md`](src/m1_crawling/README.md) |
-| Milestone 2 — parse / dedup | [`src/m2_parsing/README.md`](src/m2_parsing/README.md) |
-| M2 — cây trước chuẩn hóa (report) | [`src/m2_parsing/README_HIERARCHY_REPORT.md`](src/m2_parsing/README_HIERARCHY_REPORT.md) |
+| Milestone 2 — chạy range / kiến trúc / parse / dedup | [`src/m2_parsing/README.md`](src/m2_parsing/README.md) |
 | Milestone 3 — matching + HF | [`src/m3_matching/README.md`](src/m3_matching/README.md) |
 
 Mỗi file ghi: mục tiêu, thứ tự code, **từng hàm phải viết gì**, output trên đĩa, và checklist “xong khi nào”. Trong code, chỗ `TODO(M1/M2/M3)` trùng với README đó.
