@@ -48,6 +48,15 @@ Test mock toàn bộ network (S2, table write, pipeline end-to-end) — không s
 Nếu chạy crawler người 1 trên máy thì cài `requirements-crawler.txt`; phần này cần
 đầy đủ `src/requirements.txt` (arxiv, requests, psutil, pandas…).
 
+Chạy riêng test payload và bộ điều tiết request:
+
+```powershell
+python -m pytest -q tests/test_m1_pipeline.py -k "payload_validation_and_pacing"
+```
+
+Test này kiểm tra `references=[]` hợp lệ, payload thiếu/sai kiểu
+`references`, và việc request đi qua bộ điều tiết trước mỗi attempt.
+
 ## 4. Cách chạy A — Colab trên checkpoint Drive của người 1 (production)
 
 Notebook: `src/m1_crawling/colab_s2_references.ipynb`. Chạy **sau** notebook crawl

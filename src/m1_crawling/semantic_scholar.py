@@ -214,6 +214,30 @@ def fetch_s2_references(arxiv_id: str, api_key: Optional[str] = None) -> list[di
     return valid
 
 
+def fetch_s2_references_with_status(
+    arxiv_id: str,
+    api_key: Optional[str] = None,
+) -> tuple[list[dict[str, Any]], str, str]:
+    """Fetch valid reference objects and preserve the request status."""
+    base = normalize_arxiv_id(arxiv_id)
+    payload, status, error, error_kind = fetch_s2_payload_with_status(
+        base, api_key
+    )
+    if payload is None:
+        if status == "failed":
+            LOG.warning(
+                "Semantic Scholar reference fetch failed for %s (%s): %s",
+                base, error_kind, error,
+            )
+        return [], status, error
+    valid, invalid = extract_reference_objects(payload)
+    if invalid:
+        return [], "failed", (
+            f"Invalid reference item structure: {len(invalid)} non-object item(s)"
+        )
+    return valid, "ok", ""
+
+
 def extract_arxiv_id_from_external_ids(external_ids: dict[str, Any] | None) -> Optional[str]:
     """
     Lấy key 'ArXiv' từ externalIds. Giữ nguyên scheme cũ hep-th/9901001.
