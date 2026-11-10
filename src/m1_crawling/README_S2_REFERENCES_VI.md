@@ -105,6 +105,10 @@ Mỗi `batch_*.tar.gz` chứa `papers.jsonl` (metadata người 1 đã crawl). C
 - chỉ giữ paper có `status == "ok"` trong `crawl_records.jsonl` (paper lỗi không có metadata để tra cứu);
 - dedupe theo `arxiv_id`.
 
+Notebook đọc API key từ biến môi trường `S2_API_KEY`; không đặt key trực tiếp
+trong notebook. Luồng request dùng chung bộ pacing/cooldown của
+`semantic_scholar.py`, bao gồm cả các lần retry.
+
 ### 4.6. Crawl references (resume, có đo runtime)
 
 Mỗi paper: `fetch_s2_references` → `s2_ref_to_local_record` → ghi
@@ -115,6 +119,10 @@ Mỗi paper: `fetch_s2_references` → `s2_ref_to_local_record` → ghi
   thì mở lại session, mount Drive, chạy lại cell là tiếp tục.
 - Lỗi từng paper (chưa index 404, 429 sau retry, mất mạng) được log rồi bỏ qua, không dừng cả run.
 - Progress in mỗi 50 paper; cuối run in số `ok` / `skipped` / `error`, tổng refs, wall-clock, peak RAM.
+- Phản hồi HTTP 200 chỉ được ghi cache khi payload có trường `references` kiểu
+  list. `references: []` là kết quả `ok` hợp lệ; thiếu trường hoặc sai kiểu là
+  `failed`. Phần tử reference không phải object cũng được ghi nhận là lỗi và
+  không ghi cache để tránh mất dữ liệu âm thầm.
 
 ### 4.7. Recovery
 

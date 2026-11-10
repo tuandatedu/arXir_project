@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Callable
 from urllib.parse import urlparse
 
 import requests
@@ -45,6 +46,7 @@ def request_with_retry(
     params: dict | None = None,
     timeout: float = 60.0,
     max_retries: int = 5,
+    before_attempt: Callable[[], None] | None = None,
 ) -> object:
     """
     HTTP request có retry cho 429 / 5xx.
@@ -52,6 +54,9 @@ def request_with_retry(
     - Dùng requests, gắn User-Agent từ config.
     - 429: đọc Retry-After nếu có, không thì exponential backoff.
     - 403 từ arxiv.org: đây là tín hiệu sai mirror — log rõ, đừng spam.
+    - before_attempt (optional): gọi trước MỖI lần thử, kể cả retry. Dùng cho
+      rate limiter của caller (ví dụ Semantic Scholar) để retry không vượt
+      khoảng chờ tối thiểu.
     - Trả requests.Response; caller tự .json() / ghi file.
     - Lỗi mạng sau khi hết retry → raise requests.RequestException.
     """
@@ -64,6 +69,8 @@ def request_with_retry(
     last_exception: requests.RequestException | None = None
     for attempt in range(max_retries + 1):
         wait = 0.0
+        if before_attempt is not None:
+            before_attempt()
         try:
             response = requests.request(
                 method, url, headers=merged_headers, params=params, timeout=timeout)

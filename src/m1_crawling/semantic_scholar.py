@@ -45,69 +45,146 @@ def _min_delay_sec(has_key: bool) -> float:
     return S2_MIN_DELAY_SEC if has_key else S2_MIN_DELAY_UNAUTH_SEC
 
 
-def _s2_request(arxiv_id: str, api_key: Optional[str]) -> Optional[dict[str, Any]]:
+def _pace_s2_request(has_key: bool) -> None:
     """
-    GET một paper S2. Trả dict JSON hoặc None nếu không lấy được (đã log).
+    Điều tiết một lần thử request S2.
 
-    Xử lý:
-    - 404 / 400 → paper chưa được S2 ghi nhận hoặc ID không hợp lệ → None.
-    - 429 sau retry → vượt giới hạn truy vấn → None (không crash pipeline).
-    - lỗi mạng sau retry → None.
-    KHÔNG dùng nested field `authors.name` (API reject).
+    Hàm này được gọi trước MỌI attempt (kể cả retry bên trong
+    request_with_retry), nên retry không thể vượt khoảng chờ tối thiểu.
     """
     global _last_call_monotonic, _cooldown_until
-    url = S2_PAPER_URL.format(arxiv_id=arxiv_id)
-    headers: dict[str, str] = {}
-    key = _resolve_api_key(api_key)
-    if key:
-        headers["x-api-key"] = key
-    params = {"fields": ",".join(S2_FIELDS)}
-    # Đợi hết cooldown 429 chung trước khi request kế tiếp.
     remaining = _cooldown_until - time.monotonic()
     if remaining > 0:
         LOG.info("S2 rate-limit cooldown: sleeping %.0fs", remaining)
         time.sleep(remaining)
     _last_call_monotonic = sleep_until_allowed(
-        _min_delay_sec(bool(key)), _last_call_monotonic)
+        _min_delay_sec(has_key), _last_call_monotonic)
+
+
+def fetch_s2_payload_with_status(
+    arxiv_id: str,
+    api_key: Optional[str] = None,
+) -> tuple[Optional[dict[str, Any]], str, str, str]:
+    """
+    GET một paper S2 và trả (payload, status, error, error_kind).
+
+    status:
+    - ok: HTTP 200 + payload là object + có field ``references`` kiểu list
+      (list rỗng vẫn là ok).
+    - not_indexed: CHỈ HTTP 404 (S2 chưa ghi nhận paper).
+    - failed: HTTP 400/429/5xx, lỗi mạng, JSON hỏng, hoặc payload thiếu/sai
+      cấu trúc field ``references``.
+
+    error_kind dùng để tách lỗi HTTP/network khỏi lỗi xử lý local:
+    http_404, http_400, http_429, http_<code>, network, invalid_json,
+    invalid_payload, request_rejected.
+
+    Rate limit/cooldown được áp dụng bên trong request_with_retry qua
+    ``before_attempt`` nên cả lần thử đầu và các retry đều được điều tiết.
+    KHÔNG dùng nested field `authors.name` (API reject).
+    """
+    global _cooldown_until
+    base = normalize_arxiv_id(arxiv_id)
+    url = S2_PAPER_URL.format(arxiv_id=base)
+    headers: dict[str, str] = {}
+    key = _resolve_api_key(api_key)
+    if key:
+        headers["x-api-key"] = key
+    params = {"fields": ",".join(S2_FIELDS)}
     try:
         response = request_with_retry(
             "GET", url, headers=headers or None, params=params,
-            timeout=60.0, max_retries=5)
+            timeout=60.0, max_retries=5,
+            before_attempt=lambda: _pace_s2_request(bool(key)))
     except requests.RequestException as exc:
-        LOG.warning("Semantic Scholar network failure for %s: %s", arxiv_id, exc)
-        return None
+        LOG.warning("Semantic Scholar network failure for %s: %s", base, exc)
+        return None, "failed", f"Network error: {exc}", "network"
     except RuntimeError as exc:
         # HTTP 403 — sai endpoint / bị chặn; không retry dồn dập.
-        LOG.error("Semantic Scholar rejected request for %s: %s", arxiv_id, exc)
-        return None
+        LOG.error("Semantic Scholar rejected request for %s: %s", base, exc)
+        return None, "failed", f"Request rejected: {exc}", "request_rejected"
+
     status = getattr(response, "status_code", None)
     if status == 404:
-        LOG.info("Semantic Scholar has not indexed arXiv:%s yet", arxiv_id)
-        return None
+        LOG.info("Semantic Scholar has not indexed arXiv:%s yet", base)
+        return None, "not_indexed", "HTTP 404 Not Found", "http_404"
     if status == 400:
-        LOG.warning("Semantic Scholar rejected arXiv:%s as invalid", arxiv_id)
-        return None
+        LOG.warning("Semantic Scholar rejected arXiv:%s as invalid", base)
+        return None, "failed", "HTTP 400 Bad Request", "http_400"
     if status == 429:
         _cooldown_until = time.monotonic() + S2_429_COOLDOWN_SEC
-        LOG.warning(
-            "Semantic Scholar rate limit exhausted for arXiv:%s "
-            "— cooling down %.0fs before next paper",
-            arxiv_id, S2_429_COOLDOWN_SEC)
-        return None
+        message = (
+            "HTTP 429 rate limit exhausted after retries "
+            f"(cooldown {S2_429_COOLDOWN_SEC:.0f}s)")
+        LOG.warning("Semantic Scholar %s for arXiv:%s", message, base)
+        return None, "failed", message, "http_429"
     if status is None or status >= 400:
-        LOG.warning("Semantic Scholar HTTP %s for arXiv:%s", status, arxiv_id)
-        return None
+        LOG.warning("Semantic Scholar HTTP %s for arXiv:%s", status, base)
+        return None, "failed", f"HTTP {status}", f"http_{status}"
+
     try:
         payload = response.json()
     except ValueError as exc:
         LOG.warning("Semantic Scholar returned non-JSON body for %s: %s",
-                    arxiv_id, exc)
-        return None
+                    base, exc)
+        return None, "failed", f"JSON decode error: {exc}", "invalid_json"
     finally:
         close = getattr(response, "close", None)
         if callable(close):
             close()
-    return payload if isinstance(payload, dict) else None
+
+    if not isinstance(payload, dict):
+        LOG.warning("Semantic Scholar returned non-object JSON for %s: %r",
+                    base, type(payload).__name__)
+        return (None, "failed",
+                f"Invalid JSON structure: expected object, got {type(payload).__name__}",
+                "invalid_payload")
+    if "references" not in payload:
+        LOG.warning("Semantic Scholar payload missing 'references' for %s", base)
+        return (None, "failed",
+                "Missing 'references' field in S2 payload", "invalid_payload")
+    references = payload.get("references")
+    if not isinstance(references, list):
+        LOG.warning("Semantic Scholar 'references' is not a list for %s: %r",
+                    base, type(references).__name__)
+        return (None, "failed",
+                f"Invalid 'references' field: expected list, got {type(references).__name__}",
+                "invalid_payload")
+    return payload, "ok", "", ""
+
+
+def _s2_request(arxiv_id: str, api_key: Optional[str]) -> Optional[dict[str, Any]]:
+    """Backward-compatible wrapper: trả payload nếu status ok, ngược lại None."""
+    payload, status, _, _ = fetch_s2_payload_with_status(arxiv_id, api_key)
+    return payload if status == "ok" else None
+
+
+def extract_reference_objects(
+    payload: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[Any]]:
+    """
+    Tách reference objects hợp lệ và phần tử sai cấu trúc.
+
+    - Raise ValueError nếu payload thiếu ``references`` hoặc sai kiểu list.
+    - Phần tử không phải object được trả riêng để caller ghi nhận, không bị
+      bỏ qua âm thầm.
+    """
+    if not isinstance(payload, dict):
+        raise ValueError("payload must be an object")
+    if "references" not in payload:
+        raise ValueError("payload missing 'references' field")
+    references = payload.get("references")
+    if not isinstance(references, list):
+        raise ValueError(
+            f"'references' must be a list, got {type(references).__name__}")
+    valid: list[dict[str, Any]] = []
+    invalid: list[Any] = []
+    for item in references:
+        if isinstance(item, dict):
+            valid.append(item)
+        else:
+            invalid.append(item)
+    return valid, invalid
 
 
 def fetch_s2_references(arxiv_id: str, api_key: Optional[str] = None) -> list[dict[str, Any]]:
@@ -116,29 +193,25 @@ def fetch_s2_references(arxiv_id: str, api_key: Optional[str] = None) -> list[di
 
     - URL = S2_PAPER_URL.format(arxiv_id=arxiv_id), params fields=S2_FIELDS.
     - Header x-api-key nếu có (env S2_API_KEY) — unauth: delay 3.1s (100/5 phút);
-      có key: delay 1s. Rate-limit S2_MIN_DELAY_SEC, retry 429 + cooldown chung.
-    - Paper mới / chưa index: trả [] và log warning, không crash pipeline.
+      có key: delay 1s. Rate-limit áp dụng cho cả retry qua before_attempt.
+    - Paper mới / chưa index (404) hoặc request lỗi: trả [] và log rõ, không
+      crash pipeline. Missing/wrong ``references`` được log là failed, không
+      được coi là list rỗng hợp lệ.
     - KHÔNG dùng nested field `authors.name` (API reject).
     """
     base = normalize_arxiv_id(arxiv_id)
-    payload = _s2_request(base, api_key)
+    payload, status, error, error_kind = fetch_s2_payload_with_status(base, api_key)
     if payload is None:
+        if status == "failed":
+            LOG.warning("Semantic Scholar reference fetch failed for %s (%s): %s",
+                        base, error_kind, error)
         return []
-    references = payload.get("references")
-    if references is None:
-        LOG.info("Semantic Scholar returned no references field for arXiv:%s", base)
-        return []
-    if not isinstance(references, list):
-        LOG.warning("Unexpected references payload for arXiv:%s: %r",
-                    base, type(references).__name__)
-        return []
-    clean: list[dict[str, Any]] = []
-    for item in references:
-        if isinstance(item, dict):
-            clean.append(item)
-        else:
-            LOG.debug("Skipping non-object reference of arXiv:%s", base)
-    return clean
+    valid, invalid = extract_reference_objects(payload)
+    if invalid:
+        LOG.warning(
+            "Semantic Scholar returned %d non-object reference(s) for %s; "
+            "skipped (first: %r)", len(invalid), base, invalid[0])
+    return valid
 
 
 def extract_arxiv_id_from_external_ids(external_ids: dict[str, Any] | None) -> Optional[str]:
