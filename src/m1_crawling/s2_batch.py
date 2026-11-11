@@ -23,15 +23,18 @@ from __future__ import annotations
 import json
 import logging
 import os
+import threading
 import time
 from collections import Counter
 from pathlib import Path
 from typing import Any, Callable, Optional
 
 from src.common.ids import folder_name_for_arxiv_id, normalize_arxiv_id
+from src.common.metrics import directory_size_bytes
 from src.m1_crawling.semantic_scholar import (
     extract_reference_objects,
     fetch_s2_payload_with_status,
+    request_stats,
     s2_ref_to_local_record,
 )
 
@@ -40,6 +43,59 @@ LOG = logging.getLogger(__name__)
 _API_ERROR_KINDS = ("network", "request_rejected")
 _PROCESSING_ERROR_KINDS = frozenset(
     {"invalid_json", "invalid_payload", "processing"})
+
+
+class DiskPeakSampler:
+    """Sample a directory size during a crawl to estimate peak disk usage.
+
+    The cache directory is expected to grow while publications are written, so
+    periodic sampling bounds the peak without inferring it from final output.
+    """
+
+    def __init__(self, path: Path | str, interval_sec: float = 30.0) -> None:
+        if interval_sec <= 0:
+            raise ValueError("interval_sec must be positive")
+        self.path = Path(path)
+        self.interval_sec = interval_sec
+        self.samples: list[int] = []
+        self._stop = threading.Event()
+        self._thread: Optional[threading.Thread] = None
+
+    def _sample_once(self) -> None:
+        try:
+            self.samples.append(directory_size_bytes(self.path))
+        except OSError:
+            LOG.debug("Could not sample disk size for %s", self.path)
+
+    def _loop(self) -> None:
+        while not self._stop.wait(self.interval_sec):
+            self._sample_once()
+
+    def start(self) -> "DiskPeakSampler":
+        self._sample_once()
+        self._thread = threading.Thread(
+            target=self._loop, name="s2-disk-peak", daemon=True)
+        self._thread.start()
+        return self
+
+    def stop(self) -> "DiskPeakSampler":
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=self.interval_sec + 1.0)
+        self._sample_once()
+        return self
+
+    def result(self) -> dict[str, Any]:
+        return {
+            "peak_disk_bytes": max(self.samples) if self.samples else 0,
+            "disk_sample_count": len(self.samples),
+            "disk_sample_interval_sec": self.interval_sec,
+            "disk_path": str(self.path),
+            "disk_scope": (
+                "references cache directory sampled during the crawl; "
+                "does not include tables or checkpoint archives"),
+        }
+
 
 
 def cache_path_for(refs_root: Path | str, arxiv_id: str) -> Path:
@@ -116,6 +172,9 @@ def _record_from_cache(arxiv_id: str, records: list[dict[str, Any]]) -> dict[str
         "from_cache": True,
         "elapsed_s": "",
         "n_invalid_refs": 0,
+        "n_http_requests": 0,
+        "n_http_retries": 0,
+        "n_http_429": 0,
         "error_kind": "",
         "error": "",
     }
@@ -134,6 +193,9 @@ def _invalid_id_record(raw_id: Any) -> dict[str, Any]:
         "from_cache": False,
         "elapsed_s": "",
         "n_invalid_refs": 0,
+        "n_http_requests": 0,
+        "n_http_retries": 0,
+        "n_http_429": 0,
         "error_kind": "invalid_id",
         "error": "arXiv ID không hợp lệ hoặc bị thiếu",
     }
@@ -146,9 +208,17 @@ def _fetch_and_cache(
 ) -> dict[str, Any]:
     """Fetch one publication, validate the payload and optionally write cache."""
     started = time.perf_counter()
+    counters_before = request_stats()
     payload, status, error_msg, error_kind = fetch_s2_payload_with_status(
         base_id, api_key)
     elapsed = time.perf_counter() - started
+    counters_after = request_stats()
+    n_http_requests = (counters_after.get("http_requests", 0)
+                       - counters_before.get("http_requests", 0))
+    n_http_retries = (counters_after.get("http_retries", 0)
+                      - counters_before.get("http_retries", 0))
+    n_http_429 = (counters_after.get("http_429", 0)
+                  - counters_before.get("http_429", 0))
 
     local_records: list[dict[str, Any]] = []
     n_invalid_refs = 0
@@ -207,6 +277,9 @@ def _fetch_and_cache(
         "from_cache": False,
         "elapsed_s": elapsed,
         "n_invalid_refs": n_invalid_refs,
+        "n_http_requests": n_http_requests,
+        "n_http_retries": n_http_retries,
+        "n_http_429": n_http_429,
         "error_kind": error_kind or "",
         "error": error_msg or "",
     }
@@ -317,8 +390,15 @@ def summarize_s2_results(results: list[dict[str, Any]]) -> dict[str, Any]:
     )
 
     n_attempted_fresh = len(fresh_rows)
+    n_http_requests = sum(
+        int(row.get("n_http_requests", 0) or 0) for row in results)
+    n_http_retries = sum(
+        int(row.get("n_http_retries", 0) or 0) for row in results)
+    n_http_429 = sum(
+        int(row.get("n_http_429", 0) or 0) for row in results)
     return {
         "n_input": n_input,
+        "size_unit": "bytes",
         "n_ok": len(ok_rows),
         "n_ok_fresh": len(fresh_ok_rows),
         "n_ok_from_cache": len(cached_ok_rows),
@@ -332,6 +412,11 @@ def summarize_s2_results(results: list[dict[str, Any]]) -> dict[str, Any]:
         "n_zero_refs": sum(1 for row in ok_rows if row.get("is_zero_ref")),
         "n_api_errors": n_api_errors,
         "n_processing_errors": n_processing_errors,
+        "n_http_requests": n_http_requests,
+        "n_http_retries": n_http_retries,
+        "n_http_429": n_http_429,
+        "retry_rate": (
+            n_http_retries / n_http_requests if n_http_requests else 0.0),
         "n_refs_total": n_refs_total,
         "n_refs_with_arxiv": n_refs_with_arxiv,
         "n_refs_without_arxiv": n_refs_without_arxiv,
