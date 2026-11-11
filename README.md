@@ -77,6 +77,7 @@ Mỗi file ghi: mục tiêu, thứ tự code, **từng hàm phải viết gì**,
 | `src/m1_crawling/discover.py` | arXiv API `id_list` → metadata + version count |
 | `src/m1_crawling/download.py` | `https://export.arxiv.org/src/{id}vN`, extract `.tex`/`.bib` only |
 | `src/m1_crawling/semantic_scholar.py` | Graph API references; keep old `hep-th/9901001` IDs |
+| `src/m1_crawling/s2_batch.py` | Notebook batch runner: resume cache, payload validation, per-publication metrics |
 | `src/m1_crawling/pipeline.py` | End-to-end crawl + empty records for PDF-only versions |
 | `src/m2_parsing/gather.py` | `\documentclass` root, `\input`/`\include` path |
 | `src/m2_parsing/hierarchy.py` | Tree; sentence / block math / figure leaves; skip References |
