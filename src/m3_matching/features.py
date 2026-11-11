@@ -164,11 +164,13 @@ def pair_feature_vector(
     # 3. Đặc trưng tác giả
     lasts1 = _extract_last_names(a1)
     lasts2 = _extract_last_names(a2)
+    # Tác giả đầu tiên từ list gốc (không phải random từ set)
+    first1 = a1[0].split(",")[0] if a1 else ""  # Lấy phần trước "," hoặc toàn bộ
+    first2 = a2[0].split(",")[0] if a2 else ""
+    
     if lasts1 and lasts2:
         f_author_jaccard = float(len(lasts1 & lasts2) / len(lasts1 | lasts2))
         f_author_any = 1.0 if bool(lasts1 & lasts2) else 0.0
-        first1 = next(iter(lasts1)) if lasts1 else ""
-        first2 = next(iter(lasts2)) if lasts2 else ""
         f_author_first = 1.0 if (first1 and first1 == first2) else 0.0
     else:
         f_author_jaccard = f_author_any = f_author_first = 0.0

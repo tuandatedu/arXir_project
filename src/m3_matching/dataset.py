@@ -75,6 +75,7 @@ def build_paper_pairs(
                 "partition": partition,
                 "citation_key": key,
                 "ref_arxiv_id": ref_id,
+                "groundtruth_arxiv_id": gt_id,
                 "label": is_match,
             }
             # Gán từng đặc trưng theo tên cột

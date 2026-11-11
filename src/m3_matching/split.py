@@ -43,14 +43,18 @@ def split_publications(
         else:
             auto_ids.append(arxiv_id)
 
-    needed_per_type = 2 * k  # k cho test, k cho valid
-    if len(manual_ids) < needed_per_type:
+    # Cần 2*k cho test + 2*k cho valid = 4*k tổng cho cả auto lẫn manual
+    needed_per_set = 2 * k
+    needed_total_manual = needed_per_set * 2
+    needed_total_auto = needed_per_set * 2
+    
+    if len(manual_ids) < needed_total_manual:
         raise ValueError(
-            f"Cần tối thiểu {needed_per_type} bài báo manual để chia valid và test (k={k}, hiện có: {len(manual_ids)})."
+            f"Cần tối thiểu {needed_total_manual} bài báo manual để chia valid và test (k={k}, hiện có: {len(manual_ids)})."
         )
-    if len(auto_ids) < needed_per_type:
+    if len(auto_ids) < needed_total_auto:
         raise ValueError(
-            f"Cần tối thiểu {needed_per_type} bài báo auto để chia valid và test (k={k}, hiện có: {len(auto_ids)})."
+            f"Cần tối thiểu {needed_total_auto} bài báo auto để chia valid và test (k={k}, hiện có: {len(auto_ids)})."
         )
 
     # Dùng deterministic RNG với seed cố định
