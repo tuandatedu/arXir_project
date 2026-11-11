@@ -62,6 +62,11 @@ def track_run(name: str) -> Iterator[dict[str, Any]]:
         if process is not None:
             sampler.join(timeout=_SAMPLE_INTERVAL_SEC + 1.0)
         payload["duration_sec"] = round(time.perf_counter() - start, 3)
+        payload["rss_sample_interval_sec"] = _SAMPLE_INTERVAL_SEC
+        payload["rss_sample_count"] = len(samples)
+        payload["rss_process_scope"] = (
+            "current Python process (psutil.Process()); child processes are not "
+            "included; kernel/Colab baseline memory is included")
         if samples:
             payload["peak_rss_bytes"] = max(samples)
             payload["avg_rss_bytes"] = round(sum(samples) / len(samples))

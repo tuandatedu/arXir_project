@@ -31,7 +31,10 @@ from .download import (
     extract_tex_and_bib,
 )
 from .arxiv_http import ArxivHTTP, ArxivHTTPError
-from .semantic_scholar import fetch_s2_references, s2_ref_to_local_record
+from .semantic_scholar import (
+    fetch_s2_references_with_status,
+    s2_ref_to_local_record,
+)
 from .tables import (
     paper_meta_to_row,
     s2_records_to_reference_rows,
@@ -123,7 +126,13 @@ def crawl_one_publication(arxiv_id: str, *, s2_api_key: Optional[str] = None) ->
             })
 
     # S2 không phân version — gọi đúng một lần cho publication.
-    raw_records = fetch_s2_references(base, api_key=s2_api_key)
+    raw_records, s2_status, s2_error = fetch_s2_references_with_status(
+        base, api_key=s2_api_key
+    )
+    if s2_status == "failed":
+        summary["errors"].append(f"Semantic Scholar: {s2_error}")
+        summary["status"] = "s2_failed"
+        return summary
     records = [s2_ref_to_local_record(base, raw) for raw in raw_records]
     save_s2_references(base, records)
     summary["n_refs"] = len(records)

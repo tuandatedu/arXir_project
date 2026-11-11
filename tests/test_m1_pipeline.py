@@ -123,6 +123,49 @@ def test_fetch_s2_references_handles_404_and_parses(monkeypatch):
     assert len(calls) == 2
 
 
+def test_s2_payload_validation_and_pacing(monkeypatch):
+    from src.m1_crawling import semantic_scholar as s2
+
+    pacing_calls = []
+    responses = iter([
+        _FakeResponse(200, {"references": []}),
+        _FakeResponse(200, {}),
+        _FakeResponse(200, {"references": {}}),
+        _FakeResponse(200, {"references": [{"paperId": "r1"}]}),
+    ])
+
+    def fake_request(method, url, **kwargs):
+        kwargs["before_attempt"]()
+        return next(responses)
+
+    monkeypatch.setattr(s2, "request_with_retry", fake_request)
+    monkeypatch.setattr(
+        s2, "_pace_s2_request",
+        lambda has_key: pacing_calls.append(has_key),
+    )
+
+    payload, status, error, _ = s2.fetch_s2_payload_with_status("2310.12345")
+    assert payload == {"references": []}
+    assert status == "ok" and not error
+
+    payload, status, error, error_kind = s2.fetch_s2_payload_with_status(
+        "2310.12346"
+    )
+    assert payload is None and status == "failed"
+    assert "missing" in error.lower() and error_kind == "invalid_payload"
+
+    payload, status, error, error_kind = s2.fetch_s2_payload_with_status(
+        "2310.12347"
+    )
+    assert payload is None and status == "failed"
+    assert "expected list" in error and error_kind == "invalid_payload"
+
+    payload, status, error, _ = s2.fetch_s2_payload_with_status("2310.12348")
+    assert payload == {"references": [{"paperId": "r1"}]}
+    assert status == "ok" and not error
+    assert len(pacing_calls) == 4
+
+
 def test_s2_records_to_reference_rows_filters_non_arxiv():
     records = [
         {"arxiv_id": "2310.12345", "ref_title": "A", "ref_authors": ["X"],
