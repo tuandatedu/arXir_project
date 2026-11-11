@@ -161,10 +161,15 @@ def validate_m1_tables(
     paper_rows = _as_dicts(papers)
     reference_rows = _as_dicts(references)
     issues: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
 
     def add(table: str, index: int, field: str, problem: str) -> None:
         issues.append({"table": table, "index": index,
                        "field": field, "problem": problem})
+
+    def warn(table: str, index: int, field: str, problem: str) -> None:
+        warnings.append({"table": table, "index": index,
+                         "field": field, "problem": problem})
 
     seen_paper_ids: dict[str, int] = {}
     for index, row in enumerate(paper_rows):
@@ -214,7 +219,10 @@ def validate_m1_tables(
         if problem:
             add("references", index, "ref_authors", problem)
         elif isinstance(row.get("ref_authors"), list) and not row["ref_authors"]:
-            add("references", index, "ref_authors", "empty")
+            # Schema allows list[str]; S2 sometimes omits authors for a
+            # reference. Keep the row (and the empty list) instead of
+            # fabricating names or dropping the citation.
+            warn("references", index, "ref_authors", "empty")
         key = (str(row.get("arxiv_id") or ""),
                str(row.get("ref_arxiv_id") or ""),
                str(row.get("ref_s2_id") or ""))
@@ -228,6 +236,18 @@ def validate_m1_tables(
         "ok": not issues,
         "issues": issues,
         "n_issues": len(issues),
+        "warnings": warnings,
+        "n_warnings": len(warnings),
+        "n_empty_ref_authors": sum(
+            1 for warning in warnings
+            if warning["table"] == "references"
+            and warning["field"] == "ref_authors"
+            and warning["problem"] == "empty"),
+        "warning_rules": {
+            "empty_ref_authors": (
+                "allowed: the schema asks for list[str], and S2 may omit "
+                "authors for a reference; keep the row and the empty list"),
+        },
         "n_papers": len(paper_rows),
         "n_references": len(reference_rows),
     }

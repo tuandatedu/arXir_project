@@ -219,6 +219,21 @@ def test_validate_m1_tables_flags_issues():
                for i in wrong["issues"])
 
 
+def test_validate_m1_tables_allows_empty_ref_authors_as_warning():
+    paper = paper_meta_to_row(PaperMeta(
+        arxiv_id="2310.12345", title="Hello", authors=["Alice"],
+        submission_date="2023-10-02"))
+    ref = s2_records_to_reference_rows("2310.12345", [{
+        "ref_title": "T", "ref_authors": [], "ref_submission_date": "2020",
+        "ref_arxiv_id": "2001.00001", "ref_s2_id": "s1"}])[0]
+    report = validate_m1_tables([paper], [ref])
+    assert report["ok"]
+    assert report["n_issues"] == 0
+    assert report["n_warnings"] == 1
+    assert report["n_empty_ref_authors"] == 1
+    assert report["warnings"][0]["problem"] == "empty"
+
+
 def test_write_m1_tables_and_read_back(tmp_path, monkeypatch):
     from src.common import config
     monkeypatch.setattr(config, "TABLES_DIR", tmp_path)

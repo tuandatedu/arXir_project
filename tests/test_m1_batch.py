@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import time
 
+import pytest
+
 from src.m1_crawling import semantic_scholar as s2
 from src.m1_crawling.s2_batch import (
     cache_path_for,
@@ -218,6 +220,33 @@ def test_summary_does_not_count_not_indexed_as_api_error():
     assert stats["n_processing_errors"] == 0
 
 
+def test_summary_counts_http_requests_retries_and_429():
+    rows = [
+        {"status": "ok", "from_cache": False, "n_http_requests": 3,
+         "n_http_retries": 2, "n_http_429": 2},
+        {"status": "ok", "from_cache": True, "n_http_requests": 0,
+         "n_http_retries": 0, "n_http_429": 0},
+    ]
+    stats = summarize_s2_results(rows)
+    assert stats["n_http_requests"] == 3
+    assert stats["n_http_retries"] == 2
+    assert stats["n_http_429"] == 2
+    assert stats["retry_rate"] == pytest.approx(2 / 3)
+
+
+def test_disk_peak_sampler_records_growth(tmp_path):
+    from src.m1_crawling.s2_batch import DiskPeakSampler
+
+    sampler = DiskPeakSampler(tmp_path, interval_sec=0.01).start()
+    (tmp_path / "2310-00001.json").write_text("x" * 1000, encoding="utf-8")
+    time.sleep(0.05)
+    sampler.stop()
+    result = sampler.result()
+    assert result["peak_disk_bytes"] >= 1000
+    assert result["disk_sample_count"] >= 2
+    assert result["disk_sample_interval_sec"] == 0.01
+
+
 def test_each_retry_attempt_is_paced(monkeypatch):
     from src.common import rate_limit
 
@@ -234,6 +263,27 @@ def test_each_retry_attempt_is_paced(monkeypatch):
     assert payload == {"references": []}
     assert status == "ok"
     assert len(paced) == 3
+
+
+def test_s2_fetch_counters_report_retries_and_429(monkeypatch):
+    from src.common import rate_limit
+
+    s2.reset_request_stats()
+    seq = iter([_Resp(429, {}), _Resp(429, {}),
+                _Resp(200, {"references": []})])
+    monkeypatch.setattr(rate_limit.requests, "request",
+                        lambda *a, **k: next(seq))
+    monkeypatch.setattr(rate_limit.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(s2, "_cooldown_until", 0.0)
+    monkeypatch.setattr(s2, "_pace_s2_request", lambda has_key: None)
+
+    payload, status, _, _ = s2.fetch_s2_payload_with_status("2310.12345")
+    assert payload == {"references": []}
+    assert status == "ok"
+    stats = s2.request_stats()
+    assert stats["http_requests"] == 3
+    assert stats["http_retries"] == 2
+    assert stats["http_429"] == 2
 
 
 def test_429_after_retries_sets_cooldown(monkeypatch):

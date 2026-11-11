@@ -38,6 +38,11 @@ def _retry_after_seconds(response: requests.Response) -> float | None:
         return None
 
 
+def _bump(stats: dict[str, int] | None, key: str) -> None:
+    if stats is not None:
+        stats[key] = stats.get(key, 0) + 1
+
+
 def request_with_retry(
     method: str,
     url: str,
@@ -47,6 +52,7 @@ def request_with_retry(
     timeout: float = 60.0,
     max_retries: int = 5,
     before_attempt: Callable[[], None] | None = None,
+    stats: dict[str, int] | None = None,
 ) -> object:
     """
     HTTP request có retry cho 429 / 5xx.
@@ -57,6 +63,8 @@ def request_with_retry(
     - before_attempt (optional): gọi trước MỖI lần thử, kể cả retry. Dùng cho
       rate limiter của caller (ví dụ Semantic Scholar) để retry không vượt
       khoảng chờ tối thiểu.
+    - stats (optional): dict được cộng dồn ``http_requests`` (mỗi attempt),
+      ``http_retries`` (mỗi lần thử lại) và ``http_429`` (mỗi response 429).
     - Trả requests.Response; caller tự .json() / ghi file.
     - Lỗi mạng sau khi hết retry → raise requests.RequestException.
     """
@@ -69,6 +77,7 @@ def request_with_retry(
     last_exception: requests.RequestException | None = None
     for attempt in range(max_retries + 1):
         wait = 0.0
+        _bump(stats, "http_requests")
         if before_attempt is not None:
             before_attempt()
         try:
@@ -78,9 +87,12 @@ def request_with_retry(
             last_exception = exc
             if attempt == max_retries:
                 raise
+            _bump(stats, "http_retries")
             wait = min(90.0, 2 ** attempt or 1.0)
             LOG.warning("Network error on %s (%s); retry in %.1fs", url, exc, wait)
         else:
+            if response.status_code == 429:
+                _bump(stats, "http_429")
             host = (urlparse(url).hostname or "").lower()
             if response.status_code == 403 and host.endswith("arxiv.org"):
                 response.close()
@@ -88,6 +100,7 @@ def request_with_retry(
                     f"HTTP 403 from {url}: wrong mirror or blocked User-Agent. "
                     "Use https://export.arxiv.org for arXiv traffic.")
             if response.status_code in RETRYABLE_STATUS and attempt < max_retries:
+                _bump(stats, "http_retries")
                 retry_after = _retry_after_seconds(response)
                 response.close()
                 wait = min(120.0, retry_after if retry_after is not None

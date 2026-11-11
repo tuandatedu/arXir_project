@@ -35,6 +35,24 @@ _last_call_monotonic = 0.0
 # Shared cooldown after a 429 that outlived retries (monotonic deadline).
 _cooldown_until = 0.0
 
+# Cumulative HTTP attempt counters for this process, filled by request_with_retry.
+_REQUEST_STATS: dict[str, int] = {
+    "http_requests": 0,
+    "http_retries": 0,
+    "http_429": 0,
+}
+
+
+def request_stats() -> dict[str, int]:
+    """Return a snapshot of S2 HTTP attempt/retry/429 counters."""
+    return dict(_REQUEST_STATS)
+
+
+def reset_request_stats() -> None:
+    """Reset the S2 HTTP counters, e.g. before a fresh benchmark run."""
+    for key in _REQUEST_STATS:
+        _REQUEST_STATS[key] = 0
+
 
 def _resolve_api_key(api_key: Optional[str]) -> Optional[str]:
     key = (api_key or os.environ.get("S2_API_KEY") or "").strip()
@@ -95,7 +113,8 @@ def fetch_s2_payload_with_status(
         response = request_with_retry(
             "GET", url, headers=headers or None, params=params,
             timeout=60.0, max_retries=5,
-            before_attempt=lambda: _pace_s2_request(bool(key)))
+            before_attempt=lambda: _pace_s2_request(bool(key)),
+            stats=_REQUEST_STATS)
     except requests.RequestException as exc:
         LOG.warning("Semantic Scholar network failure for %s: %s", base, exc)
         return None, "failed", f"Network error: {exc}", "network"
