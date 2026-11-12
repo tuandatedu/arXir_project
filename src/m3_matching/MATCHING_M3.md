@@ -72,7 +72,7 @@ python -m src.m3_matching.manual_tool --export-template 2310.12345
 
 ⏱ **Thời gian:** ~1 giờ cho ~100 entries
 
-**Step 3: Import CSV → JSON**
+### Step 3: Import CSV → JSON
 ```powershell
 # Chạy notebook Cell 13 hoặc command:
 python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
@@ -81,7 +81,7 @@ python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
 - Đọc CSV
 - Lọc dòng `is_verified=YES`
 - **Auto-fill `groundtruth_arxiv_id = suggested_ref_arxiv_id`** ← nhãn thực
-- Lưu JSON: `labels/manual/2310.12345.jsonl`
+- Lưu JSON: `labels/manual/2310.12345.json`
 
 ### Cách nhóm tổng hợp:
 Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng
