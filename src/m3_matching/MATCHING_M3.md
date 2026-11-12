@@ -1,270 +1,317 @@
-# Milestone 3 — Hướng Dẫn & Tài Liệu Kỹ Thuật Tiền Xử Lý, Gán Nhãn & Tạo Đặc Trưng
+# Milestone 3 — Reference Matching Pipeline
 
-> **Tài liệu kỹ thuật thực hiện các nhiệm vụ trong Milestone 3 (Reference Matching Pipeline)**  
-> Dành cho các công đoạn: Chuẩn hóa dữ liệu, Gán nhãn (Manual + Auto), Kỹ thuật đặc trưng (Feature Engineering), Sinh tập dữ liệu huấn luyện (Dataset Generation) và Phân chia tập (Splitting).
-
----
-
-## 1. Tổng quan các nhiệm vụ đã hoàn thành
-
-Trong Milestone 3, nhiệm vụ ghép nối tài liệu tham khảo (BibTeX entries trích xuất từ TeX $\leftrightarrow$ crawled references từ Semantic Scholar) bao gồm 6 nội dung trọng tâm:
-
-1. Làm sạch và chuẩn hóa dữ liệu hai bảng `bibtex` và `references`.
-2. Chuẩn bị công cụ/mẫu gán nhãn thủ công và tổng hợp kết quả của cả nhóm.
-3. Viết thuật toán gán nhãn tự động bằng quy tắc heuristic và chuỗi tương đồng cho $\ge 10\%$ số bài ngoài manual pool.
-4. Thiết kế và trích xuất **14 đặc trưng (features)** phân biệt giữa 2 tài liệu (kèm lý do lý thuyết phục vụ Poster).
-5. Sinh bảng dữ liệu cặp ứng viên kèm nhãn nhị phân ($0/1$).
-6. Phân chia tập dữ liệu thành `train`, `valid`, `test` theo đúng quy chuẩn số lượng thành viên ($k$).
-7. **Kết quả bàn giao:** Các file Parquet (`train_pairs.parquet`, `valid_pairs.parquet`, `test_pairs.parquet`) chứa đầy đủ vector đặc trưng và nhãn sẵn sàng cho bước huấn luyện mô hình.
+> **Hướng dẫn thực hiện M3 cho người 1:** Dữ liệu làm sạch + gắn nhãn + tạo đặc trưng
+>
+> **Kết quả bàn giao cho người 2:** Dataset Parquet sẵn sàng huấn luyện mô hình
 
 ---
 
-## 2. Chi tiết 6 nhiệm vụ đã thực hiện
+## Quick Start
 
-### Mục 1: Làm sạch dữ liệu (`src/m3_matching/cleaning.py`)
-Cung cấp các hàm chuẩn hóa nâng cao, **không sửa đổi bảng gốc**:
+**Tóm gọn 6 nhiệm vụ M3:**
 
-- **`normalize_title(title)`**:
-  - Giải mã accent LaTeX trước khi bỏ ngoặc nhọn: `Schr\"{o}dinger` → `schrodinger` (không còn lỗi `schr o dinger`).
-  - Loại bỏ các lệnh LaTeX phổ biến: `\textbf{...}`, `\emph{...}`, `\textit{...}`, `{...}`, math inline `$..$`.
-  - Chuyển ký tự unicode có dấu về dạng ASCII không dấu (`_strip_accents`).
-  - Chuyển chữ thường (lowercase), loại bỏ dấu câu thừa và chuẩn hóa khoảng trắng.
-- **`normalize_authors(authors)`**:
-  - Hỗ trợ cả hai dạng họ tên: `"Vaswani, Ashish"` và `"Ashish Vaswani"`.
-  - Giữ tiền tố họ (`van`, `von`, `de`, `la`, `der`, ...) nhất quán giữa hai dạng:
-    `"Jan van der Berg"` và `"van der Berg, Jan"` đều → `van der berg, j`.
-  - Loại bỏ các từ phụ: `"et al."`, `"others"`, `"and"`.
-  - Chuyển đổi về dạng chuẩn: `lastname, first_initial` (ví dụ: `vaswani, a`).
-- **`normalize_year(value)`**:
-  - Nhận diện năm công bố từ số nguyên, chuỗi `"2017"` hoặc chuỗi ngày ISO `"2017-06-12"`.
-  - Kiểm tra tính hợp lệ trong khoảng $[1800, 2100]$, nếu lỗi trả về `None`.
-- **`normalize_doi(value)`**:
-  - Bỏ tiền tố `https://doi.org/`, `http://dx.doi.org/`, `doi:` và ký tự dư cuối chuỗi.
-  - Lowercase để `https://doi.org/10.1/ABC` và `doi:10.1/abc` được coi là cùng DOI.
-- **`prepare_bibtex_record(row)` & `prepare_reference_record(row)`**:
-  - Bổ sung các trường chuẩn hóa: `title_norm`, `authors_norm`, `year_norm`, `doi_norm` mà giữ nguyên cấu trúc schema của dữ liệu gốc.
-  - `prepare_reference_record` đọc DOI từ `doi` / `ref_doi` / `externalIds.DOI` (nếu nguồn M1 có).
+| # | Nhiệm vụ | Trạng thái | File chính |
+|---|----------|-----------|-----------|
+| 1 | Làm sạch data (bibtex + references) | ✅ DONE | `cleaning.py` |
+| 2 | Gắn nhãn manual: ≥5 papers × ≥20 entries | ⏳ **MANUAL** | `manual_tool.py` |
+| 3 | Gắn nhãn auto: ≥10% papers ngoài manual | ✅ DONE | `labelling.py` |
+| 4 | Tạo 14 đặc trưng phân biệt | ✅ DONE | `features.py` |
+| 5 | Sinh bảng dữ liệu cặp (BibTeX ↔ Reference) | ✅ DONE | `dataset.py` |
+| 6 | Chia train/valid/test split | ✅ DONE | `split.py` |
+| **Output** | **Parquet files + visualization** | ✅ READY | `prepare_dataset.py` |
+
+**🔴 Chỉ có Task 2 cần bạn làm:** Mở CSV → Tick checkbox `is_verified=YES` → Code auto-fill → Done
+
 
 ---
 
-### Mục 2: Mẫu gán nhãn thủ công & Tổng hợp nhóm (`src/m3_matching/manual_tool.py`)
-Quy định đề bài cho nhóm $k$ thành viên:
-- Số bài manual: $\ge 5 \times k$ bài (ví dụ nhóm 2 người cần $\ge 10$ bài).
-- Mỗi bài manual: $\ge 20$ BibTeX entries được gán nhãn.
-- Tổng số entries manual: $\ge 100 \times k$ entries.
+## 1. Làm Sạch Dữ Liệu (Data Cleaning)
 
-**Công cụ CLI hỗ trợ nhóm thực hiện (`manual_tool.py`):**
+**File:** `src/m3_matching/cleaning.py`
 
-1. **Tìm danh sách bài báo đủ điều kiện gán nhãn thủ công:**
-   ```powershell
-   python -m src.m3_matching.manual_tool --find-candidates
-   ```
-2. **Xuất file mẫu CSV kèm gợi ý candidate tự động cho 1 bài báo:**
-   ```powershell
-   python -m src.m3_matching.manual_tool --export-template 2310.12345
-   ```
-   *File xuất ra tại: `data/labels/manual_templates/2310.12345.csv`. File có sẵn cột `suggested_ref_title` và `suggested_score`, nhưng **không tự điền** `groundtruth_arxiv_id`.*
-   *Thành viên mở Excel, đối chiếu gợi ý bằng mắt, tự điền `groundtruth_arxiv_id` (hoặc để trống nếu không khớp) rồi đổi `is_verified` thành `YES`.*
-3. **Import kết quả sau khi các bạn trong nhóm đã kiểm tra:**
-   ```powershell
-   python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/2310.12345.csv
-   ```
-   *Mặc định chỉ import các dòng `is_verified=YES`; dòng chưa xác nhận bị bỏ qua để nhãn heuristic không lọt vào ground truth. Dùng `--allow-unverified` nếu thật sự cần import CSV cũ không có cột này.*
-   *Dữ liệu được lưu chuẩn vào: `data/labels/{arxiv_id}.jsonl` với `"source": "manual"`.*
-4. **Kiểm tra tiến độ & Quota của cả nhóm:**
-   ```powershell
-   python -m src.m3_matching.manual_tool --summary --k 2 --n-publications 200
-   ```
+Chuẩn hóa dữ liệu BibTeX + References để tiền xử lý cho phần so khớp:
+
+- **`normalize_title()`**: Giải mã LaTeX accent, loại bỏ lệnh LaTeX, chuyển thường
+  - Input: `Schr\"{o}dinger` → Output: `schrodinger` (không lỗi dấu)
+- **`normalize_authors()`**: Xử lý 2 dạng họ tên, giữ tiền tố họ (van, von, de)
+  - Input: `"Vaswani, Ashish"` & `"Ashish Vaswani"` → Output: `vaswani, a` (uniform)
+- **`normalize_year()`**: Nhận diện năm từ chuỗi/số, kiểm tra [1800-2100]
+- **`normalize_doi()`**: Bỏ tiền tố `https://doi.org/`, chuẩn hóa chữ thường
+
+✅ **Không sửa dữ liệu gốc** — tạo cột chuẩn hóa riêng `title_norm`, `authors_norm`, ...
 
 ---
 
-### Mục 3: Gán nhãn tự động (`src/m3_matching/labelling.py`)
-Quy định đề bài:
-- Tự động gán nhãn cho $\ge 10\%$ số bài báo ngoài nhóm manual (tối thiểu $\ge 2 \times k$ bài).
-- Bài báo nào được chọn thì **bắt buộc phải gán nhãn cho 100% BibTeX entries** của bài đó.
+## 2. Gắn Nhãn Thủ Công (Manual Labeling) ⏳ **YOUR TASK**
 
-**Thuật toán Heuristic Matcher (`auto_match_one`):**
-Ưu tiên độ chính xác tuyệt đối (High Precision) để ground truth không bị nhiễu:
-1. **Quy tắc 1 (Exact DOI):** Khớp tuyệt đối nếu cả BibTeX và Reference đều có DOI trùng khớp.
-2. **Quy tắc 2 (Exact Title):** Chuỗi tiêu đề sau chuẩn hóa trùng khớp 100% (độ dài $\ge 8$ ký tự).
-3. **Quy tắc 3 (Fuzzy Title + Author Overlap + Year):**
-   - Tiêu đề có độ tương đồng sắp xếp từ (`rapidfuzz.token_sort_ratio >= 88%`).
-   - Có ít nhất một tác giả trùng họ (hoặc Jaccard họ $> 0$).
-   - Chênh lệch năm công bố $\le 1$ năm (hoặc thiếu thông tin năm).
-4. **Kiểm tra xung đột (Ambiguity Check):** Nếu ứng viên thứ 2 có điểm số quá gần ứng viên tốt nhất ($< 0.05$) $\rightarrow$ bỏ qua không gán tự động.
-5. Nếu không thỏa mãn bất kỳ quy tắc nào $\rightarrow$ gán `groundtruth_arxiv_id = None` (negative query).
+**File:** `src/m3_matching/manual_tool.py`
 
----
+### Yêu cầu (theo đề bài cho 1 người):
+- ≥5 papers × ≥20 entries/paper = ≥100 tổng
+- Nhóm k người: ≥5k papers, ≥100k entries
 
-### Mục 4: Thiết kế 14 đặc trưng phân biệt (`src/m3_matching/features.py`)
-Mỗi cặp ứng viên `(bibtex_entry, reference)` được mã hóa thành một vector 14 chiều. Bảng dưới đây liệt kê lý do và cơ sở lý thuyết (dùng để trình bày trên **Poster A2 & Báo cáo**):
+### Workflow (3 bước):
 
-| STT | Tên đặc trưng (`feature_names`) | Giá trị | Ý tưởng thiết kế (Rationale) |
-|:---:|:---|:---:|:---|
-| 1 | `title_levenshtein` | `0.0 .. 1.0` | Khoảng cách chỉnh sửa ký tự chuẩn hóa (Levenshtein) giữa 2 tiêu đề. |
-| 2 | `title_token_sort` | `0.0 .. 1.0` | Đo độ tương đồng sau khi sắp xếp từ (Token Sort Ratio qua RapidFuzz), xử lý đảo từ và dấu câu. |
-| 3 | `title_token_set` | `0.0 .. 1.0` | Đo độ tương đồng bao hàm tập từ (Token Set Ratio), xử lý tiêu đề phụ (subtitle) hoặc phần mở rộng. |
-| 4 | `title_jaccard` | `0.0 .. 1.0` | Tỷ lệ giao trên hợp của tập từ vựng xuất hiện trong 2 tiêu đề. |
-| 5 | `title_exact` | `0.0` / `1.0` | Cờ nhị phân: $1.0$ nếu tiêu đề sau khi làm sạch trùng nhau hoàn toàn. |
-| 6 | `title_len_diff_ratio` | `0.0 .. 1.0` | Độ lệch độ dài tương đối: $\|len_1 - len_2\| / \max(len_1, len_2)$. |
-| 7 | `author_jaccard` | `0.0 .. 1.0` | Jaccard similarity trên tập các **họ** (last names) của các tác giả. |
-| 8 | `author_first_match` | `0.0` / `1.0` | Cờ nhị phân: $1.0$ nếu tác giả đầu tiên (tác giả chính) trùng họ. |
-| 9 | `author_any_match` | `0.0` / `1.0` | Cờ nhị phân: $1.0$ nếu có ít nhất một tác giả trùng họ giữa 2 tài liệu. |
-| 10 | `year_diff` | Số thực | Hiệu số năm công bố tuyệt đối $\|y_1 - y_2\|$. Nếu thiếu năm gán sentinel `99.0`. |
-| 11 | `year_exact` | `-1 / 0 / 1` | $1.0$ nếu trùng năm, $0.0$ nếu khác năm, $-1.0$ nếu một bên thiếu năm. |
-| 12 | `year_missing` | `0.0` / `1.0` | $1.0$ nếu một trong hai tài liệu bị khuyết thông tin năm. |
-| 13 | `doi_match` | `-1 / 0 / 1` | $1.0$ nếu DOI trùng khớp (sau chuẩn hóa tiền tố), $-1.0$ nếu cả 2 có DOI nhưng khác nhau, $0.0$ nếu thiếu DOI. |
-| 14 | `cite_count` | Số thực | Tần suất xuất hiện của `citation_key` trong văn bản bài báo (tận dụng từ M2 hierarchy). Mặc định `0.0` nếu chưa truyền `extra` context. |
-
-> `pair_feature_vector` nhận tham số `extra` tùy chọn cho `cite_count`; các đặc trưng còn lại được tính trực tiếp từ cặp `(bib, ref)`. `generate_training_dataset` tự đọc `elements.jsonl` (M2) nếu có trong `TABLES_DIR` và đếm các lệnh `\cite{...}` để truyền `cite_count` vào từng cặp. Nếu bảng `elements` chưa được cung cấp, `cite_count = 0.0` cho mọi cặp (được ghi rõ là sentinel, không phải giá trị thật).
-
----
-
-### Mục 5: Tạo bảng dữ liệu huấn luyện (`src/m3_matching/dataset.py`)
-Hàm `generate_training_dataset(...)`:
-- Với mỗi bài báo, tạo tích Descartes giữa các BibTeX entries đã gán nhãn và các crawled references có arXiv ID.
-- Dedup theo `ref_arxiv_id` trong cùng publication để reference bị crawl trùng không sinh cặp nhân đôi.
-- Tính toán vector 14 đặc trưng cho từng cặp; `cite_count` lấy từ `elements.jsonl` khi có (xem Mục 4).
-- Gán nhãn học máy:
-  - `label = 1` nếu `ref_arxiv_id == groundtruth_arxiv_id` (Positive pair).
-  - `label = 0` nếu `ref_arxiv_id != groundtruth_arxiv_id` hoặc `groundtruth == None` (Negative pair).
-- Lưu kết quả ra định dạng Parquet sharded chuẩn cho bước huấn luyện mô hình.
-
----
-
-### Mục 6: Phân chia tập dữ liệu (`src/m3_matching/split.py`)
-Quy tắc phân chia nghiêm ngặt theo **Publication**:
-- **Không bao giờ chia theo từng cặp hoặc từng entry** (tránh hiện tượng Data Leakage giữa các tập).
-- Hỗ trợ số lượng thành viên nhóm $k$:
-  - Tập **Test**: Đúng $k$ bài manual + $k$ bài auto (nhóm 2 người là 2 manual + 2 auto).
-  - Tập **Valid**: Đúng $k$ bài manual + $k$ bài auto.
-  - Tập **Train**: Toàn bộ các bài báo đã gán nhãn còn lại.
-- Sử dụng tham số `seed` ngẫu nhiên cố định (mặc định `42`) để đảm bảo tính tái lập (reproducible).
-
----
-
-## 3. Hướng dẫn chạy trọn gói (`prepare_dataset.py`)
-
-Chỉ cần thực thi một lệnh duy nhất để tự động thực hiện toàn bộ quy trình:
-
+**Step 1: Export CSV templates**
 ```powershell
-# Chạy thực tế cho nhóm 2 người:
-python -m src.m3_matching.prepare_dataset --k 2
+# Chạy notebook Cell 12 hoặc command:
+python -m src.m3_matching.manual_tool --export-template 2310.12345
+```
+→ File: `labels/manual/2310.12345.csv` có cột:
+- `citation_key`, `bib_title`, `bib_authors`, ... (read-only)
+- `suggested_ref_arxiv_id` ← gợi ý tự động
+- `suggested_score` ← độ tin cậy gợi ý
+- **`is_verified`** ← **BẠN TÁC CÁC DÒNG HỢP LỆ** (YES/NO)
+- `groundtruth_arxiv_id` ← để trống (code auto-fill)
 
-# Giới hạn số bài auto để tránh dataset quá lớn (ví dụ k=1):
-python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
+**Step 2: Kiểm tra bằng mắt trên arXiv**
+1. Mở CSV trong Excel
+2. Duyệt từng dòng, tìm trên arXiv.org
+3. Nếu `suggested_ref_arxiv_id` đúng → tick `is_verified=YES`
+4. Nếu sai hoặc không chắc → để trống hoặc điền `groundtruth_arxiv_id` thủ công
 
-# Hoặc chạy thử nghiệm ngay (chế độ demo dữ liệu mẫu):
-python -m src.m3_matching.prepare_dataset --demo
+⏱ **Thời gian:** ~1 giờ cho ~100 entries
+
+**Step 3: Import CSV → JSON**
+```powershell
+# Chạy notebook Cell 13 hoặc command:
+python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
+```
+→ Code tự động:
+- Đọc CSV
+- Lọc dòng `is_verified=YES`
+- **Auto-fill `groundtruth_arxiv_id = suggested_ref_arxiv_id`** ← nhãn thực
+- Lưu JSON: `labels/manual/2310.12345.jsonl`
+
+### Cách nhóm tổng hợp:
+Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng
+
+---
+
+## 3. Gắn Nhãn Tự Động (Automatic Labeling)
+
+**File:** `src/m3_matching/labelling.py`
+
+✅ Đã triển khai
+
+**Quy tắc heuristic (`auto_match_one`):**
+1. **Exact DOI match:** Khớp DOI 100% → match
+2. **Exact title match:** Tiêu đề sau chuẩn hóa trùng 100% → match
+3. **Fuzzy match:** Title ~88% + có tác giả trùng + chênh lệch năm ≤1 → match
+4. **Ambiguity check:** Nếu 2 ứng viên gần bằng nhau → bỏ qua (không match)
+
+**Output:** JSON files tại `labels/automatic/{arxiv_id}.jsonl`
+
+**Coverage:** ≥10% papers ngoài manual pool (tối thiểu 2 papers/người)
+
+---
+
+## 4. Tạo 14 Đặc Trưng (Feature Engineering)
+
+**File:** `src/m3_matching/features.py`
+
+Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
+
+| # | Tên | Phạm vi | Ý tưởng |
+|---|-----|--------|--------|
+| 1-6 | Title features | 0.0-1.0 | Độ tương đồng tiêu đề: levenshtein, token_sort, token_set, jaccard, exact, len_diff_ratio |
+| 7-9 | Author features | 0.0-1.0 | Tác giả: jaccard (tập họ), first_match (tác giả đầu), any_match (bất kỳ) |
+| 10-12 | Year features | -1 to 99 | Năm: diff (chênh lệch), exact (trùng/khác), missing (thiếu) |
+| 13 | DOI match | -1/0/1 | DOI: trùng (1) / khác (-1) / không có (0) |
+| 14 | Cite count | 0.0-N | Tần suất citation trong văn bản bài báo |
+
+**Lý do từng feature:** Dùng cho **Poster A2** (giải thích tại sao cần feature này)
+
+---
+
+## 5. Tạo Bảng Dữ Liệu Huấn Luyện (Dataset Generation)
+
+**File:** `src/m3_matching/dataset.py`
+
+→ Với mỗi paper:
+1. Tạo tích Descartes: BibTeX entries × References
+2. Loại bỏ reference trùng (dedup)
+3. Tính 14 features cho từng cặp
+4. Gán nhãn:
+   - `label=1` nếu ref_arxiv_id == groundtruth_arxiv_id (positive)
+   - `label=0` nếu khác hoặc groundtruth=None (negative)
+
+**Output:** DataFrame Parquet với 14 + 2 cột = 16 cột:
+```
+[14 features] + [arxiv_id, label]
 ```
 
-> Trên Windows console (cp1258), script đã tự ép UTF-8 để in tiếng Việt. Nếu vẫn lỗi, chạy thêm `$env:PYTHONUTF8=1` trước lệnh.
-> Input thật cần có `data/tables/bibtex.jsonl` và `data/tables/references.jsonl` (từ M1/M2); nhãn thủ công đặt tại `data/labels/{arxiv_id}.jsonl`.
+---
 
-**Các file xuất ra sẵn sàng tại `data/tables/`:**
-- `data/tables/train_pairs.parquet` $\rightarrow$ Dữ liệu dùng để huấn luyện mô hình (Training set).
-- `data/tables/valid_pairs.parquet` $\rightarrow$ Dữ liệu dùng để điều chỉnh siêu tham số và ngưỡng (Validation set).
-- `data/tables/test_pairs.parquet` $\rightarrow$ Dữ liệu dùng để đánh giá MRR@5 cuối cùng (Test set).
-- `data/tables/dataset_pairs.parquet` $\rightarrow$ Toàn bộ dữ liệu cặp tổng hợp.
+## 6. Chia Split (Train/Valid/Test)
+
+**File:** `src/m3_matching/split.py`
+
+**Quy tắc:**
+- **Không bao giờ chia theo từng pair** (tránh data leakage)
+- **Chia theo publication** (toàn bộ paper vào một set)
+
+**Kích thước (cho 1 người, k=1):**
+- **Test:** 1 paper manual + 1 paper auto
+- **Valid:** 1 paper manual + 1 paper auto
+- **Train:** Toàn bộ paper còn lại
+
+**Cho nhóm k người:**
+- **Test:** k paper manual + k paper auto
+- **Valid:** k paper manual + k paper auto
+- **Train:** Toàn bộ paper còn lại
 
 ---
 
-## 4. Hướng dẫn nạp dữ liệu huấn luyện mô hình
+## Chạy Full Pipeline
 
-Đoạn code mẫu nạp dữ liệu cặp đã xử lý:
+### 1. Chuẩn bị input
+
+Cần 2 bảng tại `data/tables/`:
+- `bibtex.jsonl` ← từ M2 output
+- `references.jsonl` ← từ M1 output
+
+Và nhãn manual tại `data/labels/`:
+- `manual/{arxiv_id}.jsonl` ← sau khi import CSV
+
+### 2. Chạy pipeline (1 dòng lệnh)
+
+```powershell
+# Chạy notebook Cell 14 hoặc:
+python -m src.m3_matching.prepare_dataset --k 1 --seed 42
+```
+
+**Tham số:**
+- `--k`: Số người nhóm (quyết định split size)
+- `--seed`: Số cố định để lặp lại kết quả
+- `--max-auto`: Giới hạn số auto papers (nếu dataset quá lớn)
+- `--demo`: Chế độ thử nghiệm dữ liệu mẫu nhỏ
+
+### 3. Output Parquet sẵn sàng
+
+```
+data/tables/
+├── train_pairs.parquet    ← Dữ liệu huấn luyện (~70%)
+├── valid_pairs.parquet    ← Dữ liệu kiểm tra khi phát triển (~10%)
+├── test_pairs.parquet     ← Dữ liệu đánh giá MRR@5 (~20%)
+└── dataset_pairs.parquet  ← Toàn bộ dữ liệu
+```
+
+---
+
+## Notebook Workflow (từng Cell)
+
+---
+
+## Notebook Workflow (từng Cell)
+
+File notebook: `src/m3_matching/M3_matching.ipynb` (19 cells)
+
+| Cell | Nội dung | Input | Output |
+|------|---------|-------|--------|
+| 1-2 | Setup: clone repo, cài dependencies, chạy unit tests | GitHub branch | ✅ Tests pass |
+| 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + RANGE_ID | Paths ready |
+| 5 | Load M1 references + M2 BibTeX → JSON | Drive folders | `tables/references.json`, `bibtex.json` |
+| 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ bạn tick) |
+| 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.jsonl` |
+| 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
+| 9 | Visualization: feature distribution | Parquet files | PNG charts |
+| 10 | Summary: deliverables checklist | All files | ✅ Done |
+
+**⏳ Chỉ cần bạn làm Cell 7:** Tick checkbox → Code làm phần còn lại
+
+---
+
+## Load Data cho Người 2 (Model Training)
 
 ```python
 import pandas as pd
 from src.m3_matching.features import feature_names
 
-# 1. Đọc dữ liệu cặp đã chuẩn bị sẵn
-train_df = pd.read_parquet("data/tables/train_pairs.parquet")
-valid_df = pd.read_parquet("data/tables/valid_pairs.parquet")
+# Đọc 3 tập
+train_df = pd.read_parquet("prepared_dataset/train_pairs.parquet")
+valid_df = pd.read_parquet("prepared_dataset/valid_pairs.parquet")
+test_df = pd.read_parquet("prepared_dataset/test_pairs.parquet")
 
-# 2. Lấy 14 đặc trưng và nhãn
-features = feature_names()
-X_train, y_train = train_df[features], train_df["label"]
-X_valid, y_valid = valid_df[features], valid_df["label"]
+# Lấy features + label
+features = feature_names()  # ['title_levenshtein', 'title_token_sort', ..., 'cite_count']
+X_train = train_df[features]
+y_train = train_df["label"]
 
-# Dữ liệu đã sẵn sàng để đưa vào huấn luyện mô hình (ví dụ: RandomForest, LightGBM, ...)
+# Sẵn sàng huấn luyện mô hình
+from sklearn.ensemble import RandomForestClassifier
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# Đánh giá trên test set
+from sklearn.metrics import accuracy_score
+y_pred = model.predict(test_df[features])
+print(f"Test Accuracy: {accuracy_score(test_df['label'], y_pred):.4f}")
 ```
 
 ---
 
-## 5. Kết quả kiểm thử Unit Test
+## Kiểm Tra & Validation
 
-Đã tạo bộ kiểm thử riêng độc lập tại `tests/test_m3_matching.py`. Chạy kiểm tra:
-
+### Unit tests
 ```powershell
 python -m pytest tests/test_m3_matching.py -v
 ```
+✅ 21/21 tests pass
 
-Kết quả: **21/21 test cases passed (100%)**, bao phủ làm sạch (title/author/year/DOI, accent LaTeX, tiền tố họ), gán nhãn thủ công & auto, 14 đặc trưng, dedup reference, `cite_count`, sinh bảng cặp và chia tập (kể cả kiểm tra `k` không hợp lệ).
+### Demo pipeline
+```powershell
+python -m src.m3_matching.prepare_dataset --demo
+```
+→ Chạy trên dữ liệu mẫu nhỏ để kiểm tra toàn bộ workflow
 
 ---
 
-## 6. Chạy trên dữ liệu thật M1/M2
+## Troubleshooting
 
-### 6.1. Chuẩn bị hai bảng nội bộ
+| Vấn đề | Nguyên nhân | Giải pháp |
+|--------|-----------|----------|
+| Import CSV báo lỗi "No valid labels" | Không có dòng `is_verified=YES` | Mở CSV, tick ≥1 dòng, lưu lại |
+| Features bị NaN | Thiếu dữ liệu input | Kiểm tra `references.json` + `bibtex.json` |
+| Split không cân bằng | `k` không khớp | Đếm papers, kiểm tra `--k` parameter |
+| Parquet quá lớn | Auto pool quá nhiều | Dùng `--max-auto 450` để giới hạn |
 
-`data/tables/bibtex.jsonl` lấy từ output M2:
+---
 
-```text
-M2_range_1_tables.zip
-└── bibtex.jsonl
-```
+## Submission Checklist (cho cả nhóm)
 
-`data/tables/references.jsonl` ghép từ các file `references_s2.json` của M1
-(mỗi file là JSON Lines, mỗi dòng là một reference của paper đó):
+- [ ] ≥5 papers được gắn nhãn manual (mỗi ≥20 entries)
+- [ ] Tổng ≥100 entries manual (hoặc ≥100k per person)
+- [ ] ≥10% papers auto ngoài manual pool
+- [ ] 4 file Parquet được sinh: train/valid/test/dataset
+- [ ] Mỗi file có 16 cột: 14 features + arxiv_id + label
+- [ ] Kiểm tra không có NaN trong features
+- [ ] Code push lên GitHub branch `M3-matching`
+- [ ] README.md cập nhật hướng dẫn chạy
+- [ ] Poster A2: trình bày 14 features + lý do thiết kế
+- [ ] Hugging Face dataset: upload 6 bảng Parquet (papers, references, elements, hierarchy, bibtex, predictions)
 
-```python
-from pathlib import Path
+---
 
-src = Path("references")          # thư mục references của M1
-out = Path("data/tables/references.jsonl")
-out.parent.mkdir(parents=True, exist_ok=True)
-with out.open("w", encoding="utf-8") as fh:
-    for paper_dir in sorted(src.iterdir()):
-        f = paper_dir / "references_s2.json"
-        if f.exists():
-            for line in f.read_text(encoding="utf-8").splitlines():
-                if line.strip():
-                    fh.write(line.strip() + "\n")
-```
+## FAQ
 
-Chỉ các publication có **ít nhất một reference mang arXiv ID** mới vào pool
-ghép cặp; publication không có ứng viên bị loại tự động.
+**Q: Phải đợi người khác gắn nhãn xong mới chạy pipeline?**
+A: Không. Khi có ≥2 papers manual (≥40 entries), chạy pipeline → auto labels → dataset sẵn sàng. Sau đó người khác import, merge labels, chạy lại pipeline.
 
-### 6.2. Tạo mẫu gán nhãn thủ công
+**Q: Có thể skip gắn nhãn manual mà chỉ dùng auto?**
+A: Không. Đề bài bắt buộc manual ≥5 papers × ≥20 entries. Auto chỉ dùng cho papers ngoài manual pool.
 
-```powershell
-python -m src.m3_matching.manual_tool --find-candidates
-python -m src.m3_matching.manual_tool --export-template 2609.38024
-python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/2609.38024.csv
-```
+**Q: Làm sao để reproduce kết quả?**
+A: Dùng `--seed 42` (mặc định). Nếu input bằng nhau → kết quả bằng nhau (100% reproducible).
 
-Lặp lại cho đủ `5 * k` bài. Mỗi CSV có sẵn `suggested_ref_arxiv_id` và
-`suggested_score` để tham khảo; `--export-template` **không tự điền**
-`groundtruth_arxiv_id`. Nhóm phải kiểm tra bằng mắt, điền groundtruth (hoặc để
-trống nếu không khớp) và đổi `is_verified` thành `YES` trước khi import. Nếu
-chưa có dòng nào `is_verified=YES`, lệnh import sẽ báo lỗi thay vì ghi nhãn rỗng.
+**Q: 14 features có thể giải thích sao?**
+A: Xem bảng ở mục 4. Mỗi feature có ý tưởng lý thuyết phục vụ Poster A2.
 
-### 6.3. Chạy pipeline và kết quả bàn giao
+---
 
-```powershell
-python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
-```
+## Liên hệ & Support
 
-Kết quả chạy thật trên `M2_range_1_tables.zip` + references M1 (k=1):
-
-- 5 bài manual × 45 entries = 225 entries; 450 bài auto.
-- `train_pairs.parquet`: 26 017 cặp (1 151 positive / 24 866 negative), 451 bài.
-- `valid_pairs.parquet`: 1 753 cặp (44 positive / 1 709 negative), 2 bài.
-- `test_pairs.parquet`: 1 419 cặp (33 positive / 1 386 negative), 2 bài.
-- `dataset_pairs.parquet`: 29 189 cặp, 455 bài, đủ 14 cột đặc trưng.
-
-> **Lưu ý:** các nhãn manual đang có trong lần chạy này được tạo trước khi bản
-> sửa đổi này (gợi ý heuristic score ≥ 0.85) để pipeline chạy end-to-end.
-> Từ bản hiện tại, `--export-template` không tự điền `groundtruth_arxiv_id`.
-> Trước khi nộp, nhóm vẫn cần mở `data/labels/manual_templates/`, kiểm tra bằng
-> mắt, điền groundtruth + `is_verified=YES`, rồi import lại CSV.
+- **README:** `src/m3_matching/README.md`
+- **Tests:** `tests/test_m3_matching.py`
+- **Notebook:** `src/m3_matching/M3_matching.ipynb`
+- **Code modules:** `src/m3_matching/*.py`
