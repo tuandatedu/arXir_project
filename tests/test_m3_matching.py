@@ -12,6 +12,7 @@ Kiểm tra các nhiệm vụ 1 đến 6:
 import pytest
 from src.m3_matching.cleaning import (
     normalize_authors,
+    normalize_doi,
     normalize_title,
     normalize_year,
     prepare_bibtex_record,
@@ -76,6 +77,23 @@ def test_prepare_records():
     assert ref_clean["year_norm"] == 2020
 
 
+def test_normalize_doi():
+    assert normalize_doi("https://doi.org/10.1145/ABC.") == "10.1145/abc"
+    assert normalize_doi("http://dx.doi.org/10.1145/abc") == "10.1145/abc"
+    assert normalize_doi("doi:10.1145/abc") == "10.1145/abc"
+    assert normalize_doi("   ") is None
+    assert normalize_doi(None) is None
+
+
+def test_reference_doi_from_external_ids():
+    ref = {
+        "ref_arxiv_id": "1706.03762",
+        "ref_title": "Attention Is All You Need",
+        "externalIds": {"DOI": "https://doi.org/10.1/XYZ"},
+    }
+    assert prepare_reference_record(ref)["doi_norm"] == "10.1/xyz"
+
+
 # ---------------------------------------------------------------------------
 # 2 & 3. Test Gán nhãn thủ công & Tự động (labelling.py)
 # ---------------------------------------------------------------------------
@@ -90,6 +108,12 @@ def test_auto_match_one():
 
     unmatched_bib = {"title": "Completely Unknown Paper Not In References"}
     assert auto_match_one(unmatched_bib, refs) is None
+
+
+def test_auto_match_doi_with_prefix():
+    bib = {"title": "Different Title", "doi": "https://doi.org/10.1/ABC"}
+    refs = [{"ref_arxiv_id": "ref.9", "ref_title": "Another Title", "doi": "doi:10.1/abc"}]
+    assert auto_match_one(bib, refs) == "ref.9"
 
 
 def test_validate_label_quota():
@@ -130,6 +154,24 @@ def test_features_dimensions():
     assert title_similarity(bib, ref) >= 0.99
     assert author_overlap(bib, ref) == 1.0
     assert year_distance(bib, ref) == 0.0
+
+
+def test_feature_doi_match_normalizes_prefixes():
+    bib = {"title_norm": "a paper", "doi": "https://doi.org/10.1/ABC"}
+    ref = {"title_norm": "a paper", "doi": "doi:10.1/abc"}
+    names = feature_names()
+    vec = pair_feature_vector(bib, ref)
+    assert vec[names.index("doi_match")] == 1.0
+
+
+def test_feature_year_missing_sentinel():
+    bib = {"title_norm": "a paper", "year_norm": None}
+    ref = {"title_norm": "a paper", "year_norm": 2020}
+    assert year_distance(bib, ref) == -1.0
+    names = feature_names()
+    vec = pair_feature_vector(bib, ref)
+    assert vec[names.index("year_diff")] == 99.0
+    assert vec[names.index("year_missing")] == 1.0
 
 
 # ---------------------------------------------------------------------------
@@ -191,3 +233,8 @@ def test_split_publications():
 
     # Train chứa phần còn lại
     assert len(train_papers) == 4
+
+
+def test_split_rejects_invalid_k():
+    with pytest.raises(ValueError, match="k phải >= 1"):
+        split_publications({}, seed=42, k=0)

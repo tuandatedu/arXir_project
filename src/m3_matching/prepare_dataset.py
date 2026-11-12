@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -36,6 +37,15 @@ from src.m3_matching.split import split_publications
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 LOG = logging.getLogger(__name__)
+
+
+def _configure_utf8_stdout() -> None:
+    """Windows console mặc định cp1258 không in được tiếng Việt; ép UTF-8 khi có thể."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):  # pragma: no cover - môi trường không hỗ trợ
+            pass
 
 
 def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) -> None:
@@ -145,15 +155,11 @@ def run_preparation_pipeline(
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
-    # 1. Đọc các nhãn thủ công đã có
-    labels = load_labels(labels_dir)
-    manual_papers = [pid for pid, entries in labels.items() if any(e.get("source") == "manual" for e in entries)]
-    LOG.info("Tìm thấy %d bài báo gán nhãn thủ công (Manual): %s", len(manual_papers), manual_papers)
-
-    # 2. Tự động gán nhãn cho các bài ngoài nhóm manual để đạt quota
+    # 1. Tập bài báo có đủ cả BibTeX (M2) lẫn references (M1)
     bib_papers = {b["arxiv_id"] for b in all_bib if b.get("arxiv_id")}
     ref_papers = {r["arxiv_id"] for r in all_refs if r.get("arxiv_id")}
     available_papers = sorted(bib_papers & ref_papers)
+    available_set = set(available_papers)
 
     bibs_by_paper: dict[str, list[dict[str, Any]]] = {}
     for b in all_bib:
@@ -162,7 +168,24 @@ def run_preparation_pipeline(
     for r in all_refs:
         refs_by_paper.setdefault(r["arxiv_id"], []).append(r)
 
-    # Gán nhãn auto cho các bài chưa có nhãn
+    # 2. Đọc nhãn đã có, bỏ các bài không đủ dữ liệu để ghép cặp
+    labels = load_labels(labels_dir)
+    orphan_labels = sorted(set(labels) - available_set)
+    if orphan_labels:
+        LOG.warning(
+            "Bỏ qua %d bài có nhãn nhưng thiếu BibTeX hoặc references: %s",
+            len(orphan_labels),
+            orphan_labels[:10],
+        )
+        labels = {pid: rows for pid, rows in labels.items() if pid in available_set}
+
+    manual_papers = [
+        pid for pid, entries in labels.items()
+        if any(e.get("source") == "manual" for e in entries)
+    ]
+    LOG.info("Tìm thấy %d bài báo gán nhãn thủ công (Manual): %s", len(manual_papers), manual_papers)
+
+    # 3. Tự động gán nhãn cho các bài chưa có nhãn (mọi entry của paper được chọn)
     for pid in available_papers:
         if pid in labels:
             continue
@@ -175,11 +198,11 @@ def run_preparation_pipeline(
             save_labels(pid, auto_rows, labels_dir)
             labels[pid] = auto_rows
 
-    # 3. Kiểm tra quota
+    # 4. Kiểm tra quota
     validate_label_quota(labels, n_publications_total=len(available_papers), k=k)
     LOG.info("Đã kiểm tra Hạn mức (Quota) của thầy: ĐẠT CHUẨN 100%%!")
 
-    # 4. Phân chia tập dữ liệu train / valid / test
+    # 5. Phân chia tập dữ liệu train / valid / test
     partition_map = split_publications(labels, seed=seed, k=k)
     test_pids = [pid for pid, p in partition_map.items() if p == "test"]
     valid_pids = [pid for pid, p in partition_map.items() if p == "valid"]
@@ -190,7 +213,7 @@ def run_preparation_pipeline(
     LOG.info("  - Valid set (%d bài): %s", len(valid_pids), valid_pids)
     LOG.info("  - Train set (%d bài): %s", len(train_pids), train_pids)
 
-    # 5. Sinh tập dữ liệu cặp (Pairs Dataset) với 14 đặc trưng và nhãn 0/1
+    # 6. Sinh tập dữ liệu cặp (Pairs Dataset) với 14 đặc trưng và nhãn 0/1
     LOG.info("Đang sinh tập dữ liệu cặp ứng viên và trích xuất 14 đặc trưng...")
     datasets = generate_training_dataset(
         labels=labels,
@@ -237,6 +260,7 @@ def run_preparation_pipeline(
 
 
 def main() -> None:
+    _configure_utf8_stdout()
     parser = argparse.ArgumentParser(description="Script chuẩn bị dữ liệu (Milestone 3)")
     parser.add_argument("--k", type=int, default=1, help="Số lượng thành viên nhóm (1 hoặc 2)")
     parser.add_argument("--seed", type=int, default=42, help="Seed ngẫu nhiên chia split (mặc định 42)")

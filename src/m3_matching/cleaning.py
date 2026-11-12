@@ -150,6 +150,34 @@ def normalize_year(value: object) -> int | None:
     return None
 
 
+_DOI_PREFIXES = (
+    "https://doi.org/",
+    "http://doi.org/",
+    "https://dx.doi.org/",
+    "http://dx.doi.org/",
+    "doi:",
+)
+
+
+def normalize_doi(value: object) -> str | None:
+    """
+    Chuẩn hóa DOI về dạng trần (không tiền tố URL/`doi:`), lowercase.
+
+    Nhờ vậy `https://doi.org/10.1145/ABC` và `doi:10.1145/abc` được coi là
+    cùng một DOI khi so khớp. Trả về None nếu rỗng/không có.
+    """
+    if value is None:
+        return None
+    doi = str(value).strip().lower()
+    if not doi:
+        return None
+    for prefix in _DOI_PREFIXES:
+        if doi.startswith(prefix):
+            doi = doi[len(prefix):].strip()
+    doi = doi.strip(" .,;")
+    return doi or None
+
+
 def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
     """
     Thêm các trường chuẩn hóa *_norm cho 1 BibTeX row (không sửa bảng gốc).
@@ -163,12 +191,7 @@ def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
     record["title_norm"] = normalize_title(row.get("title") or "")
     record["authors_norm"] = normalize_authors(row.get("authors") or [])
     record["year_norm"] = normalize_year(row.get("year"))
-
-    doi = str(row.get("doi") or "").strip().lower()
-    for prefix in ("https://doi.org/", "http://doi.org/", "doi:"):
-        if doi.startswith(prefix):
-            doi = doi[len(prefix):]
-    record["doi_norm"] = doi if doi else None
+    record["doi_norm"] = normalize_doi(row.get("doi"))
 
     return record
 
@@ -180,6 +203,7 @@ def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
     - title_norm: ref_title sau khi làm sạch
     - authors_norm: ref_authors canonical
     - year_norm: năm lấy từ ref_submission_date hoặc field year
+    - doi_norm: DOI đã chuẩn hóa (nếu nguồn crawl có DOI)
     - ref_arxiv_id_norm: arXiv ID chuẩn hóa
     """
     record = dict(row)
@@ -192,6 +216,12 @@ def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
     # Thử lấy year từ ref_submission_date hoặc year trực tiếp
     date_val = row.get("ref_submission_date") or row.get("year")
     record["year_norm"] = normalize_year(date_val)
+
+    # DOI có thể nằm ở nhiều tên field tùy nguồn crawl (M1 lưu externalIds)
+    raw_doi = row.get("doi") or row.get("ref_doi") or row.get("DOI")
+    if not raw_doi and isinstance(row.get("externalIds"), dict):
+        raw_doi = row["externalIds"].get("DOI")
+    record["doi_norm"] = normalize_doi(raw_doi)
 
     ref_arxiv_id = str(row.get("ref_arxiv_id") or "").strip()
     record["ref_arxiv_id_norm"] = ref_arxiv_id

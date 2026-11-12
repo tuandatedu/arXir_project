@@ -3,9 +3,12 @@
 Group skeleton for the three milestones in
 <https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/>.
 
-This repository currently contains **function stubs only** (`NotImplementedError` +
-docstrings describing *what* to implement). Fill in the bodies; do not change
-table column names unless the lab book changes.
+This repository contains the group's cumulative implementation. M3 tasks 1–6
+(cleaning, manual/auto labelling, 14 pair features, training-pair dataset, and
+paper-level split) are implemented in `src/m3_matching/`; the model-serving
+steps (`model.py`, `evaluate.py`, `tables.py`) remain stubs for the next member.
+See [`src/m3_matching/MATCHING_M3.md`](src/m3_matching/MATCHING_M3.md) for the
+hand-off format and run instructions.
 
 | Milestone | Goal | Hugging Face tables |
 | --- | --- | --- |

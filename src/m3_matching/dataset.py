@@ -108,9 +108,9 @@ def generate_training_dataset(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if bibtex_records is None:
-        bibtex_records = read_jsonl(TABLES_DIR / "bibtex.jsonl")
+        bibtex_records = read_jsonl(output_dir / "bibtex.jsonl")
     if reference_records is None:
-        reference_records = read_jsonl(TABLES_DIR / "references.jsonl")
+        reference_records = read_jsonl(output_dir / "references.jsonl")
 
     # Gom nhóm theo arxiv_id
     bibs_by_paper: dict[str, list[dict[str, Any]]] = {}

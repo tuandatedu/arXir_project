@@ -35,8 +35,12 @@ Cung cấp các hàm chuẩn hóa nâng cao, **không sửa đổi bảng gốc*
 - **`normalize_year(value)`**:
   - Nhận diện năm công bố từ số nguyên, chuỗi `"2017"` hoặc chuỗi ngày ISO `"2017-06-12"`.
   - Kiểm tra tính hợp lệ trong khoảng $[1800, 2100]$, nếu lỗi trả về `None`.
+- **`normalize_doi(value)`**:
+  - Bỏ tiền tố `https://doi.org/`, `http://dx.doi.org/`, `doi:` và ký tự dư cuối chuỗi.
+  - Lowercase để `https://doi.org/10.1/ABC` và `doi:10.1/abc` được coi là cùng DOI.
 - **`prepare_bibtex_record(row)` & `prepare_reference_record(row)`**:
   - Bổ sung các trường chuẩn hóa: `title_norm`, `authors_norm`, `year_norm`, `doi_norm` mà giữ nguyên cấu trúc schema của dữ liệu gốc.
+  - `prepare_reference_record` đọc DOI từ `doi` / `ref_doi` / `externalIds.DOI` (nếu nguồn M1 có).
 
 ---
 
@@ -64,7 +68,7 @@ Quy định đề bài cho nhóm $k$ thành viên:
    *Dữ liệu được lưu chuẩn vào: `data/labels/{arxiv_id}.jsonl` với `"source": "manual"`.*
 4. **Kiểm tra tiến độ & Quota của cả nhóm:**
    ```powershell
-   python -m src.m3_matching.manual_tool --summary
+   python -m src.m3_matching.manual_tool --summary --k 2 --n-publications 200
    ```
 
 ---
@@ -104,8 +108,10 @@ Mỗi cặp ứng viên `(bibtex_entry, reference)` được mã hóa thành m�
 | 10 | `year_diff` | Số thực | Hiệu số năm công bố tuyệt đối $\|y_1 - y_2\|$. Nếu thiếu năm gán sentinel `99.0`. |
 | 11 | `year_exact` | `-1 / 0 / 1` | $1.0$ nếu trùng năm, $0.0$ nếu khác năm, $-1.0$ nếu một bên thiếu năm. |
 | 12 | `year_missing` | `0.0` / `1.0` | $1.0$ nếu một trong hai tài liệu bị khuyết thông tin năm. |
-| 13 | `doi_match` | `-1 / 0 / 1` | $1.0$ nếu DOI trùng khớp, $-1.0$ nếu cả 2 có DOI nhưng khác nhau, $0.0$ nếu thiếu DOI. |
-| 14 | `cite_count` | Số thực | Tần suất xuất hiện của `citation_key` trong văn bản bài báo (tận dụng từ M2 hierarchy). |
+| 13 | `doi_match` | `-1 / 0 / 1` | $1.0$ nếu DOI trùng khớp (sau chuẩn hóa tiền tố), $-1.0$ nếu cả 2 có DOI nhưng khác nhau, $0.0$ nếu thiếu DOI. |
+| 14 | `cite_count` | Số thực | Tần suất xuất hiện của `citation_key` trong văn bản bài báo (tận dụng từ M2 hierarchy). Mặc định `0.0` nếu chưa truyền `extra` context. |
+
+> `pair_feature_vector` nhận tham số `extra` tùy chọn cho `cite_count`; các đặc trưng còn lại được tính trực tiếp từ cặp `(bib, ref)`. Khi chưa có hierarchy context, `cite_count = 0.0` cho mọi cặp nên không làm lệch mô hình.
 
 ---
 
@@ -142,6 +148,9 @@ python -m src.m3_matching.prepare_dataset --k 2
 # Hoặc chạy thử nghiệm ngay (chế độ demo dữ liệu mẫu):
 python -m src.m3_matching.prepare_dataset --demo
 ```
+
+> Trên Windows console (cp1258), script đã tự ép UTF-8 để in tiếng Việt. Nếu vẫn lỗi, chạy thêm `$env:PYTHONUTF8=1` trước lệnh.
+> Input thật cần có `data/tables/bibtex.jsonl` và `data/tables/references.jsonl` (từ M1/M2); nhãn thủ công đặt tại `data/labels/{arxiv_id}.jsonl`.
 
 **Các file xuất ra sẵn sàng tại `data/tables/`:**
 - `data/tables/train_pairs.parquet` $\rightarrow$ Dữ liệu dùng để huấn luyện mô hình (Training set).
@@ -181,4 +190,4 @@ X_valid, y_valid = valid_df[features], valid_df["label"]
 python -m pytest tests/test_m3_matching.py -v
 ```
 
-Kết quả: **9/9 test cases passed (100%)** chỉ trong 0.17 giây, đảm bảo mọi hàm làm sạch, gán nhãn, trích xuất đặc trưng và chia tập hoạt động chính xác tuyệt đối.
+Kết quả: **15/15 test cases passed (100%)**, bao phủ làm sạch (title/author/year/DOI), gán nhãn thủ công & auto, 14 đặc trưng, sinh bảng cặp và chia tập (kể cả kiểm tra `k` không hợp lệ).

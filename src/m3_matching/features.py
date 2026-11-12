@@ -15,6 +15,7 @@ from rapidfuzz.distance import Levenshtein
 
 from src.m3_matching.cleaning import (
     normalize_authors,
+    normalize_doi,
     normalize_title,
     normalize_year,
     prepare_bibtex_record,
@@ -185,9 +186,13 @@ def pair_feature_vector(
         f_year_exact = -1.0
         f_year_missing = 1.0
 
-    # 5. Đặc trưng DOI
-    doi1 = str(bib.get("doi") or bib.get("doi_norm") or "").strip().lower()
-    doi2 = str(ref.get("doi") or ref.get("ref_doi") or "").strip().lower()
+    # 5. Đặc trưng DOI (luôn so trên dạng đã chuẩn hóa)
+    doi1 = bib.get("doi_norm") or normalize_doi(bib.get("doi"))
+    doi2 = ref.get("doi_norm") or normalize_doi(
+        ref.get("doi") or ref.get("ref_doi") or ref.get("DOI")
+    )
+    if not doi2 and isinstance(ref.get("externalIds"), dict):
+        doi2 = normalize_doi(ref["externalIds"].get("DOI"))
     if doi1 and doi2:
         f_doi_match = 1.0 if doi1 == doi2 else -1.0
     else:

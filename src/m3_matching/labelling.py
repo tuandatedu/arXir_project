@@ -68,8 +68,8 @@ def auto_match_one(
         if not ref_arxiv_id:
             continue
 
-        # Quy tắc 1: Khớp DOI chính xác
-        doi_ref = str(ref.get("doi") or ref.get("ref_doi") or "").strip().lower()
+        # Quy tắc 1: Khớp DOI chính xác (sau chuẩn hóa)
+        doi_ref = ref_clean.get("doi_norm")
         if doi_bib and doi_ref and doi_bib == doi_ref:
             return str(ref_arxiv_id)
 

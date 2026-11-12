@@ -34,6 +34,9 @@ def split_publications(
     manual_ids: list[str] = []
     auto_ids: list[str] = []
 
+    if k < 1:
+        raise ValueError(f"k phải >= 1 (số thành viên nhóm), nhận được: {k}.")
+
     for arxiv_id, entries in sorted(labels.items()):
         if not entries:
             continue
@@ -43,11 +46,10 @@ def split_publications(
         else:
             auto_ids.append(arxiv_id)
 
-    # Cần 2*k cho test + 2*k cho valid = 4*k tổng cho cả auto lẫn manual
-    needed_per_set = 2 * k
-    needed_total_manual = needed_per_set * 2
-    needed_total_auto = needed_per_set * 2
-    
+    # Mỗi loại cần k bài cho test + k bài cho valid = 2*k
+    needed_total_manual = 2 * k
+    needed_total_auto = 2 * k
+
     if len(manual_ids) < needed_total_manual:
         raise ValueError(
             f"Cần tối thiểu {needed_total_manual} bài báo manual để chia valid và test (k={k}, hiện có: {len(manual_ids)})."

@@ -11,6 +11,7 @@ Cung cấp:
 from __future__ import annotations
 
 import csv
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -190,6 +191,7 @@ def import_manual_csv(
 def summarize_team_labels(
     labels_dir: Path | None = None,
     n_publications_total: int = 50,
+    k: int = 1,
 ) -> dict[str, Any]:
     """
     Tổng hợp và in báo cáo tiến độ gán nhãn của nhóm so với yêu cầu của thầy.
@@ -204,6 +206,7 @@ def summarize_team_labels(
         "n_auto_papers": 0,
         "n_auto_entries": 0,
         "quota_status": "UNKNOWN",
+        "k": k,
     }
 
     for pid, entries in labels.items():
@@ -218,7 +221,7 @@ def summarize_team_labels(
             summary["n_auto_entries"] += a_cnt
 
     try:
-        validate_label_quota(labels, n_publications_total)
+        validate_label_quota(labels, n_publications_total, k=k)
         summary["quota_status"] = "PASSED"
     except Exception as exc:
         summary["quota_status"] = f"FAILED: {exc}"
@@ -228,12 +231,20 @@ def summarize_team_labels(
 
 def main() -> None:
     import argparse
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):  # pragma: no cover
+            pass
+
     parser = argparse.ArgumentParser(description="Công cụ hỗ trợ gán nhãn thủ công (Milestone 3)")
     parser.add_argument("--find-candidates", action="store_true", help="Tìm các bài báo đủ điều kiện gán nhãn thủ công (≥ 20 bib entries)")
     parser.add_argument("--export-template", type=str, help="Xuất file CSV mẫu cho 1 bài báo (ví dụ --export-template 2310.12345)")
     parser.add_argument("--import-csv", type=str, help="Import file CSV đã kiểm tra vào data/labels (ví dụ --import-csv path/to/file.csv)")
     parser.add_argument("--paper-id", type=str, help="arXiv ID khi import CSV (nếu tên file không trùng ID)")
     parser.add_argument("--summary", action="store_true", help="Tổng hợp tiến độ gán nhãn của cả nhóm")
+    parser.add_argument("--k", type=int, default=1, help="Số thành viên nhóm (dùng cho quota, mặc định 1)")
+    parser.add_argument("--n-publications", type=int, default=50, help="Tổng số publication có thể ghép cặp (cho quota auto, mặc định 50)")
     args = parser.parse_args()
 
     if args.find_candidates:
@@ -255,12 +266,12 @@ def main() -> None:
         print(f"Đã import nhãn thủ công cho {pid} vào: {out_jsonl}")
 
     elif args.summary:
-        res = summarize_team_labels()
+        res = summarize_team_labels(n_publications_total=args.n_publications, k=args.k)
         print("=== BÁO CÁO TIẾN ĐỘ GÁN NHÃN ===")
-        print(f"Số bài manual: {res['n_manual_papers']} (yêu cầu ≥ 5)")
-        print(f"Tổng entries manual: {res['n_manual_entries']} (yêu cầu ≥ 100)")
+        print(f"Số bài manual: {res['n_manual_papers']} (yêu cầu ≥ {5 * args.k} với k={args.k})")
+        print(f"Tổng entries manual: {res['n_manual_entries']} (yêu cầu ≥ {100 * args.k})")
         print(f"Chi tiết manual: {res['manual_details']}")
-        print(f"Số bài auto: {res['n_auto_papers']}")
+        print(f"Số bài auto: {res['n_auto_papers']} (yêu cầu ≥ max(10% ngoài manual, {2 * args.k}))")
         print(f"Trạng thái hạn mức (Quota): {res['quota_status']}")
     else:
         parser.print_help()
