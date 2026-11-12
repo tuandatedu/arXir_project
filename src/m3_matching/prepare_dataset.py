@@ -244,12 +244,18 @@ def run_preparation_pipeline(
 
     # 6. Sinh tập dữ liệu cặp (Pairs Dataset) với 14 đặc trưng và nhãn 0/1
     LOG.info("Đang sinh tập dữ liệu cặp ứng viên và trích xuất 14 đặc trưng...")
+    
+    # Output vào prepared_dataset/ folder (parent của tables_dir)
+    my_m3_dir = tables_dir.parent
+    prepared_dataset_dir = my_m3_dir / "prepared_dataset"
+    prepared_dataset_dir.mkdir(parents=True, exist_ok=True)
+    
     datasets = generate_training_dataset(
         labels=labels,
         partition_map=partition_map,
         bibtex_records=all_bib,
         reference_records=all_refs,
-        output_dir=tables_dir,
+        output_dir=prepared_dataset_dir,
     )
 
     summary: dict[str, Any] = {
@@ -278,10 +284,10 @@ def run_preparation_pipeline(
             },
         },
         "exported_files": [
-            str(tables_dir / "train_pairs.parquet"),
-            str(tables_dir / "valid_pairs.parquet"),
-            str(tables_dir / "test_pairs.parquet"),
-            str(tables_dir / "dataset_pairs.parquet"),
+            str(prepared_dataset_dir / "train_pairs.parquet"),
+            str(prepared_dataset_dir / "valid_pairs.parquet"),
+            str(prepared_dataset_dir / "test_pairs.parquet"),
+            str(prepared_dataset_dir / "dataset_pairs.parquet"),
         ],
         "feature_names": feature_names(),
     }
