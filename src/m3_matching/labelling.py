@@ -25,7 +25,7 @@ from src.common.config import (
     MIN_MANUAL_PUBLICATIONS,
     TABLES_DIR,
 )
-from src.common.io import read_jsonl, write_jsonl
+from src.common.io import read_json
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
     prepare_reference_record,
@@ -157,27 +157,70 @@ def auto_label_publication(
 
 def load_labels(labels_dir: Path) -> dict[str, list[dict[str, Any]]]:
     """
-    Đọc tất cả file nhãn data/labels/{arxiv_id}.jsonl -> {arxiv_id: [label_dict, ...]}.
+    Đọc tất cả file nhãn từ:
+    - labels/manual/{arxiv_id}.json
+    - labels/automatic/{arxiv_id}.json
+    -> {arxiv_id: [label_dict, ...]}
     """
+    import json
+    
     labels_dir = Path(labels_dir)
     result: dict[str, list[dict[str, Any]]] = {}
     if not labels_dir.exists():
         return result
 
-    for jsonl_file in sorted(labels_dir.glob("*.jsonl")):
-        arxiv_id = jsonl_file.stem  # tên file là arxiv_id
-        rows = read_jsonl(jsonl_file)
-        if rows:
-            result[arxiv_id] = rows
+    # Đọc từ manual/ folder
+    manual_dir = labels_dir / "manual"
+    if manual_dir.exists():
+        for json_file in sorted(manual_dir.glob("*.json")):
+            arxiv_id = json_file.stem
+            with open(json_file, "r", encoding="utf-8") as f:
+                rows = json.load(f)
+            if rows:
+                result[arxiv_id] = rows
+
+    # Đọc từ automatic/ folder
+    auto_dir = labels_dir / "automatic"
+    if auto_dir.exists():
+        for json_file in sorted(auto_dir.glob("*.json")):
+            arxiv_id = json_file.stem
+            with open(json_file, "r", encoding="utf-8") as f:
+                rows = json.load(f)
+            if rows:
+                # Merge với existing nếu có (combine manual + auto)
+                if arxiv_id in result:
+                    result[arxiv_id].extend(rows)
+                else:
+                    result[arxiv_id] = rows
 
     return result
 
 
 def save_labels(arxiv_id: str, rows: list[dict[str, Any]], labels_dir: Path) -> Path:
-    """Ghi danh sách nhãn của 1 publication ra data/labels/{arxiv_id}.jsonl."""
+    """
+    Ghi danh sách nhãn của 1 publication vào:
+    - labels/manual/{arxiv_id}.json (nếu source="manual")
+    - labels/automatic/{arxiv_id}.json (nếu source="auto")
+    """
+    import json
+    
     labels_dir = Path(labels_dir)
-    out_path = labels_dir / f"{arxiv_id}.jsonl"
-    write_jsonl(out_path, rows)
+    
+    # Determine source từ rows
+    source = rows[0].get("source", "auto") if rows else "auto"
+    
+    # Create subfolder dựa trên source
+    if source == "manual":
+        subfolder = labels_dir / "manual"
+    else:
+        subfolder = labels_dir / "automatic"
+    
+    subfolder.mkdir(parents=True, exist_ok=True)
+    out_path = subfolder / f"{arxiv_id}.json"
+    
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(rows, f, ensure_ascii=False, indent=2)
+    
     return out_path
 
 

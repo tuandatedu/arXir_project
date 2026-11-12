@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.config import DATA_DIR, TABLES_DIR
-from src.common.io import read_jsonl, write_jsonl
+from src.common.io import read_json, read_jsonl, write_json
 
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
@@ -403,8 +403,8 @@ def import_manual_csv(
             f"[WARN] Bỏ qua {skipped_unverified} dòng chưa xác nhận."
         )
 
-    output = labels_dir / f"{arxiv_id}.jsonl"
-    write_jsonl(output, rows)
+    output = labels_dir / f"{arxiv_id}.json"
+    write_json(output, rows)
 
     return output
 

@@ -12,7 +12,7 @@ Kiểm tra các nhiệm vụ 1 đến 6:
 import csv
 
 import pytest
-from src.common.io import read_jsonl, write_jsonl
+from src.common.io import read_json, read_jsonl, write_jsonl
 from src.m3_matching.cleaning import (
     normalize_authors,
     normalize_doi,
@@ -298,7 +298,7 @@ def test_import_manual_csv_requires_verified_rows(tmp_path):
 
     labels_dir = tmp_path / "labels"
     out_file = import_manual_csv(csv_path, "test.005", labels_dir=labels_dir)
-    rows = read_jsonl(out_file)
+    rows = read_json(out_file)
     assert [r["citation_key"] for r in rows] == ["k1"]
     assert rows[0]["groundtruth_arxiv_id"] == "ref.1"
 
@@ -306,14 +306,14 @@ def test_import_manual_csv_requires_verified_rows(tmp_path):
     out_file_all = import_manual_csv(
         csv_path, "test.005", labels_dir=labels_dir, require_verified=False
     )
-    assert len(read_jsonl(out_file_all)) == 2
+    assert len(read_json(out_file_all)) == 2
 
     unverified_only = tmp_path / "test.006.csv"
     with unverified_only.open("w", encoding="utf-8-sig", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
         writer.writeheader()
         writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "NO"})
-    with pytest.raises(ValueError, match="chưa có dòng nào được xác nhận"):
+    with pytest.raises(ValueError, match="Không có nhãn hợp lệ"):
         import_manual_csv(unverified_only, "test.006", labels_dir=labels_dir)
 
 
