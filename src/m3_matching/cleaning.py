@@ -19,13 +19,36 @@ TITLE_STOPWORDS = {
 }
 
 _YEAR_REGEX = re.compile(r"\b(19\d\d|20\d\d)\b")
-_LATEX_CMD_REGEX = re.compile(r"\\[a-zA-Z]+(\[[^\]]*\])?(\{([^}]*)\})?")
+
+# Accent LaTeX: \'{e}, \"{o}, \^{a}, \`{a}, \~{n}, \={a}, \.{z}
+_SINGLE_CHAR_ACCENT_RE = re.compile(r"""\\([`'^"~=.])\s*\{?([A-Za-z])\}?""")
+# Accent LaTeX dạng lệnh chữ: \c{c}, \v{s}, \u{a}, \H{o}, \r{a}, \k{a}, ...
+_WORD_ACCENT_RE = re.compile(r"\\([cHvurktbdD])\s*\{([A-Za-z]+)\}")
+
+# Tiền tố họ phổ biến cần giữ chung với họ khi tên không có dấu phẩy:
+# "Jan van der Berg" và "van der Berg, Jan" phải cho cùng kết quả.
+_NAME_PARTICLES = {
+    "van", "von", "vom", "der", "den", "de", "del", "della", "delle",
+    "di", "da", "das", "dos", "du", "la", "le", "ter", "ten", "zu",
+    "bin", "al", "el",
+}
 
 
 def _strip_accents(text: str) -> str:
     """Chuyển ký tự unicode có dấu về dạng ASCII không dấu."""
     nfkd = unicodedata.normalize("NFKD", text)
     return "".join(c for c in nfkd if not unicodedata.combining(c))
+
+
+def _decode_latex_accents(text: str) -> str:
+    """
+    Giải mã accent LaTeX về ký tự gốc trước khi bỏ ngoặc nhọn.
+
+    Ví dụ: ``Schr\\"{o}dinger`` -> ``Schrodinger`` (không phải ``schr o dinger``).
+    """
+    text = _SINGLE_CHAR_ACCENT_RE.sub(r"\2", text)
+    text = _WORD_ACCENT_RE.sub(r"\2", text)
+    return text
 
 
 def _clean_latex_text(text: str) -> str:
@@ -36,12 +59,14 @@ def _clean_latex_text(text: str) -> str:
     text = text.replace(r"\&", "&").replace(r"\%", "%").replace(r"\_", "_")
     text = text.replace(r"\$", "$").replace(r"\#", "#")
     text = text.replace("&amp;", "&")
-    # Bỏ các cặp ngoặc nhọn nhóm trong BibTeX: {{Title}} -> Title
-    text = re.sub(r"[{}]", " ", text)
-    # Bỏ command latex dạng \command hoặc \command{arg}
-    text = re.sub(r"\\[a-zA-Z]+", " ", text)
+    # Giải mã accent trước khi ngoặc nhọn bị thay bằng khoảng trắng
+    text = _decode_latex_accents(text)
     # Bỏ math inline $...$
     text = re.sub(r"\$[^$]*\$", " ", text)
+    # Bỏ command latex dạng \command hoặc \command{arg}
+    text = re.sub(r"\\[a-zA-Z]+", " ", text)
+    # Bỏ các cặp ngoặc nhọn nhóm trong BibTeX: {{Title}} -> Title
+    text = re.sub(r"[{}]", " ", text)
     return text
 
 
@@ -78,9 +103,9 @@ def _parse_single_author(author_str: str) -> str:
         return ""
     
     if "," in cleaned:
-        # Dạng: Lastname, Firstname Middle
+        # Dạng: Lastname, Firstname Middle (họ có thể gồm nhiều từ)
         parts = [p.strip() for p in cleaned.split(",", 1)]
-        last = parts[0]
+        last = re.sub(r"\s+", " ", parts[0]).strip()
         first = parts[1] if len(parts) > 1 else ""
         initial = first[0] if first else ""
     else:
@@ -89,10 +114,24 @@ def _parse_single_author(author_str: str) -> str:
         if len(tokens) == 1:
             last = tokens[0]
             initial = ""
+        elif tokens[0] in _NAME_PARTICLES:
+            # Chuỗi chỉ có họ kèm tiền tố, ví dụ "van der Berg"
+            last = " ".join(tokens)
+            initial = ""
         else:
-            last = tokens[-1]
-            initial = tokens[0][0] if tokens[0] else ""
+            # Giữ tiền tố họ dính với họ: "Jan van der Berg" -> "van der berg"
+            particle_idx = next(
+                (i for i, token in enumerate(tokens) if i > 0 and token in _NAME_PARTICLES),
+                None,
+            )
+            if particle_idx is not None:
+                last = " ".join(tokens[particle_idx:])
+                initial = tokens[0][0]
+            else:
+                last = tokens[-1]
+                initial = tokens[0][0] if tokens[0] else ""
 
+    last = re.sub(r"\s+", " ", last).strip()
     return f"{last}, {initial}".strip(", ") if last else ""
 
 

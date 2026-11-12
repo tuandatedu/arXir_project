@@ -39,32 +39,21 @@ from src.m3_matching.features import (
 LabelSource = Literal["manual", "auto"]
 
 
-def auto_match_one(
-    bib_entry: dict[str, Any],
-    references: list[dict[str, Any]],
+def _match_one_prepared(
+    bib_clean: dict[str, Any],
+    prepared_refs: list[dict[str, Any]],
 ) -> str | None:
-    """
-    Heuristic matcher (regex / string similarity / rules).
-    Chỉ so với các crawled references CỦA CÙNG bài báo đang cite.
-    
-    Quy tắc đối sánh chính xác cao:
-    1. Exact DOI trùng khớp
-    2. Exact title trùng khớp (khi title đủ dài ≥ 8 ký tự)
-    3. Fuzzy title (token_sort_ratio ≥ 88%) + Trùng ít nhất 1 tác giả + Chênh lệch năm ≤ 1
-    Nếu không thỏa điều kiện hoặc có xung đột không rõ ràng -> trả về None.
-    """
-    if not references:
+    """Phần lõi của auto_match_one, nhận dữ liệu đã chuẩn hóa để tránh lặp lại."""
+    if not prepared_refs:
         return None
 
-    bib_clean = prepare_bibtex_record(bib_entry)
     doi_bib = bib_clean.get("doi_norm")
     title_bib = bib_clean.get("title_norm") or ""
 
     candidates_with_scores: list[tuple[float, str]] = []
 
-    for ref in references:
-        ref_clean = prepare_reference_record(ref)
-        ref_arxiv_id = ref_clean.get("ref_arxiv_id_norm") or ref.get("ref_arxiv_id")
+    for ref_clean in prepared_refs:
+        ref_arxiv_id = ref_clean.get("ref_arxiv_id_norm") or ref_clean.get("ref_arxiv_id")
         if not ref_arxiv_id:
             continue
 
@@ -91,24 +80,43 @@ def auto_match_one(
         is_author_ok = (a_sim > 0.0) or (t_sim >= 0.95)
 
         if t_sim >= 0.88 and is_author_ok and is_year_ok:
-            # Score tổng hợp để xếp hạng
             composite_score = t_sim * 0.7 + a_sim * 0.2 + (0.1 if (0 <= y_diff <= 1) else 0.0)
             candidates_with_scores.append((composite_score, str(ref_arxiv_id)))
 
     if not candidates_with_scores:
         return None
 
-    # Sắp xếp candidate tốt nhất
     candidates_with_scores.sort(key=lambda x: x[0], reverse=True)
     best_score, best_ref_id = candidates_with_scores[0]
 
-    # Nếu có candidate thứ 2 quá sát điểm (khoảng cách < 0.05) -> ambiguity -> không gán nhãn tự động
+    # Nếu có candidate thứ 2 quá sát điểm (< 0.05) -> ambiguity -> không gán
     if len(candidates_with_scores) > 1:
         second_score = candidates_with_scores[1][0]
         if best_score - second_score < 0.05 and candidates_with_scores[1][1] != best_ref_id:
             return None
 
     return best_ref_id
+
+
+def auto_match_one(
+    bib_entry: dict[str, Any],
+    references: list[dict[str, Any]],
+) -> str | None:
+    """
+    Heuristic matcher (regex / string similarity / rules).
+    Chỉ so với các crawled references CỦA CÙNG bài báo đang cite.
+
+    Quy tắc đối sánh chính xác cao:
+    1. Exact DOI trùng khớp
+    2. Exact title trùng khớp (khi title đủ dài ≥ 8 ký tự)
+    3. Fuzzy title (token_sort_ratio ≥ 88%) + Trùng ít nhất 1 tác giả + Chênh lệch năm ≤ 1
+    Nếu không thỏa điều kiện hoặc có xung đột không rõ ràng -> trả về None.
+    """
+    if not references:
+        return None
+    bib_clean = prepare_bibtex_record(bib_entry)
+    prepared_refs = [prepare_reference_record(ref) for ref in references]
+    return _match_one_prepared(bib_clean, prepared_refs)
 
 
 def auto_label_publication(
@@ -119,6 +127,8 @@ def auto_label_publication(
     """
     Gán nhãn tự động cho MỌI BibTeX entry của 1 paper (bắt buộc theo quy định M3).
     Nếu bib_entries / references là None, tự động đọc từ data/tables/bibtex.jsonl và references.jsonl.
+
+    References được chuẩn hóa MỘT LẦN cho cả paper để tránh O(bib × ref) lặp lại.
     """
     if bib_entries is None:
         all_bib = read_jsonl(TABLES_DIR / "bibtex.jsonl")
@@ -128,12 +138,14 @@ def auto_label_publication(
         all_refs = read_jsonl(TABLES_DIR / "references.jsonl")
         references = [r for r in all_refs if r.get("arxiv_id") == arxiv_id]
 
+    prepared_refs = [prepare_reference_record(ref) for ref in references]
+
     labeled_rows: list[dict[str, Any]] = []
     for bib in bib_entries:
         citation_key = bib.get("citation_key")
         if not citation_key:
             continue
-        gt_id = auto_match_one(bib, references)
+        gt_id = _match_one_prepared(prepare_bibtex_record(bib), prepared_refs)
         labeled_rows.append({
             "citation_key": citation_key,
             "groundtruth_arxiv_id": gt_id,

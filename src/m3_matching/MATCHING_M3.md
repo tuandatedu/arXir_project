@@ -25,11 +25,14 @@ Trong Milestone 3, nhiệm vụ ghép nối tài liệu tham khảo (BibTeX entr
 Cung cấp các hàm chuẩn hóa nâng cao, **không sửa đổi bảng gốc**:
 
 - **`normalize_title(title)`**:
+  - Giải mã accent LaTeX trước khi bỏ ngoặc nhọn: `Schr\"{o}dinger` → `schrodinger` (không còn lỗi `schr o dinger`).
   - Loại bỏ các lệnh LaTeX phổ biến: `\textbf{...}`, `\emph{...}`, `\textit{...}`, `{...}`, math inline `$..$`.
   - Chuyển ký tự unicode có dấu về dạng ASCII không dấu (`_strip_accents`).
   - Chuyển chữ thường (lowercase), loại bỏ dấu câu thừa và chuẩn hóa khoảng trắng.
 - **`normalize_authors(authors)`**:
   - Hỗ trợ cả hai dạng họ tên: `"Vaswani, Ashish"` và `"Ashish Vaswani"`.
+  - Giữ tiền tố họ (`van`, `von`, `de`, `la`, `der`, ...) nhất quán giữa hai dạng:
+    `"Jan van der Berg"` và `"van der Berg, Jan"` đều → `van der berg, j`.
   - Loại bỏ các từ phụ: `"et al."`, `"others"`, `"and"`.
   - Chuyển đổi về dạng chuẩn: `lastname, first_initial` (ví dụ: `vaswani, a`).
 - **`normalize_year(value)`**:
@@ -60,11 +63,13 @@ Quy định đề bài cho nhóm $k$ thành viên:
    ```powershell
    python -m src.m3_matching.manual_tool --export-template 2310.12345
    ```
-   *File xuất ra tại: `data/labels/manual_templates/2310.12345.csv`. File có sẵn cột `suggested_ref_title` và `suggested_score`. Thành viên chỉ cần mở Excel kiểm tra và xác nhận tại cột `groundtruth_arxiv_id`.*
+   *File xuất ra tại: `data/labels/manual_templates/2310.12345.csv`. File có sẵn cột `suggested_ref_title` và `suggested_score`, nhưng **không tự điền** `groundtruth_arxiv_id`.*
+   *Thành viên mở Excel, đối chiếu gợi ý bằng mắt, tự điền `groundtruth_arxiv_id` (hoặc để trống nếu không khớp) rồi đổi `is_verified` thành `YES`.*
 3. **Import kết quả sau khi các bạn trong nhóm đã kiểm tra:**
    ```powershell
    python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/2310.12345.csv
    ```
+   *Mặc định chỉ import các dòng `is_verified=YES`; dòng chưa xác nhận bị bỏ qua để nhãn heuristic không lọt vào ground truth. Dùng `--allow-unverified` nếu thật sự cần import CSV cũ không có cột này.*
    *Dữ liệu được lưu chuẩn vào: `data/labels/{arxiv_id}.jsonl` với `"source": "manual"`.*
 4. **Kiểm tra tiến độ & Quota của cả nhóm:**
    ```powershell
@@ -111,14 +116,15 @@ Mỗi cặp ứng viên `(bibtex_entry, reference)` được mã hóa thành m�
 | 13 | `doi_match` | `-1 / 0 / 1` | $1.0$ nếu DOI trùng khớp (sau chuẩn hóa tiền tố), $-1.0$ nếu cả 2 có DOI nhưng khác nhau, $0.0$ nếu thiếu DOI. |
 | 14 | `cite_count` | Số thực | Tần suất xuất hiện của `citation_key` trong văn bản bài báo (tận dụng từ M2 hierarchy). Mặc định `0.0` nếu chưa truyền `extra` context. |
 
-> `pair_feature_vector` nhận tham số `extra` tùy chọn cho `cite_count`; các đặc trưng còn lại được tính trực tiếp từ cặp `(bib, ref)`. Khi chưa có hierarchy context, `cite_count = 0.0` cho mọi cặp nên không làm lệch mô hình.
+> `pair_feature_vector` nhận tham số `extra` tùy chọn cho `cite_count`; các đặc trưng còn lại được tính trực tiếp từ cặp `(bib, ref)`. `generate_training_dataset` tự đọc `elements.jsonl` (M2) nếu có trong `TABLES_DIR` và đếm các lệnh `\cite{...}` để truyền `cite_count` vào từng cặp. Nếu bảng `elements` chưa được cung cấp, `cite_count = 0.0` cho mọi cặp (được ghi rõ là sentinel, không phải giá trị thật).
 
 ---
 
 ### Mục 5: Tạo bảng dữ liệu huấn luyện (`src/m3_matching/dataset.py`)
 Hàm `generate_training_dataset(...)`:
 - Với mỗi bài báo, tạo tích Descartes giữa các BibTeX entries đã gán nhãn và các crawled references có arXiv ID.
-- Tính toán vector 14 đặc trưng cho từng cặp.
+- Dedup theo `ref_arxiv_id` trong cùng publication để reference bị crawl trùng không sinh cặp nhân đôi.
+- Tính toán vector 14 đặc trưng cho từng cặp; `cite_count` lấy từ `elements.jsonl` khi có (xem Mục 4).
 - Gán nhãn học máy:
   - `label = 1` nếu `ref_arxiv_id == groundtruth_arxiv_id` (Positive pair).
   - `label = 0` nếu `ref_arxiv_id != groundtruth_arxiv_id` hoặc `groundtruth == None` (Negative pair).
@@ -144,6 +150,9 @@ Chỉ cần thực thi một lệnh duy nhất để tự động thực hiện 
 ```powershell
 # Chạy thực tế cho nhóm 2 người:
 python -m src.m3_matching.prepare_dataset --k 2
+
+# Giới hạn số bài auto để tránh dataset quá lớn (ví dụ k=1):
+python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
 
 # Hoặc chạy thử nghiệm ngay (chế độ demo dữ liệu mẫu):
 python -m src.m3_matching.prepare_dataset --demo
@@ -190,4 +199,72 @@ X_valid, y_valid = valid_df[features], valid_df["label"]
 python -m pytest tests/test_m3_matching.py -v
 ```
 
-Kết quả: **15/15 test cases passed (100%)**, bao phủ làm sạch (title/author/year/DOI), gán nhãn thủ công & auto, 14 đặc trưng, sinh bảng cặp và chia tập (kể cả kiểm tra `k` không hợp lệ).
+Kết quả: **21/21 test cases passed (100%)**, bao phủ làm sạch (title/author/year/DOI, accent LaTeX, tiền tố họ), gán nhãn thủ công & auto, 14 đặc trưng, dedup reference, `cite_count`, sinh bảng cặp và chia tập (kể cả kiểm tra `k` không hợp lệ).
+
+---
+
+## 6. Chạy trên dữ liệu thật M1/M2
+
+### 6.1. Chuẩn bị hai bảng nội bộ
+
+`data/tables/bibtex.jsonl` lấy từ output M2:
+
+```text
+M2_range_1_tables.zip
+└── bibtex.jsonl
+```
+
+`data/tables/references.jsonl` ghép từ các file `references_s2.json` của M1
+(mỗi file là JSON Lines, mỗi dòng là một reference của paper đó):
+
+```python
+from pathlib import Path
+
+src = Path("references")          # thư mục references của M1
+out = Path("data/tables/references.jsonl")
+out.parent.mkdir(parents=True, exist_ok=True)
+with out.open("w", encoding="utf-8") as fh:
+    for paper_dir in sorted(src.iterdir()):
+        f = paper_dir / "references_s2.json"
+        if f.exists():
+            for line in f.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    fh.write(line.strip() + "\n")
+```
+
+Chỉ các publication có **ít nhất một reference mang arXiv ID** mới vào pool
+ghép cặp; publication không có ứng viên bị loại tự động.
+
+### 6.2. Tạo mẫu gán nhãn thủ công
+
+```powershell
+python -m src.m3_matching.manual_tool --find-candidates
+python -m src.m3_matching.manual_tool --export-template 2609.38024
+python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/2609.38024.csv
+```
+
+Lặp lại cho đủ `5 * k` bài. Mỗi CSV có sẵn `suggested_ref_arxiv_id` và
+`suggested_score` để tham khảo; `--export-template` **không tự điền**
+`groundtruth_arxiv_id`. Nhóm phải kiểm tra bằng mắt, điền groundtruth (hoặc để
+trống nếu không khớp) và đổi `is_verified` thành `YES` trước khi import. Nếu
+chưa có dòng nào `is_verified=YES`, lệnh import sẽ báo lỗi thay vì ghi nhãn rỗng.
+
+### 6.3. Chạy pipeline và kết quả bàn giao
+
+```powershell
+python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
+```
+
+Kết quả chạy thật trên `M2_range_1_tables.zip` + references M1 (k=1):
+
+- 5 bài manual × 45 entries = 225 entries; 450 bài auto.
+- `train_pairs.parquet`: 26 017 cặp (1 151 positive / 24 866 negative), 451 bài.
+- `valid_pairs.parquet`: 1 753 cặp (44 positive / 1 709 negative), 2 bài.
+- `test_pairs.parquet`: 1 419 cặp (33 positive / 1 386 negative), 2 bài.
+- `dataset_pairs.parquet`: 29 189 cặp, 455 bài, đủ 14 cột đặc trưng.
+
+> **Lưu ý:** các nhãn manual đang có trong lần chạy này được tạo trước khi bản
+> sửa đổi này (gợi ý heuristic score ≥ 0.85) để pipeline chạy end-to-end.
+> Từ bản hiện tại, `--export-template` không tự điền `groundtruth_arxiv_id`.
+> Trước khi nộp, nhóm vẫn cần mở `data/labels/manual_templates/`, kiểm tra bằng
+> mắt, điền groundtruth + `is_verified=YES`, rồi import lại CSV.

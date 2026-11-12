@@ -9,7 +9,10 @@ Kiểm tra các nhiệm vụ 1 đến 6:
 6. Phân chia tập train / valid / test (split.py)
 """
 
+import csv
+
 import pytest
+from src.common.io import read_jsonl, write_jsonl
 from src.m3_matching.cleaning import (
     normalize_authors,
     normalize_doi,
@@ -18,7 +21,7 @@ from src.m3_matching.cleaning import (
     prepare_bibtex_record,
     prepare_reference_record,
 )
-from src.m3_matching.dataset import build_paper_pairs
+from src.m3_matching.dataset import build_citation_context_map, build_paper_pairs
 from src.m3_matching.features import (
     author_overlap,
     feature_names,
@@ -32,6 +35,7 @@ from src.m3_matching.labelling import (
     save_labels,
     validate_label_quota,
 )
+from src.m3_matching.manual_tool import export_manual_template, import_manual_csv
 from src.m3_matching.split import split_publications
 
 
@@ -53,6 +57,21 @@ def test_normalize_authors():
     assert norm[0] == "vaswani, a"
     assert norm[1] == "shazeer, n"
     assert norm[2] == "parmar, n"
+
+
+def test_normalize_title_decodes_latex_accents_before_braces():
+    # Trước đây {} bị thay bằng space nên "Schr\"{o}dinger" -> "schr o dinger".
+    cleaned = normalize_title(r'Schr\"{o}dinger Equation: {\textbf{Quantum}} Mechanics')
+    assert cleaned == "schrodinger equation quantum mechanics"
+    assert "schr o dinger" not in cleaned
+
+
+def test_normalize_authors_keeps_name_particles_consistent():
+    comma_form = normalize_authors(["van der Berg, Jan"])[0]
+    plain_form = normalize_authors(["Jan van der Berg"])[0]
+    assert comma_form == plain_form == "van der berg, j"
+    assert normalize_authors(["María de la Cruz"])[0] == "de la cruz, m"
+    assert normalize_authors(["de la Cruz, María"])[0] == "de la cruz, m"
 
 
 def test_normalize_year():
@@ -203,6 +222,99 @@ def test_build_paper_pairs():
     # k2 có groundtruth None -> mọi cặp đều label = 0
     k2_pairs = [p for p in pairs if p["citation_key"] == "k2"]
     assert all(p["label"] == 0 for p in k2_pairs)
+
+
+def test_build_paper_pairs_dedups_reference_arxiv_ids():
+    arxiv_id = "test.002"
+    bibs = [{"citation_key": "k1", "title": "Paper One", "authors": ["Author A"], "year": 2021}]
+    refs = [
+        {"ref_arxiv_id": "ref.101", "ref_title": "Paper One", "ref_authors": ["Author A"], "ref_submission_date": "2021"},
+        {"ref_arxiv_id": "ref.101", "ref_title": "Paper One (duplicate row)", "ref_authors": ["Author A"], "ref_submission_date": "2021"},
+        {"ref_arxiv_id": "ref.102", "ref_title": "Paper Extra", "ref_authors": ["Author C"], "ref_submission_date": "2020"},
+    ]
+    labels = [{"citation_key": "k1", "groundtruth_arxiv_id": "ref.101", "source": "manual"}]
+
+    pairs = build_paper_pairs(arxiv_id, bibs, refs, labels, partition="train")
+    assert len(pairs) == 2  # 1 bib x 2 unique refs, không nhân đôi ref.101
+    assert sorted(p["ref_arxiv_id"] for p in pairs) == ["ref.101", "ref.102"]
+
+
+def test_build_citation_context_and_cite_count_feature():
+    elements = [
+        {"arxiv_id": "test.003", "kind": "paragraph", "content": r"See \cite{k1,k2} and \citep[p.~2]{k1}."},
+        {"arxiv_id": "test.003", "kind": "sentence", "content": r"Again \citet*{k1}."},
+    ]
+    contexts = build_citation_context_map(elements)
+    assert contexts["test.003"]["k1"]["cite_count"] == 3.0
+    assert contexts["test.003"]["k2"]["cite_count"] == 1.0
+
+    bibs = [{"citation_key": "k1", "title": "Paper One", "authors": ["Author A"], "year": 2021}]
+    refs = [{"ref_arxiv_id": "ref.101", "ref_title": "Paper One", "ref_authors": ["Author A"], "ref_submission_date": "2021"}]
+    labels = [{"citation_key": "k1", "groundtruth_arxiv_id": "ref.101", "source": "manual"}]
+
+    pairs = build_paper_pairs(
+        "test.003", bibs, refs, labels, partition="train",
+        citation_context=contexts["test.003"],
+    )
+    assert pairs[0]["cite_count"] == 3.0
+
+
+def test_manual_template_does_not_autofill_groundtruth(tmp_path):
+    bib_path = tmp_path / "bibtex.jsonl"
+    ref_path = tmp_path / "references.jsonl"
+    write_jsonl(bib_path, [{
+        "arxiv_id": "test.004",
+        "citation_key": "k1",
+        "title": "Attention Is All You Need",
+        "authors": ["Vaswani, Ashish"],
+        "year": 2017,
+    }])
+    write_jsonl(ref_path, [{
+        "arxiv_id": "test.004",
+        "ref_arxiv_id": "1706.03762",
+        "ref_title": "Attention Is All You Need",
+        "ref_authors": ["Ashish Vaswani"],
+        "ref_submission_date": "2017-06-12",
+    }])
+
+    out_csv = tmp_path / "test.004.csv"
+    export_manual_template("test.004", out_csv, bibtex_path=bib_path, references_path=ref_path)
+
+    with out_csv.open(encoding="utf-8-sig", newline="") as fh:
+        row = next(csv.DictReader(fh))
+    assert row["suggested_ref_arxiv_id"] == "1706.03762"
+    assert row["suggested_score"]
+    assert row["groundtruth_arxiv_id"] == ""
+    assert row["is_verified"] == "NO"
+
+
+def test_import_manual_csv_requires_verified_rows(tmp_path):
+    csv_path = tmp_path / "test.005.csv"
+    with csv_path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
+        writer.writeheader()
+        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "YES"})
+        writer.writerow({"citation_key": "k2", "groundtruth_arxiv_id": "ref.2", "is_verified": "NO"})
+
+    labels_dir = tmp_path / "labels"
+    out_file = import_manual_csv(csv_path, "test.005", labels_dir=labels_dir)
+    rows = read_jsonl(out_file)
+    assert [r["citation_key"] for r in rows] == ["k1"]
+    assert rows[0]["groundtruth_arxiv_id"] == "ref.1"
+
+    # Chế độ bỏ qua kiểm tra dùng cho CSV cũ không có cột is_verified.
+    out_file_all = import_manual_csv(
+        csv_path, "test.005", labels_dir=labels_dir, require_verified=False
+    )
+    assert len(read_jsonl(out_file_all)) == 2
+
+    unverified_only = tmp_path / "test.006.csv"
+    with unverified_only.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
+        writer.writeheader()
+        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "NO"})
+    with pytest.raises(ValueError, match="chưa có dòng nào được xác nhận"):
+        import_manual_csv(unverified_only, "test.006", labels_dir=labels_dir)
 
 
 # ---------------------------------------------------------------------------

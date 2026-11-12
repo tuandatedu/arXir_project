@@ -136,6 +136,7 @@ def run_preparation_pipeline(
     k: int = 1,
     seed: int = 42,
     demo: bool = False,
+    max_auto: int = 0,
 ) -> dict[str, Any]:
     """Quy trình chuẩn bị dữ liệu đầy đủ."""
     if demo:
@@ -155,12 +156,17 @@ def run_preparation_pipeline(
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
-    # 1. Tập bài báo có đủ cả BibTeX (M2) lẫn references (M1)
-    bib_papers = {b["arxiv_id"] for b in all_bib if b.get("arxiv_id")}
-    ref_papers = {r["arxiv_id"] for r in all_refs if r.get("arxiv_id")}
-    available_papers = sorted(bib_papers & ref_papers)
-    available_set = set(available_papers)
+    elements_path = tables_dir / "elements.jsonl"
+    if elements_path.exists():
+        LOG.info("Tìm thấy %s: cite_count sẽ được đếm từ lệnh \\cite trong M2.", elements_path)
+    else:
+        LOG.warning(
+            "Không có %s: cite_count sẽ = 0 cho mọi cặp (sentinel). "
+            "Copy elements.jsonl từ M2 vào TABLES_DIR nếu muốn dùng đặc trưng này.",
+            elements_path,
+        )
 
+    # 1. Tập bài báo có đủ cả BibTeX (M2) lẫn references (M1)
     bibs_by_paper: dict[str, list[dict[str, Any]]] = {}
     for b in all_bib:
         bibs_by_paper.setdefault(b["arxiv_id"], []).append(b)
@@ -168,12 +174,24 @@ def run_preparation_pipeline(
     for r in all_refs:
         refs_by_paper.setdefault(r["arxiv_id"], []).append(r)
 
+    # Chỉ paper có ít nhất 1 reference mang arXiv ID mới có ứng viên để ghép.
+    bib_papers = {pid for pid, rows in bibs_by_paper.items() if rows}
+    ref_papers = {
+        pid for pid, rows in refs_by_paper.items()
+        if any(r.get("ref_arxiv_id") for r in rows)
+    }
+    available_papers = sorted(bib_papers & ref_papers)
+    available_set = set(available_papers)
+
+    def n_arxiv_refs(pid: str) -> int:
+        return sum(1 for r in refs_by_paper.get(pid, []) if r.get("ref_arxiv_id"))
+
     # 2. Đọc nhãn đã có, bỏ các bài không đủ dữ liệu để ghép cặp
     labels = load_labels(labels_dir)
     orphan_labels = sorted(set(labels) - available_set)
     if orphan_labels:
         LOG.warning(
-            "Bỏ qua %d bài có nhãn nhưng thiếu BibTeX hoặc references: %s",
+            "Bỏ qua %d bài có nhãn nhưng thiếu BibTeX hoặc references arXiv: %s",
             len(orphan_labels),
             orphan_labels[:10],
         )
@@ -185,18 +203,29 @@ def run_preparation_pipeline(
     ]
     LOG.info("Tìm thấy %d bài báo gán nhãn thủ công (Manual): %s", len(manual_papers), manual_papers)
 
-    # 3. Tự động gán nhãn cho các bài chưa có nhãn (mọi entry của paper được chọn)
-    for pid in available_papers:
-        if pid in labels:
-            continue
+    # 3. Tự động gán nhãn cho các bài chưa có nhãn (mọi entry của paper được chọn).
+    #    Ưu tiên paper ít cặp (bib × ref arXiv) trước để chạy nhanh và tránh phình Parquet.
+    auto_candidates = [
+        pid for pid in available_papers
+        if pid not in labels and bibs_by_paper.get(pid) and n_arxiv_refs(pid) > 0
+    ]
+    auto_candidates.sort(key=lambda pid: len(bibs_by_paper[pid]) * n_arxiv_refs(pid))
+
+    existing_auto = sum(
+        1 for entries in labels.values()
+        if any(e.get("source") == "auto" for e in entries)
+    )
+    n_auto_added = 0
+    for pid in auto_candidates:
+        if max_auto and existing_auto + n_auto_added >= max_auto:
+            break
         p_bibs = bibs_by_paper.get(pid, [])
         p_refs = refs_by_paper.get(pid, [])
-        if not p_bibs or not p_refs:
-            continue
         auto_rows = auto_label_publication(pid, p_bibs, p_refs)
         if auto_rows:
             save_labels(pid, auto_rows, labels_dir)
             labels[pid] = auto_rows
+            n_auto_added += 1
 
     # 4. Kiểm tra quota
     validate_label_quota(labels, n_publications_total=len(available_papers), k=k)
@@ -226,6 +255,7 @@ def run_preparation_pipeline(
     summary: dict[str, Any] = {
         "k_members": k,
         "n_manual_papers": len(manual_papers),
+        "n_auto_papers_added_this_run": n_auto_added,
         "total_labeled_papers": len(labels),
         "splits": {
             "train": {
@@ -267,6 +297,7 @@ def main() -> None:
     parser.add_argument("--tables-dir", type=Path, default=TABLES_DIR, help="Thư mục chứa tables (mặc định data/tables)")
     parser.add_argument("--labels-dir", type=Path, default=DATA_DIR / "labels", help="Thư mục chứa labels (mặc định data/labels)")
     parser.add_argument("--demo", action="store_true", help="Tạo dữ liệu mẫu và chạy thử nếu chưa có dữ liệu M1/M2")
+    parser.add_argument("--max-auto", type=int, default=0, help="Tổng số bài auto tối đa (0 = gán tất cả)")
     args = parser.parse_args()
 
     print("=================================================================")
@@ -279,6 +310,7 @@ def main() -> None:
         k=args.k,
         seed=args.seed,
         demo=args.demo,
+        max_auto=args.max_auto,
     )
 
     print("\n>>> BÁO CÁO BÀN GIAO DỮ LIỆU:")

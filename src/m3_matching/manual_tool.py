@@ -79,9 +79,11 @@ def export_manual_template(
 ) -> Path:
     """
     Xuất file CSV mẫu gán nhãn cho 1 bài báo:
-    - Liệt kê mọi BibTeX entry của bài báo
-    - Tự động gợi ý candidate có độ tương đồng cao nhất kèm score để người gán nhãn xác nhận nhanh
-    - Cột groundtruth_arxiv_id để trống (hoặc điền gợi ý) cho người gán nhãn xác nhận.
+    - Liệt kê mọi BibTeX entry của bài báo.
+    - Điền candidate gợi ý + score vào các cột ``suggested_*`` để người gán nhãn đối chiếu.
+    - **Không tự động điền** ``groundtruth_arxiv_id``: người gán nhãn phải kiểm tra
+      bằng mắt, điền groundtruth (hoặc để trống nếu không khớp) và đổi
+      ``is_verified`` thành ``YES`` trước khi import.
     """
     output_csv = Path(output_csv)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -146,8 +148,9 @@ def export_manual_template(
                 "suggested_ref_arxiv_id": sugg_id,
                 "suggested_ref_title": sugg_title,
                 "suggested_score": f"{best_score:.2f}" if best_score > 0 else "",
-                "groundtruth_arxiv_id": sugg_id if best_score >= 0.85 else "",
-                "is_verified": "YES" if best_score >= 0.95 else "NO",
+                # Gợi ý chỉ để tham khảo; con người phải xác nhận và điền tay.
+                "groundtruth_arxiv_id": "",
+                "is_verified": "NO",
                 "note": "",
             })
 
@@ -158,23 +161,37 @@ def import_manual_csv(
     csv_path: Path,
     arxiv_id: str,
     labels_dir: Path | None = None,
+    *,
+    require_verified: bool = True,
 ) -> Path:
     """
     Đọc file CSV sau khi nhóm đã kiểm tra và lưu vào data/labels/{arxiv_id}.jsonl.
     Mỗi hàng: {"citation_key": key, "groundtruth_arxiv_id": id_or_None, "source": "manual"}
+
+    ``require_verified=True`` (mặc định) chỉ import các hàng có ``is_verified=YES``.
+    Nhờ vậy gợi ý heuristic không bị biến thành nhãn thủ công khi chưa ai kiểm tra.
+    Nếu CSV không có cột ``is_verified``, toàn bộ hàng hợp lệ được import.
     """
     csv_path = Path(csv_path)
     labels_dir = labels_dir or (DATA_DIR / "labels")
     labels_dir.mkdir(parents=True, exist_ok=True)
 
     rows: list[dict[str, Any]] = []
+    skipped_unverified = 0
     with csv_path.open("r", encoding="utf-8-sig") as f:
         reader = csv.DictReader(f)
+        has_verified_column = "is_verified" in (reader.fieldnames or [])
         for r in reader:
             key = r.get("citation_key", "").strip()
             if not key:
                 continue
-            gt = r.get("groundtruth_arxiv_id", "").strip()
+
+            verified = (r.get("is_verified") or "").strip().upper()
+            if require_verified and has_verified_column and verified != "YES":
+                skipped_unverified += 1
+                continue
+
+            gt = (r.get("groundtruth_arxiv_id") or "").strip()
             # Xử lý null/None/rỗng
             gt_id = gt if gt and gt.lower() not in ("none", "null", "na", "n/a", "-") else None
             rows.append({
@@ -182,6 +199,19 @@ def import_manual_csv(
                 "groundtruth_arxiv_id": gt_id,
                 "source": "manual",
             })
+
+    if not rows:
+        if require_verified and has_verified_column:
+            raise ValueError(
+                f"File {csv_path.name} chưa có dòng nào được xác nhận (is_verified=YES). "
+                "Hãy kiểm tra bằng mắt, điền groundtruth_arxiv_id và đổi is_verified thành YES."
+            )
+        raise ValueError(f"File {csv_path.name} không có dòng nhãn hợp lệ để import.")
+    if skipped_unverified:
+        print(
+            f"  [warn] Bỏ qua {skipped_unverified} dòng chưa xác nhận "
+            f"(is_verified != YES) trong {csv_path.name}"
+        )
 
     out_file = labels_dir / f"{arxiv_id}.jsonl"
     write_jsonl(out_file, rows)
@@ -242,6 +272,7 @@ def main() -> None:
     parser.add_argument("--export-template", type=str, help="Xuất file CSV mẫu cho 1 bài báo (ví dụ --export-template 2310.12345)")
     parser.add_argument("--import-csv", type=str, help="Import file CSV đã kiểm tra vào data/labels (ví dụ --import-csv path/to/file.csv)")
     parser.add_argument("--paper-id", type=str, help="arXiv ID khi import CSV (nếu tên file không trùng ID)")
+    parser.add_argument("--allow-unverified", action="store_true", help="Cho phép import cả dòng chưa được xác nhận (is_verified != YES)")
     parser.add_argument("--summary", action="store_true", help="Tổng hợp tiến độ gán nhãn của cả nhóm")
     parser.add_argument("--k", type=int, default=1, help="Số thành viên nhóm (dùng cho quota, mặc định 1)")
     parser.add_argument("--n-publications", type=int, default=50, help="Tổng số publication có thể ghép cặp (cho quota auto, mặc định 50)")
@@ -262,7 +293,9 @@ def main() -> None:
     elif args.import_csv:
         csv_file = Path(args.import_csv)
         pid = args.paper_id or csv_file.stem
-        out_jsonl = import_manual_csv(csv_file, pid)
+        out_jsonl = import_manual_csv(
+            csv_file, pid, require_verified=not args.allow_unverified
+        )
         print(f"Đã import nhãn thủ công cho {pid} vào: {out_jsonl}")
 
     elif args.summary:

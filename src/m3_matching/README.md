@@ -35,6 +35,21 @@ python -m src.m3_matching.run_m3
 Bàn giao cho Người 2: `data/tables/{train,valid,test,dataset}_pairs.parquet`
 (gồm `label` 0/1 và đủ 14 cột đặc trưng).
 
+Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.jsonl` + `references.jsonl`):
+
+```bash
+python -m src.m3_matching.manual_tool --find-candidates
+python -m src.m3_matching.manual_tool --export-template <arxiv_id>
+# Mở CSV, kiểm tra gợi ý bằng mắt, điền groundtruth_arxiv_id và đổi is_verified=YES
+python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/<arxiv_id>.csv
+python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
+```
+
+`--export-template` chỉ điền các cột `suggested_*`; `groundtruth_arxiv_id` để trống
+cho tới khi con người xác nhận. `--import-csv` chỉ nhận dòng `is_verified=YES`.
+
+Chi tiết cách ghép `references.jsonl` từ output M1: xem `MATCHING_M3.md` mục 6.
+
 ---
 
 ## Thứ tự nên code
@@ -117,8 +132,8 @@ Nhóm dùng LLM / pretrained model sẽ bị chấm **tách** nhóm chỉ dùng 
 
 | Hàm | Code cái gì |
 | --- | --- |
-| `normalize_title` | lower, bỏ punct dư, optional stopword — ghi poster vì sao |
-| `normalize_authors` | `Vaswani, Ashish` vs `Ashish Vaswani` → cùng dạng (last name + initials) |
+| `normalize_title` | lower, bỏ punct dư, optional stopword; giải mã accent LaTeX (`Schr\"{o}dinger` → `schrodinger`) |
+| `normalize_authors` | `Vaswani, Ashish` vs `Ashish Vaswani` → cùng dạng (last name + initials), giữ tiền tố họ (`van der Berg`) |
 | `normalize_year` | int / `"2017"` / ISO → `int` hoặc `None` |
 | `normalize_doi` | bỏ tiền tố `https://doi.org/`, `doi:` → cùng dạng để so khớp |
 | `prepare_bibtex_record` / `prepare_reference_record` | Thêm field `*_norm` (gồm `doi_norm`), **không** sửa bảng gốc |
