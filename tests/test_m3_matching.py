@@ -375,8 +375,11 @@ def test_automatic_labels_zip_roundtrip(tmp_path):
     zip_path = zip_automatic_labels(labels_dir)
     assert zip_path is not None and zip_path.name == "automatic.zip"
     assert load_labels_from_zip(zip_path)["2401.00001"] == rows
-
-    (labels_dir / "automatic" / "2401.00001.json").unlink()
+    
+    # zip_automatic_labels đã xóa file JSON riêng lẻ
+    assert not (labels_dir / "automatic" / "2401.00001.json").exists()
+    
+    # Nhưng load_labels vẫn đọc được từ ZIP
     assert load_labels(labels_dir)["2401.00001"] == rows
 
 

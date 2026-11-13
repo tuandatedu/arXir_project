@@ -450,7 +450,8 @@ def zip_automatic_labels(
     zip_path: Path | None = None,
 ) -> Path | None:
     """
-    Gộp labels/automatic/*.json thành automatic.zip.
+    Gộp labels/automatic/*.json thành automatic.zip rồi xóa file riêng lẻ.
+    Kết quả: chỉ có automatic.zip, không có *.json lẻ loi ngoài.
     """
 
     labels_dir = Path(labels_dir)
@@ -485,6 +486,10 @@ def zip_automatic_labels(
                 json_file,
                 arcname=json_file.name,
             )
+
+    # Xóa file JSON riêng lẻ sau khi gộp vào zip
+    for json_file in files:
+        json_file.unlink()
 
     return zip_path
 
@@ -619,12 +624,13 @@ def save_labels(
     arxiv_id: str,
     rows: list[dict[str, Any]],
     labels_dir: Path,
-) -> Path:
+    to_zip_only: bool = False,
+) -> Path | None:
     """
     Lưu labels theo source:
 
     manual -> labels/manual/{arxiv_id}.json
-    auto   -> labels/automatic/{arxiv_id}.json
+    auto   -> labels/automatic/{arxiv_id}.json (hoặc chỉ zip nếu to_zip_only=True)
     """
 
     labels_dir = Path(labels_dir)
@@ -691,6 +697,10 @@ def save_labels(
     )
 
     out_path = subfolder / f"{arxiv_id}.json"
+
+    # Nếu to_zip_only=True và source="auto", không lưu file individual
+    if to_zip_only and source == "auto":
+        return None
 
     with open(
         out_path,

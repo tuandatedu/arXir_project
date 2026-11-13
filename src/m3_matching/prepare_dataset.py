@@ -133,6 +133,28 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
     LOG.info("Đã tạo dữ liệu mẫu với %d bài báo, sẵn sàng chạy pipeline!", total_papers)
 
 
+def _read_elements_from_zip(
+
+
+def _write_labels_to_zip(
+    auto_labels: dict[str, list[dict[str, Any]]],
+    labels_dir: Path,
+) -> None:
+    """
+    Ghi auto labels trực tiếp vào ZIP mà không lưu file JSON riêng lẻ.
+    """
+    labels_dir = Path(labels_dir)
+    auto_dir = labels_dir / "automatic"
+    auto_dir.mkdir(parents=True, exist_ok=True)
+    
+    zip_path = auto_dir / "automatic.zip"
+    
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for arxiv_id, rows in sorted(auto_labels.items()):
+            json_data = json.dumps(rows, ensure_ascii=False, indent=2)
+            zf.writestr(f"{arxiv_id}.json", json_data.encode("utf-8"))
+
+
 def _read_elements_from_zip(zip_path: Path) -> tuple[list[dict[str, Any]], str]:
     """Đọc elements.jsonl trực tiếp trong ZIP M2 (không giải nén ra đĩa)."""
     if not zip_path.exists():
@@ -246,6 +268,7 @@ def run_preparation_pipeline(
         if any(e.get("source") == "auto" for e in entries)
     )
     n_auto_added = 0
+    auto_labels_in_memory = {}  # Lưu auto labels trong memory
     for pid in auto_candidates:
         if max_auto and existing_auto + n_auto_added >= max_auto:
             break
@@ -253,14 +276,15 @@ def run_preparation_pipeline(
         p_refs = refs_by_paper.get(pid, [])
         auto_rows = auto_label_publication(pid, p_bibs, p_refs)
         if auto_rows:
-            save_labels(pid, auto_rows, labels_dir)
+            # Lưu vào memory, không save file
+            auto_labels_in_memory[pid] = auto_rows
             labels[pid] = auto_rows
             n_auto_added += 1
 
-    if zip_auto_labels:
-        zipped = zip_automatic_labels(labels_dir)
-        if zipped:
-            LOG.info("Đã gộp nhãn auto vào %s", zipped)
+    # Ghi auto labels vào ZIP (không lưu file riêng lẻ)
+    if zip_auto_labels and auto_labels_in_memory:
+        _write_labels_to_zip(auto_labels_in_memory, labels_dir)
+        LOG.info("Đã ghi %d auto labels vào ZIP", len(auto_labels_in_memory))
 
     # 4. Kiểm tra quota
     validate_label_quota(labels, n_publications_total=len(available_papers), k=k)
