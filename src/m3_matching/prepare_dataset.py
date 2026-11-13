@@ -18,8 +18,10 @@ Cách dùng:
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import sys
+import zipfile
 from pathlib import Path
 from typing import Any
 
@@ -130,6 +132,19 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
     LOG.info("Đã tạo dữ liệu mẫu với %d bài báo, sẵn sàng chạy pipeline!", total_papers)
 
 
+def _read_elements_from_zip(zip_path: Path) -> tuple[list[dict[str, Any]], str]:
+    """Đọc elements.jsonl trực tiếp trong ZIP M2 (không giải nén ra đĩa)."""
+    if not zip_path.exists():
+        return [], str(zip_path)
+    with zipfile.ZipFile(zip_path) as zf:
+        members = [n for n in zf.namelist() if Path(n).name == "elements.jsonl"]
+        if not members:
+            return [], str(zip_path)
+        raw = zf.read(members[0]).decode("utf-8-sig")
+    records = [json.loads(line) for line in raw.splitlines() if line.strip()]
+    return records, f"{zip_path}!{members[0]}"
+
+
 def run_preparation_pipeline(
     tables_dir: Path,
     labels_dir: Path,
@@ -137,6 +152,8 @@ def run_preparation_pipeline(
     seed: int = 42,
     demo: bool = False,
     max_auto: int = 0,
+    elements_path: Path | None = None,
+    elements_zip: Path | None = None,
 ) -> dict[str, Any]:
     """Quy trình chuẩn bị dữ liệu đầy đủ."""
     if demo:
@@ -156,22 +173,25 @@ def run_preparation_pipeline(
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
-    elements_path = tables_dir / "elements.jsonl"
-    if elements_path.exists():
-        element_records = read_jsonl(elements_path)
+    elements_label = ""
+    if elements_zip is not None:
+        element_records, elements_label = _read_elements_from_zip(elements_zip)
     else:
-        element_records = []
+        elements_path = elements_path or (tables_dir / "elements.jsonl")
+        elements_label = str(elements_path)
+        element_records = read_jsonl(elements_path) if elements_path.exists() else []
+
     if element_records:
         LOG.info(
             "Đã đọc %d dòng elements từ %s: cite_count sẽ được đếm từ lệnh \\cite trong M2.",
             len(element_records),
-            elements_path,
+            elements_label,
         )
     else:
         LOG.warning(
-            "Không có %s: cite_count sẽ = 0 cho mọi cặp (sentinel). "
-            "Copy elements.jsonl từ M2 (hoặc giải nén M2_range_*_tables.zip) vào TABLES_DIR nếu muốn dùng đặc trưng này.",
-            elements_path,
+            "Không có elements.jsonl (%s): cite_count sẽ = 0 cho mọi cặp (sentinel). "
+            "Truyền --elements-zip (ZIP M2) hoặc --elements-path nếu muốn dùng đặc trưng này.",
+            elements_label,
         )
 
     # 1. Tập bài báo có đủ cả BibTeX (M2) lẫn references (M1)
@@ -313,6 +333,8 @@ def main() -> None:
     parser.add_argument("--labels-dir", type=Path, default=DATA_DIR / "labels", help="Thư mục chứa labels (mặc định data/labels)")
     parser.add_argument("--demo", action="store_true", help="Tạo dữ liệu mẫu và chạy thử nếu chưa có dữ liệu M1/M2")
     parser.add_argument("--max-auto", type=int, default=0, help="Tổng số bài auto tối đa (0 = gán tất cả)")
+    parser.add_argument("--elements-path", type=Path, default=None, help="elements.jsonl (mặc định <tables-dir>/elements.jsonl)")
+    parser.add_argument("--elements-zip", type=Path, default=None, help="ZIP M2 chứa elements.jsonl (đọc trực tiếp, không giải nén)")
     args = parser.parse_args()
 
     print("=================================================================")
@@ -326,6 +348,8 @@ def main() -> None:
         seed=args.seed,
         demo=args.demo,
         max_auto=args.max_auto,
+        elements_path=args.elements_path,
+        elements_zip=args.elements_zip,
     )
 
     print("\n>>> BÁO CÁO BÀN GIAO DỮ LIỆU:")

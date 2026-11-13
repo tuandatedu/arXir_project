@@ -36,13 +36,12 @@ MyDrive/
 │           └── references.json
 ├── M2/
 │   └── range_1/               # M2
-│       └── M2_range_1_tables.zip
+│       └── M2_range_1_tables.zip   # gồm bibtex.jsonl + elements.jsonl
 └── M3_matching/
     └── range_1/               # Output M3
         ├── tables/
         │   ├── bibtex.json
-        │   ├── references.json
-        │   └── elements.jsonl
+        │   └── references.json
         ├── labels/
         │   ├── manual/        # *.csv (mẫu) + *.json (sau import)
         │   └── automatic/
@@ -54,7 +53,7 @@ MyDrive/
             └── poster_feature_distribution.png
 ```
 
-- `tables/elements.jsonl`: lấy trực tiếp từ ZIP `M2_range_*_tables.zip`, dùng cho `cite_count` (thiếu file → `cite_count = 0`).
+- `elements.jsonl` **không nằm trong M3**: pipeline đọc trực tiếp bên trong ZIP `M2_range_*_tables.zip` để tính `cite_count` (notebook truyền `elements_zip=M2_ZIP`).
 - Chạy local: dùng cùng cấu trúc dưới `data/` (`data/tables/`, `data/labels/`, `data/prepared_dataset/`).
 
 ---
@@ -220,12 +219,11 @@ Khi train chỉ dùng 14 features + `label`; bỏ các cột định danh/ground
 
 ### 1. Chuẩn bị input
 
-Cần 3 bảng tại `data/tables/` (trên Colab là `M3_matching/range_{RANGE_ID}/tables/`):
+Cần 2 bảng tại `data/tables/` (trên Colab là `M3_matching/range_{RANGE_ID}/tables/`):
 - `bibtex.json` ← từ M2 output (mảng JSON)
 - `references.json` ← từ M1 output (mảng JSON)
-- `elements.jsonl` ← lấy trực tiếp từ ZIP `M2_range_*_tables.zip` (JSONL, không convert sang JSON)
 
-`elements.jsonl` dùng để tính feature **`cite_count`**: đếm số lần `citation_key` xuất hiện trong các lệnh `\cite{...}` của toàn văn. Nếu thiếu file này, `cite_count = 0` cho mọi cặp và feature 14 mất tác dụng; pipeline vẫn chạy nhưng in warning.
+`elements.jsonl` **không copy vào M3**: pipeline đọc trực tiếp bên trong ZIP `M2_range_*_tables.zip` để tính feature **`cite_count`** (đếm số lần `citation_key` xuất hiện trong `\cite{...}` của toàn văn). Notebook truyền `elements_zip=M2_ZIP`; CLI dùng `--elements-zip`. Thiếu file → `cite_count = 0` cho mọi cặp; pipeline vẫn chạy nhưng in warning.
 
 Và nhãn manual tại `data/labels/`:
 - `manual/{arxiv_id}.json` ← sau khi import CSV
@@ -242,6 +240,8 @@ python -m src.m3_matching.prepare_dataset --k 1 --seed 42
 - `--seed`: Số cố định để lặp lại kết quả
 - `--max-auto`: Giới hạn số auto papers (nếu dataset quá lớn)
 - `--demo`: Chế độ thử nghiệm dữ liệu mẫu nhỏ
+- `--elements-zip`: ZIP M2 chứa `elements.jsonl` (đọc trực tiếp, không giải nén)
+- `--elements-path`: đường dẫn `elements.jsonl` rời (mặc định `<tables-dir>/elements.jsonl`)
 
 ### 3. Output Parquet sẵn sàng
 
@@ -266,7 +266,7 @@ File notebook: `src/m3_matching/M3_matching.ipynb` (24 cells)
 |------|---------|-------|--------|
 | 1-2 | Setup: clone repo, cài dependencies, chạy unit tests | GitHub branch | ✅ Tests pass |
 | 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + `RANGE_ID` | Paths ready |
-| 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json`, `elements.jsonl` |
+| 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json` (`elements.jsonl` đọc trong ZIP) |
 | 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ tick) |
 | 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
 | 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
