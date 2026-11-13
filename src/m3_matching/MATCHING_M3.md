@@ -64,11 +64,28 @@ python -m src.m3_matching.manual_tool --export-template 2310.12345
 - **`is_verified`** ← **BẠN TÁC CÁC DÒNG HỢP LỆ** (YES/NO)
 - `groundtruth_arxiv_id` ← để trống (code auto-fill)
 
-**Step 2: Kiểm tra bằng mắt trên arXiv**
-1. Mở CSV trong Excel
-2. Duyệt từng dòng, tìm trên arXiv.org
-3. Nếu `suggested_ref_arxiv_id` đúng → tick `is_verified=YES`
-4. Nếu sai hoặc không chắc → để trống hoặc điền `groundtruth_arxiv_id` thủ công
+**Step 2: Kiểm tra bằng mắt và tick `is_verified`**
+
+Mở CSV, so **`bib_title`** (entry lấy từ PDF) với **`suggested_ref_title`** (reference ứng viên từ M1). `suggested_score` chỉ là gợi ý, **không dùng score để quyết định thay cho việc so tiêu đề**.
+
+| Trường hợp | `is_verified` | `groundtruth_arxiv_id` | Kết quả khi import |
+|-----------|---------------|------------------------|--------------------|
+| `bib_title` và `suggested_ref_title` là **cùng một bài** | `YES` | để trống | Tự lấy `suggested_ref_arxiv_id` |
+| Cùng bài nhưng muốn chỉ định reference khác | `YES` | điền `ref_arxiv_id` đúng | Dùng ID đã điền |
+| Gợi ý sai, nhưng tìm được reference đúng trong `references.json` | `YES` | điền `ref_arxiv_id` đúng | Dùng ID đã điền |
+| Entry **không có reference arXiv nào khớp** | `YES` | để trống | `groundtruth = null` (hàng all-negative) |
+| Gợi ý sai / không chắc / chưa kiểm tra | `NO` | để trống | Bị bỏ qua, không vào dataset |
+
+Quy tắc nhanh:
+1. Tiêu đề trùng → `YES`; tiêu đề khác → `NO` (trừ khi tự tìm được ref đúng).
+2. **Ưu tiên tick các dòng `suggested_score` ≥ 0.8 trước** cho nhanh đủ 20 entry; thiếu mới xét các dòng thấp hơn. Dù score cao vẫn phải kiểm tra tiêu đề; score ≤0.6 thường là gợi ý sai.
+3. Mỗi entry tối đa **1** groundtruth. Hai entry khác nhau chỉ cùng groundtruth nếu cả hai thực sự cite cùng một bài.
+4. Dòng `NO` là "chưa xác nhận", **không phải nhãn âm**; muốn có nhãn âm cho entry không khớp thì dùng `YES` + groundtruth trống.
+5. Chỉ cần tick `YES` cho ≥20 entry/paper; các dòng còn lại để `NO` cũng được.
+
+Ví dụ:
+- `thebelt2022maximizing` — title trùng, score 0.80 → `YES`.
+- `dobbelaere2021machine` — bib là "Machine learning in chemical engineering..." nhưng gợi ý `2201.10035` là "Maximizing information..." → `NO`.
 
 ⏱ **Thời gian:** ~1 giờ cho ~100 entries
 
@@ -81,6 +98,7 @@ python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
 - Đọc CSV
 - Lọc dòng `is_verified=YES`
 - **Auto-fill `groundtruth_arxiv_id = suggested_ref_arxiv_id`** ← nhãn thực
+- Nếu cả `groundtruth_arxiv_id` lẫn `suggested_ref_arxiv_id` đều trống → lưu `null` (hàng all-negative)
 - Lưu JSON: `labels/manual/2310.12345.json`
 
 ### Cách nhóm tổng hợp:
