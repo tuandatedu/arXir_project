@@ -2,8 +2,8 @@
 """
 Công cụ gán nhãn thủ công và tổng hợp kết quả M3.
 
-- BibTeX: đọc bibtex.jsonl trực tiếp bên trong M2 ZIP.
-- References: đọc references.json.
+- BibTeX: đọc bibtex.json hoặc bibtex.jsonl (kể cả bên trong M2 ZIP).
+- References: đọc references.json (mảng JSON) hoặc references.jsonl.
 - Manual templates: lưu tại data/labels/manual/{arxiv_id}.csv.
 - Manual labels: lưu tại data/labels/manual/{arxiv_id}.json.
 """
@@ -99,9 +99,9 @@ def load_json_records(path: Path) -> list[dict[str, Any]]:
 def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
     """
     Đọc BibTeX từ:
-    - .jsonl trực tiếp
-    - .zip chứa bibtex.jsonl
-    - .json
+    - .json chứa mảng records (bibtex.json của M3)
+    - .jsonl trực tiếp (bibtex.jsonl của M2)
+    - .zip chứa bibtex.json hoặc bibtex.jsonl
     """
 
     path = Path(path)
@@ -113,17 +113,19 @@ def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
         with zipfile.ZipFile(path, "r") as archive:
             members = [
                 name for name in archive.namelist()
-                if Path(name).name.lower() == "bibtex.jsonl"
+                if Path(name).name.lower() in ("bibtex.json", "bibtex.jsonl")
             ]
 
             if not members:
                 raise FileNotFoundError(
-                    f"Không tìm thấy bibtex.jsonl bên trong {path.name}"
+                    f"Không tìm thấy bibtex.json/bibtex.jsonl bên trong {path.name}"
                 )
 
-            if len(members) > 1:
+            members.sort(key=lambda name: Path(name).name.lower() != "bibtex.json")
+
+            if len(members) > 1 and Path(members[0]).name.lower() == Path(members[1]).name.lower():
                 raise ValueError(
-                    "ZIP chứa nhiều file bibtex.jsonl:\n"
+                    "ZIP chứa nhiều file BibTeX cùng tên:\n"
                     + "\n".join(members)
                     + "\nHãy chỉ rõ file cần đọc."
                 )
@@ -132,12 +134,16 @@ def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
                 text = io.TextIOWrapper(
                     file,
                     encoding="utf-8-sig",
-                )
-                return [
-                    json.loads(line)
-                    for line in text
-                    if line.strip()
-                ]
+                ).read()
+
+        if text.lstrip().startswith("["):
+            return json.loads(text)
+
+        return [
+            json.loads(line)
+            for line in text.splitlines()
+            if line.strip()
+        ]
 
     return load_json_records(path)
 
@@ -494,7 +500,7 @@ def main() -> None:
     parser.add_argument(
         "--bibtex-path",
         type=Path,
-        help="Đường dẫn ZIP chứa bibtex.jsonl hoặc file JSONL",
+        help="Đường dẫn bibtex.json, bibtex.jsonl hoặc ZIP chứa chúng",
     )
 
     parser.add_argument(
