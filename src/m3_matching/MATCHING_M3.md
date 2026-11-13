@@ -22,6 +22,40 @@
 
 **🔴 Chỉ có Task 2 cần bạn làm:** Mở CSV → Tick checkbox `is_verified=YES` → Code auto-fill → Done
 
+---
+
+## Cấu trúc thư mục (Colab)
+
+```text
+MyDrive/
+├── references/
+│   └── range_1/               # M1
+│       ├── reference/         # *.json từng bài
+│       └── tables/
+│           ├── papers.json
+│           └── references.json
+├── M2/
+│   └── range_1/               # M2
+│       └── M2_range_1_tables.zip
+└── M3_matching/
+    └── range_1/               # Output M3
+        ├── tables/
+        │   ├── bibtex.json
+        │   ├── references.json
+        │   └── elements.json
+        ├── labels/
+        │   ├── manual/        # *.csv (mẫu) + *.json (sau import)
+        │   └── automatic/
+        └── prepared_dataset/
+            ├── dataset_pairs.parquet
+            ├── train_pairs.parquet
+            ├── valid_pairs.parquet
+            ├── test_pairs.parquet
+            └── poster_feature_distribution.png
+```
+
+- `tables/elements.json`: chuyển từ `elements.jsonl` của M2, dùng cho `cite_count` (thiếu file → `cite_count = 0`).
+- Chạy local: dùng cùng cấu trúc dưới `data/` (`data/tables/`, `data/labels/`, `data/prepared_dataset/`).
 
 ---
 
@@ -54,7 +88,7 @@ Chuẩn hóa dữ liệu BibTeX + References để tiền xử lý cho phần so
 
 **Step 1: Export CSV templates**
 ```powershell
-# Chạy notebook Cell 12 hoặc command:
+# Chạy notebook (mục Gán nhãn thủ công → Export template) hoặc command:
 python -m src.m3_matching.manual_tool --export-template 2310.12345
 ```
 → File: `labels/manual/2310.12345.csv` có cột:
@@ -91,7 +125,7 @@ Ví dụ:
 
 ### Step 3: Import CSV → JSON
 ```powershell
-# Chạy notebook Cell 13 hoặc command:
+# Chạy notebook (mục Import CSV) hoặc command:
 python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
 ```
 → Code tự động:
@@ -154,10 +188,11 @@ Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
    - `label=1` nếu ref_arxiv_id == groundtruth_arxiv_id (positive)
    - `label=0` nếu khác hoặc groundtruth=None (negative)
 
-**Output:** DataFrame Parquet với 14 + 2 cột = 16 cột:
+**Output:** DataFrame Parquet với 14 + 6 cột = 20 cột:
 ```
-[14 features] + [arxiv_id, label]
+[14 features] + [arxiv_id, partition, citation_key, ref_arxiv_id, groundtruth_arxiv_id, label]
 ```
+Khi train chỉ dùng 14 features + `label`; bỏ các cột định danh/groundtruth để tránh leakage.
 
 ---
 
@@ -185,9 +220,12 @@ Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
 
 ### 1. Chuẩn bị input
 
-Cần 2 bảng tại `data/tables/`:
-- `bibtex.json` ← từ M2 output
-- `references.json` ← từ M1 output
+Cần 3 bảng tại `data/tables/` (trên Colab là `M3_matching/range_{RANGE_ID}/tables/`):
+- `bibtex.json` ← từ M2 output (mảng JSON)
+- `references.json` ← từ M1 output (mảng JSON)
+- `elements.json` ← từ M2 output, chuyển từ `elements.jsonl` sang mảng JSON (notebook tự làm)
+
+`elements.json` dùng để tính feature **`cite_count`**: đếm số lần `citation_key` xuất hiện trong các lệnh `\cite{...}` của toàn văn. Nếu thiếu file này, `cite_count = 0` cho mọi cặp và feature 14 mất tác dụng; pipeline vẫn chạy nhưng in warning. Code vẫn đọc được `elements.jsonl` nếu chưa chuyển.
 
 Và nhãn manual tại `data/labels/`:
 - `manual/{arxiv_id}.json` ← sau khi import CSV
@@ -195,7 +233,7 @@ Và nhãn manual tại `data/labels/`:
 ### 2. Chạy pipeline (1 dòng lệnh)
 
 ```powershell
-# Chạy notebook Cell 14 hoặc:
+# Chạy notebook (mục Chạy pipeline) hoặc:
 python -m src.m3_matching.prepare_dataset --k 1 --seed 42
 ```
 
@@ -207,30 +245,29 @@ python -m src.m3_matching.prepare_dataset --k 1 --seed 42
 
 ### 3. Output Parquet sẵn sàng
 
+Ghi vào `prepared_dataset/` (cùng cấp `tables/`, không phải trong `tables/`):
+
 ```
-data/tables/
+M3_matching/range_{RANGE_ID}/prepared_dataset/
 ├── train_pairs.parquet    ← Dữ liệu huấn luyện (~70%)
 ├── valid_pairs.parquet    ← Dữ liệu kiểm tra khi phát triển (~10%)
 ├── test_pairs.parquet     ← Dữ liệu đánh giá MRR@5 (~20%)
-└── dataset_pairs.parquet  ← Toàn bộ dữ liệu
+├── dataset_pairs.parquet  ← Toàn bộ dữ liệu
+└── poster_feature_distribution.png
 ```
 
 ---
 
 ## Notebook Workflow (từng Cell)
 
----
-
-## Notebook Workflow (từng Cell)
-
-File notebook: `src/m3_matching/M3_matching.ipynb` (19 cells)
+File notebook: `src/m3_matching/M3_matching.ipynb` (24 cells)
 
 | Cell | Nội dung | Input | Output |
 |------|---------|-------|--------|
 | 1-2 | Setup: clone repo, cài dependencies, chạy unit tests | GitHub branch | ✅ Tests pass |
-| 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + RANGE_ID | Paths ready |
-| 5 | Load M1 references + M2 BibTeX → JSON | Drive folders | `tables/references.json`, `bibtex.json` |
-| 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ bạn tick) |
+| 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + `RANGE_ID` | Paths ready |
+| 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json`, `elements.json` |
+| 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ tick) |
 | 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
 | 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
 | 9 | Visualization: feature distribution | Parquet files | PNG charts |
@@ -267,6 +304,93 @@ y_pred = model.predict(test_df[features])
 print(f"Test Accuracy: {accuracy_score(test_df['label'], y_pred):.4f}")
 ```
 
+> **Cột dữ liệu:** mỗi dòng Parquet có 20 cột: 14 features + `arxiv_id`, `partition`, `citation_key`, `ref_arxiv_id`, `groundtruth_arxiv_id`, `label`. Khi huấn luyện chỉ dùng `feature_names()` + `label`; **bỏ** `groundtruth_arxiv_id`, `ref_arxiv_id`, `citation_key` để tránh leakage.
+
+---
+
+## Từng file / từng hàm
+
+### `cleaning.py`
+| Hàm | Chức năng |
+| --- | --- |
+| `normalize_title` | Lowercase, bỏ LaTeX/HTML, bỏ đuôi `arXiv preprint`/URL/DOI, giữ nội dung math (`Top-$k$` → `top k`), giải mã accent |
+| `normalize_authors` | `Vaswani, Ashish` và `Ashish Vaswani` → cùng dạng `last, initial`; giữ tiền tố họ (`van der Berg`) |
+| `normalize_year` | `int` / `"2017"` / ISO → `int` hoặc `None` |
+| `normalize_doi` | Bỏ tiền tố `https://doi.org/`, `doi:`, lowercase |
+| `prepare_bibtex_record` / `prepare_reference_record` | Thêm field `*_norm`, **không** sửa bảng gốc; chuẩn hóa `ref_arxiv_id` (bỏ `arXiv:`/URL và `vN`) |
+
+### `labelling.py`
+| Hàm | Chức năng |
+| --- | --- |
+| `auto_match_one` | Heuristic: DOI → exact title → fuzzy title + tác giả + năm; chỉ refs **cùng** paper; trả `ref_arxiv_id` hoặc `None` |
+| `auto_label_publication` | Chạy matcher cho **mọi** BibTeX entry của 1 paper |
+| `load_labels` / `save_labels` | Đọc/ghi `labels/manual|automatic/{arxiv_id}.json` |
+| `validate_label_quota` | Raise nếu thiếu 5 papers / 20 entries / 100 tổng / 10% auto |
+
+### `features.py`
+| Hàm | Chức năng |
+| --- | --- |
+| `title_similarity`, `author_overlap`, `year_distance` | Tín hiệu so khớp cơ bản |
+| `cite_context_features` | Ngữ cảnh `\cite` từ M2 (nếu có) |
+| `pair_feature_vector` | Vector 14 float cố định cho cặp (bib, ref) |
+| `feature_names` | Tên 14 cột, phải khớp thứ tự vector |
+
+### `split.py`
+
+`split_publications` → `dict[arxiv_id, "train"|"valid"|"test"]`, chia **theo paper** (không theo pair), `seed` để reproduce.
+
+### `model.py`
+| Hàm | Chức năng |
+| --- | --- |
+| `build_candidate_matrix` | `citation_key`, `ref_arxiv_id`, ma trận 0/1; GT không có trong refs → hàng 0 |
+| `train_model` | Train từ `pair_feature_vector`; lưu `model_m3.joblib` |
+| `predict_top5` | Score mọi ref cùng paper, sort, lấy top-5, pad `None` nếu thiếu |
+
+### `evaluate.py`
+
+`reciprocal_rank` = `1/rank` hoặc `0`; `mrr_at_k` = trung bình trên `|Q|`; `evaluate_split` ghi `metrics_m3.json`.
+
+### `tables.py` / `pipeline.py` / `run_m3.py` / `analyze.py`
+
+`tables.py`: `build_prediction_row` pad/cắt `cand_1`…`cand_5`, ghi `predictions.jsonl`.  
+`run_milestone3`: label → split/train → predict → MRR test → predictions → export HF.  
+`analyze.py`: số liệu cho poster (`n_manual`, `n_auto`, `|Q|`, tỷ lệ GT null, coverage `cand_1`).
+
+### `export_hf.py`
+
+```text
+data/hf_dataset/README.md          # YAML configs, KHÔNG custom loading script
+data/hf_dataset/data/papers/*.parquet
+data/hf_dataset/data/references/*.parquet
+data/hf_dataset/data/elements/*.parquet
+data/hf_dataset/data/hierarchy/*.parquet
+data/hf_dataset/data/bibtex/*.parquet
+data/hf_dataset/data/predictions/*.parquet
+```
+
+---
+
+## Metric MRR@5
+
+\[
+\mathrm{MRR@5} = \frac{1}{|Q|} \sum_i \frac{1}{\mathrm{rank}_i}
+\]
+
+- \(|Q|\) = số BibTeX **đã label** trên test
+- `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
+- GT ngoài top-5 hoặc GT = `null` → entry đó 0 điểm
+
+Được phép post-process (lọc trùng candidate, boost DOI exact...). Nhóm dùng LLM/pretrained model bị chấm tách nhóm — ghi rõ trên poster.
+
+---
+
+## Việc **không** làm ở M3
+
+- Không đổi schema 6 bảng.
+- Không nhét nested JSON vào Parquet.
+- Không đưa paper unlabeled vào `predictions`.
+- Poster A2 + Jupyter Book là việc nhóm khác/file khác.
+
 ---
 
 ## Kiểm Tra & Validation
@@ -301,7 +425,7 @@ python -m pytest tests/test_m3_matching.py -v
 | | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |
 | Dataset (3) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
 | | `test_build_paper_pairs_dedups_reference_arxiv_ids` | Dedup reference theo `ref_arxiv_id` |
-| | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.jsonl` |
+| | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.json`/`elements.jsonl` |
 | Manual tool (2) | `test_manual_template_does_not_autofill_groundtruth` | Template không tự điền groundtruth |
 | | `test_import_manual_csv_requires_verified_rows` | Chỉ import dòng `is_verified=YES` |
 | Split (2) | `test_split_publications` | Chia train/valid/test theo publication |
@@ -353,7 +477,7 @@ python -m src.m3_matching.prepare_dataset --demo
 - [ ] Tổng ≥100 entries manual (hoặc ≥100k per person)
 - [ ] ≥10% papers auto ngoài manual pool
 - [ ] 4 file Parquet được sinh: train/valid/test/dataset
-- [ ] Mỗi file có 16 cột: 14 features + arxiv_id + label
+- [ ] Mỗi file có 20 cột: 14 features + `arxiv_id`, `partition`, `citation_key`, `ref_arxiv_id`, `groundtruth_arxiv_id`, `label`
 - [ ] Kiểm tra không có NaN trong features
 - [ ] Code push lên GitHub branch `M3-matching`
 - [ ] README.md cập nhật hướng dẫn chạy
@@ -380,7 +504,7 @@ A: Xem bảng ở mục 4. Mỗi feature có ý tưởng lý thuyết phục v�
 
 ## Liên hệ & Support
 
-- **README:** `src/m3_matching/README.md`
+- **README tổng quan:** `src/m3_matching/README.md` (toàn bộ chi tiết nằm trong file này)
 - **Tests:** `tests/test_m3_matching.py`
 - **Notebook:** `src/m3_matching/M3_matching.ipynb`
 - **Code modules:** `src/m3_matching/*.py`

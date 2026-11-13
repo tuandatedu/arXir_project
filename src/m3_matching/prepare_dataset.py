@@ -156,13 +156,27 @@ def run_preparation_pipeline(
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
-    elements_path = tables_dir / "elements.jsonl"
-    if elements_path.exists():
-        LOG.info("Tìm thấy %s: cite_count sẽ được đếm từ lệnh \\cite trong M2.", elements_path)
+    elements_json = tables_dir / "elements.json"
+    elements_jsonl = tables_dir / "elements.jsonl"
+    if elements_json.exists():
+        elements_path = elements_json
+        element_records = read_json(elements_path)
+    elif elements_jsonl.exists():
+        elements_path = elements_jsonl
+        element_records = read_jsonl(elements_path)
+    else:
+        elements_path = elements_json
+        element_records = []
+    if element_records:
+        LOG.info(
+            "Đã đọc %d dòng elements từ %s: cite_count sẽ được đếm từ lệnh \\cite trong M2.",
+            len(element_records),
+            elements_path,
+        )
     else:
         LOG.warning(
             "Không có %s: cite_count sẽ = 0 cho mọi cặp (sentinel). "
-            "Copy elements.jsonl từ M2 vào TABLES_DIR nếu muốn dùng đặc trưng này.",
+            "Copy elements.json (hoặc elements.jsonl) từ M2 vào TABLES_DIR nếu muốn dùng đặc trưng này.",
             elements_path,
         )
 
@@ -256,6 +270,7 @@ def run_preparation_pipeline(
         bibtex_records=all_bib,
         reference_records=all_refs,
         output_dir=prepared_dataset_dir,
+        element_records=element_records,
     )
 
     summary: dict[str, Any] = {
