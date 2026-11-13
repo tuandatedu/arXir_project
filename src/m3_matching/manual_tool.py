@@ -162,7 +162,26 @@ def find_candidate_manual_papers(
     bibtex_path: Path,
     references_path: Path,
     min_entries: int = 20,
+    min_references: int = 20,
+    coverage_ratio: float = 0.1,
 ) -> list[tuple[str, int, int]]:
+    """
+    Tìm papers đủ điều kiện cho manual labeling.
+    
+    Tiêu chí:
+    - BibTeX entries: >= min_entries (default 20)
+    - References with arXiv ID: >= min_references (default 20)
+    - Coverage ratio: references/bibtex >= coverage_ratio (default 10%)
+    
+    Giải thích:
+    - Papers với 600 BibTeX nhưng chỉ 3 references → (3/600 = 0.5%) → bỏ
+    - Papers với 200 BibTeX và 30 references → (30/200 = 15%) → chọn
+    - Papers với 310 BibTeX và 157 references → (157/310 = 50%) → tốt
+    
+    Lý do:
+    - Tỷ lệ coverage cao → matching capacity tốt → manual labeling hiệu quả
+    - Tỷ lệ coverage thấp → khó tìm match → lãng phí công sức
+    """
 
     bib_records = load_bibtex_records(bibtex_path)
     ref_records = load_reference_records(references_path)
@@ -184,11 +203,21 @@ def find_candidate_manual_papers(
     for pid, bib_count in bib_counts.items():
         ref_count = ref_counts.get(pid, 0)
 
-        if bib_count >= min_entries and ref_count > 0:
-            eligible.append((pid, bib_count, ref_count))
+        # Cả 3 điều kiện phải thỏa
+        if bib_count >= min_entries and ref_count >= min_references:
+            actual_ratio = ref_count / bib_count if bib_count > 0 else 0.0
+            if actual_ratio >= coverage_ratio:
+                eligible.append((pid, bib_count, ref_count))
 
+    # Sắp xếp: ưu tiên tỷ lệ coverage cao hơn (matching capacity tốt hơn)
+    # Nếu coverage bằng nhau, thì ưu tiên references cao (nhiều candidates)
+    # Nếu references bằng nhau, thì ưu tiên BibTeX cao (nhiều entries)
     eligible.sort(
-        key=lambda item: (item[1], item[2]),
+        key=lambda item: (
+            item[2] / item[1],  # coverage_ratio
+            item[2],            # ref_count
+            item[1],            # bib_count
+        ),
         reverse=True,
     )
 
@@ -250,7 +279,7 @@ def export_manual_template(
         newline="",
     ) as file:
 
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
 
         for bib in paper_bib:
@@ -282,6 +311,7 @@ def export_manual_template(
 
             suggested_id = ""
             suggested_title = ""
+            suggested_score_str = ""
 
             if best_ref and best_score >= 0.5:
                 suggested_id = (
@@ -295,24 +325,25 @@ def export_manual_template(
                     or best_ref.get("title")
                     or ""
                 )
+                
+                suggested_score_str = f"{best_score:.2f}"
 
-            writer.writerow({
-                "citation_key": bib.get("citation_key") or "",
-                "bib_title": bib.get("title") or "",
-                "bib_authors": "; ".join(bib.get("authors") or []),
-                "bib_year": bib.get("year") or "",
-                "bib_doi": bib.get("doi") or "",
+            # Đảm bảo fieldnames được fill đầy đủ, không có None
+            row = {
+                "citation_key": str(bib.get("citation_key") or ""),
+                "bib_title": str(bib.get("title") or ""),
+                "bib_authors": "; ".join(str(a) for a in (bib.get("authors") or [])),
+                "bib_year": str(bib.get("year") or ""),
+                "bib_doi": str(bib.get("doi") or ""),
                 "suggested_ref_arxiv_id": suggested_id,
                 "suggested_ref_title": suggested_title,
-                "suggested_score": (
-                    f"{best_score:.2f}" if best_score > 0 else ""
-                ),
-
-                # Groundtruth phải được con người xác nhận.
+                "suggested_score": suggested_score_str,
                 "groundtruth_arxiv_id": "",
                 "is_verified": "NO",
                 "note": "",
-            })
+            }
+            
+            writer.writerow(row)
 
     return output_csv
 
@@ -404,6 +435,12 @@ def import_manual_csv(
         )
 
     if skipped_unverified:
+        import sys
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+            sys.stderr.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
         print(
             f"[WARN] Bỏ qua {skipped_unverified} dòng chưa xác nhận."
         )

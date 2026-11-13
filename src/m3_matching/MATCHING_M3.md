@@ -82,6 +82,15 @@ Chuẩn hóa dữ liệu BibTeX + References để tiền xử lý cho phần so
 
 **File:** `src/m3_matching/manual_tool.py`
 
+### Tiêu chí chọn papers:
+- **BibTeX entries:** ≥ 20
+- **References (arXiv ID):** ≥ 20
+- **Coverage ratio:** references / BibTeX ≥ 10%
+
+**Tại sao cần cân bằng:**
+- Paper A: 600 BibTeX | 3 References → 0.5% coverage → ❌ LOẠI (khó match)
+- Paper B: 310 BibTeX | 157 References → 50.6% coverage → ✅ CHỌN (tốt)
+
 ### Yêu cầu (theo đề bài cho 1 người):
 - ≥5 papers × ≥20 entries/paper = ≥100 tổng
 - Nhóm k người: ≥5k papers, ≥100k entries
