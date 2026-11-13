@@ -209,16 +209,21 @@ def find_candidate_manual_papers(
             if actual_ratio >= coverage_ratio:
                 eligible.append((pid, bib_count, ref_count))
 
-    # Sắp xếp: ưu tiên tỷ lệ coverage cao hơn (matching capacity tốt hơn)
-    # Nếu coverage bằng nhau, thì ưu tiên references cao (nhiều candidates)
-    # Nếu references bằng nhau, thì ưu tiên BibTeX cao (nhiều entries)
+    # Sắp xếp: Ưu tiên volume cao (BibTeX + References đều cao)
+    # Tiêu chí:
+    # 1. References cao hơn → nhiều candidates hơn → ưu tiên
+    # 2. BibTeX cao hơn → nhiều entries hơn → ưu tiên
+    # 3. Coverage cao hơn → phần trăm matching tốt → ưu tiên (tie-breaker)
+    # Ví dụ:
+    #  - Paper A: 2500 BibTeX | 500 refs | 20% coverage → CHỌN (volume cao)
+    #  - Paper B: 30 BibTeX | 50 refs | 167% coverage → bỏ qua
+    #  → Lợi ích: nhiều data để labeling, nhiều matching opportunities
     eligible.sort(
         key=lambda item: (
-            item[2] / item[1],  # coverage_ratio
-            item[2],            # ref_count
-            item[1],            # bib_count
-        ),
-        reverse=True,
+            -item[2],               # ref_count (descending - nhiều refs)
+            -item[1],               # bib_count (descending - nhiều bibtex)
+            -(item[2] / item[1]),   # coverage_ratio (descending - coverage cao)
+        )
     )
 
     return eligible
@@ -233,7 +238,16 @@ def export_manual_template(
     output_csv: Path,
     bibtex_path: Path,
     references_path: Path,
+    use_doi_resolver: bool = True,
 ) -> Path:
+    """
+    Xuất template CSV cho manual labeling.
+    
+    Nếu use_doi_resolver=True:
+    - Xây dựng bảng DOI → arXiv ID từ bibtex
+    - Khi suggest_ref_arxiv_id rỗng, thử tra cứu từ DOI của reference
+    - Giúp tăng coverage khi S2 không tìm được match
+    """
 
     output_csv = Path(output_csv)
     output_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -258,6 +272,12 @@ def export_manual_template(
 
     if not paper_refs:
         raise ValueError(f"Không tìm thấy References của {arxiv_id}")
+    
+    # Build DOI resolver if enabled
+    doi_map = {}
+    if use_doi_resolver:
+        from src.m3_matching.doi_resolver import build_doi_to_arxiv_map
+        doi_map = build_doi_to_arxiv_map(all_bib)
 
     fieldnames = [
         "citation_key",
@@ -327,6 +347,24 @@ def export_manual_template(
                 )
                 
                 suggested_score_str = f"{best_score:.2f}"
+            
+            # Fallback: DOI matching nếu S2 không tìm được
+            if not suggested_id and use_doi_resolver and doi_map:
+                from src.m3_matching.doi_resolver import resolve_arxiv_by_doi
+                
+                # Thử tìm từ DOI của reference
+                ref_doi = best_ref.get("doi_norm") if best_ref else None
+                if not ref_doi and best_ref:
+                    from src.m3_matching.cleaning import normalize_doi
+                    ref_doi = normalize_doi(best_ref.get("doi"))
+                
+                if ref_doi:
+                    arxiv_from_doi = resolve_arxiv_by_doi(ref_doi, doi_map)
+                    if arxiv_from_doi:
+                        suggested_id = arxiv_from_doi
+                        # Lấy title từ bibtex nếu có (DOI match không có score)
+                        suggested_title = best_ref.get("ref_title") or best_ref.get("title") or "" if best_ref else ""
+                        suggested_score_str = "0.80"  # Confidence score cho DOI match
 
             # Đảm bảo fieldnames được fill đầy đủ, không có None
             row = {

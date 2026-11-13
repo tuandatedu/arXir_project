@@ -87,9 +87,14 @@ Chuẩn hóa dữ liệu BibTeX + References để tiền xử lý cho phần so
 - **References (arXiv ID):** ≥ 20
 - **Coverage ratio:** references / BibTeX ≥ 10%
 
-**Tại sao cần cân bằng:**
-- Paper A: 600 BibTeX | 3 References → 0.5% coverage → ❌ LOẠI (khó match)
-- Paper B: 310 BibTeX | 157 References → 50.6% coverage → ✅ CHỌN (tốt)
+**Ưu tiên:** Volume cao (nhiều BibTeX + References)
+- Paper A: 2500 BibTeX | 500 References → **CHỌN** (nhiều data, nhiều matching)
+- Paper B: 30 BibTeX | 50 References → bỏ qua (ít data dù coverage cao)
+
+**Lợi ích:**
+- Nhiều entries để manual label → dataset lớn hơn
+- Nhiều references → nhiều matching opportunities
+- Coverage ≥10% đảm bảo quality (không quá ít refs)
 
 ### Yêu cầu (theo đề bài cho 1 người):
 - ≥5 papers × ≥20 entries/paper = ≥100 tổng
