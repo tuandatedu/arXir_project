@@ -35,7 +35,7 @@ python -m src.m3_matching.run_m3
 Bàn giao cho Người 2: `data/tables/{train,valid,test,dataset}_pairs.parquet`
 (gồm `label` 0/1 và đủ 14 cột đặc trưng).
 
-Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.jsonl` + `references.jsonl`):
+Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.json` + `references.json`):
 
 ```bash
 python -m src.m3_matching.manual_tool --find-candidates

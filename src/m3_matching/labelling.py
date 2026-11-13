@@ -126,16 +126,16 @@ def auto_label_publication(
 ) -> list[dict[str, Any]]:
     """
     Gán nhãn tự động cho MỌI BibTeX entry của 1 paper (bắt buộc theo quy định M3).
-    Nếu bib_entries / references là None, tự động đọc từ data/tables/bibtex.jsonl và references.jsonl.
+    Nếu bib_entries / references là None, tự động đọc từ data/tables/bibtex.json và references.json (hoặc .jsonl).
 
     References được chuẩn hóa MỘT LẦN cho cả paper để tránh O(bib × ref) lặp lại.
     """
     if bib_entries is None:
-        all_bib = read_jsonl(TABLES_DIR / "bibtex.jsonl")
+        all_bib = read_json(TABLES_DIR / "bibtex.json")
         bib_entries = [b for b in all_bib if b.get("arxiv_id") == arxiv_id]
 
     if references is None:
-        all_refs = read_jsonl(TABLES_DIR / "references.jsonl")
+        all_refs = read_json(TABLES_DIR / "references.json")
         references = [r for r in all_refs if r.get("arxiv_id") == arxiv_id]
 
     prepared_refs = [prepare_reference_record(ref) for ref in references]

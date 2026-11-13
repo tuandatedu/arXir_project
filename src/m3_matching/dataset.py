@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.config import DATA_DIR, TABLES_DIR
-from src.common.io import read_jsonl, write_parquet_shard
+from src.common.io import read_json, read_jsonl, write_parquet_shard
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
     prepare_reference_record,
@@ -162,9 +162,9 @@ def generate_training_dataset(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if bibtex_records is None:
-        bibtex_records = read_jsonl(output_dir / "bibtex.jsonl")
+        bibtex_records = read_json(output_dir / "bibtex.json")
     if reference_records is None:
-        reference_records = read_jsonl(output_dir / "references.jsonl")
+        reference_records = read_json(output_dir / "references.json")
     if element_records is None:
         elements_path = output_dir / "elements.jsonl"
         element_records = read_jsonl(elements_path) if elements_path.exists() else []

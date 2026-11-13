@@ -168,8 +168,8 @@ Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
 ### 1. Chuẩn bị input
 
 Cần 2 bảng tại `data/tables/`:
-- `bibtex.jsonl` ← từ M2 output
-- `references.jsonl` ← từ M1 output
+- `bibtex.json` ← từ M2 output
+- `references.json` ← từ M1 output
 
 Và nhãn manual tại `data/labels/`:
 - `manual/{arxiv_id}.json` ← sau khi import CSV

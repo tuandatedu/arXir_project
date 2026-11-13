@@ -2,7 +2,7 @@
 Script thực thi trọn gói: Chuẩn bị dữ liệu cho Milestone 3.
 
 Thực hiện toàn bộ 6 bước:
-1. Đọc và chuẩn hóa dữ liệu từ bibtex.jsonl và references.jsonl.
+1. Đọc và chuẩn hóa dữ liệu từ bibtex.json và references.json (hoặc .jsonl).
 2. Kiểm tra các nhãn thủ công (data/labels/manual/*.json) của nhóm.
 3. Chạy gán nhãn tự động cho ≥ 10% các bài báo còn lại (ngoài nhóm manual).
 4. Kiểm tra toàn bộ hạn mức (quota) theo quy định của thầy.
@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.config import DATA_DIR, TABLES_DIR
-from src.common.io import read_jsonl, write_jsonl
+from src.common.io import read_json, read_jsonl, write_json
 from src.m3_matching.dataset import generate_training_dataset
 from src.m3_matching.features import feature_names
 from src.m3_matching.labelling import (
@@ -53,13 +53,13 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
     tables_dir.mkdir(parents=True, exist_ok=True)
     labels_dir.mkdir(parents=True, exist_ok=True)
 
-    bib_file = tables_dir / "bibtex.jsonl"
-    ref_file = tables_dir / "references.jsonl"
+    bib_file = tables_dir / "bibtex.json"
+    ref_file = tables_dir / "references.json"
 
     if bib_file.exists() and ref_file.exists():
         return
 
-    LOG.info("Chưa có data/tables/bibtex.jsonl. Đang khởi tạo dữ liệu mẫu (demo) để kiểm thử...")
+    LOG.info("Chưa có data/tables/bibtex.json. Đang khởi tạo dữ liệu mẫu (demo) để kiểm thử...")
 
     bib_rows = []
     ref_rows = []
@@ -125,8 +125,8 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
                 })
             save_labels(pid, manual_labels, labels_dir)
 
-    write_jsonl(bib_file, bib_rows)
-    write_jsonl(ref_file, ref_rows)
+    write_json(bib_file, bib_rows)
+    write_json(ref_file, ref_rows)
     LOG.info("Đã tạo dữ liệu mẫu với %d bài báo, sẵn sàng chạy pipeline!", total_papers)
 
 
@@ -142,8 +142,8 @@ def run_preparation_pipeline(
     if demo:
         create_demo_data_if_missing(tables_dir, labels_dir, k=k)
 
-    bib_path = tables_dir / "bibtex.jsonl"
-    ref_path = tables_dir / "references.jsonl"
+    bib_path = tables_dir / "bibtex.json"
+    ref_path = tables_dir / "references.json"
 
     if not bib_path.exists() or not ref_path.exists():
         raise FileNotFoundError(
@@ -151,8 +151,8 @@ def run_preparation_pipeline(
             "Hãy chạy Milestone 1 và 2 trước, hoặc truyền cờ --demo để chạy thử nghiệm!"
         )
 
-    all_bib = read_jsonl(bib_path)
-    all_refs = read_jsonl(ref_path)
+    all_bib = read_json(bib_path)
+    all_refs = read_json(ref_path)
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
