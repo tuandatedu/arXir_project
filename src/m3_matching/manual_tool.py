@@ -5,7 +5,7 @@ Công cụ gán nhãn thủ công và tổng hợp kết quả M3.
 - BibTeX: đọc bibtex.jsonl trực tiếp bên trong M2 ZIP.
 - References: đọc references.json.
 - Manual templates: lưu tại data/labels/manual/{arxiv_id}.csv.
-- Manual labels: lưu tại data/labels/{arxiv_id}.jsonl.
+- Manual labels: lưu tại data/labels/manual/{arxiv_id}.json.
 """
 
 from __future__ import annotations
@@ -323,12 +323,12 @@ def import_manual_csv(
     require_verified: bool = True,
 ) -> Path:
     """
-    Import manual CSV → JSONL for groundtruth labels.
+    Import manual CSV → JSON for groundtruth labels.
     
     Workflow:
     1. User fills groundtruth_arxiv_id (manual) OR ticks is_verified=YES
     2. If is_verified=YES, auto-fill groundtruth_arxiv_id = suggested_ref_arxiv_id
-    3. Code creates JSONL with citation_key + groundtruth_arxiv_id + source
+    3. Code creates JSON with citation_key + groundtruth_arxiv_id + source
     """
 
     csv_path = Path(csv_path)
@@ -403,7 +403,8 @@ def import_manual_csv(
             f"[WARN] Bỏ qua {skipped_unverified} dòng chưa xác nhận."
         )
 
-    output = labels_dir / f"{arxiv_id}.json"
+    output = labels_dir / "manual" / f"{arxiv_id}.json"
+    output.parent.mkdir(parents=True, exist_ok=True)
     write_json(output, rows)
 
     return output

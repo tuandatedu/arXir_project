@@ -41,7 +41,7 @@ Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.jsonl` + `refer
 python -m src.m3_matching.manual_tool --find-candidates
 python -m src.m3_matching.manual_tool --export-template <arxiv_id>
 # Mở CSV, kiểm tra gợi ý bằng mắt, điền groundtruth_arxiv_id và đổi is_verified=YES
-python -m src.m3_matching.manual_tool --import-csv data/labels/manual_templates/<arxiv_id>.csv
+python -m src.m3_matching.manual_tool --import-csv data/labels/manual/<arxiv_id>.csv
 python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
 ```
 
@@ -86,11 +86,13 @@ Ghép **trong cùng publication** thôi (bib của paper A không khớp ref c�
 
 File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đã chốt):
 
-`data/labels/{arxiv_id}.jsonl`
+`data/labels/manual/{arxiv_id}.json`
 
 ```json
-{"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"}
-{"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+[
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
+  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
@@ -144,7 +146,7 @@ Nhóm dùng LLM / pretrained model sẽ bị chấm **tách** nhóm chỉ dùng 
 | --- | --- |
 | `auto_match_one` | Heuristic: DOI → title giống → fuzzy (rapidfuzz) + overlap author. Chỉ refs **cùng** paper. Trả `ref_arxiv_id` hoặc `None` |
 | `auto_label_publication` | Chạy matcher cho **mọi** bib entry của 1 paper |
-| `load_labels` / `save_labels` | jsonl như trên |
+| `load_labels` / `save_labels` | json như trên |
 | `validate_label_quota` | Raise nếu thiếu 5 papers / 20 / 100 / 10% auto |
 
 ### `features.py` — bắt buộc giải thích từng feature (README + poster)

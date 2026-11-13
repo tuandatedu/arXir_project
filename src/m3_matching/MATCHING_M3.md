@@ -100,7 +100,7 @@ Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nh�
 3. **Fuzzy match:** Title ~88% + có tác giả trùng + chênh lệch năm ≤1 → match
 4. **Ambiguity check:** Nếu 2 ứng viên gần bằng nhau → bỏ qua (không match)
 
-**Output:** JSON files tại `labels/automatic/{arxiv_id}.jsonl`
+**Output:** JSON files tại `labels/automatic/{arxiv_id}.json`
 
 **Coverage:** ≥10% papers ngoài manual pool (tối thiểu 2 papers/người)
 
@@ -172,7 +172,7 @@ Cần 2 bảng tại `data/tables/`:
 - `references.jsonl` ← từ M1 output
 
 Và nhãn manual tại `data/labels/`:
-- `manual/{arxiv_id}.jsonl` ← sau khi import CSV
+- `manual/{arxiv_id}.json` ← sau khi import CSV
 
 ### 2. Chạy pipeline (1 dòng lệnh)
 
@@ -213,7 +213,7 @@ File notebook: `src/m3_matching/M3_matching.ipynb` (19 cells)
 | 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + RANGE_ID | Paths ready |
 | 5 | Load M1 references + M2 BibTeX → JSON | Drive folders | `tables/references.json`, `bibtex.json` |
 | 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ bạn tick) |
-| 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.jsonl` |
+| 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
 | 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
 | 9 | Visualization: feature distribution | Parquet files | PNG charts |
 | 10 | Summary: deliverables checklist | All files | ✅ Done |

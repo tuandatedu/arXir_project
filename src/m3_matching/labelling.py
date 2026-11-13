@@ -8,7 +8,7 @@ Ràng buộc đề:
 - 1 entry tối đa 1 true reference; không khớp → groundtruth = None (all-negative row)
 
 Format nội bộ:
-data/labels/{arxiv_id}.jsonl
+data/labels/{manual,automatic}/{arxiv_id}.json
   {"citation_key": "...", "groundtruth_arxiv_id": "2310.12345"|null, "source": "manual"|"auto"}
 """
 

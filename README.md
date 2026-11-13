@@ -54,7 +54,8 @@ Working data (suggested):
 ```text
 data/working/{2310-12345}/     # M1 sources + metadata + S2 refs
 data/working/{2310-12345}/parsed/   # M2 elements / hierarchy / bibtex
-data/labels/{arxiv_id}.jsonl   # M3 ground truth (manual + auto)
+data/labels/manual/{arxiv_id}.json       # M3 manual ground truth
+data/labels/automatic/{arxiv_id}.json    # M3 auto labels
 data/tables/                   # jsonl + metrics_*.json
 data/hf_dataset/               # 6 Parquet configs + dataset card
 ```
@@ -108,11 +109,13 @@ Column schemas live in `src/common/schemas.py` (must stay flat: one-level string
 
 ## Label file format (M3)
 
-`data/labels/{arxiv_id}.jsonl`:
+`data/labels/manual/{arxiv_id}.json` (và `data/labels/automatic/{arxiv_id}.json`):
 
 ```json
-{"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"}
-{"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
+[
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
+  {"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
+]
 ```
 
 `source` is `manual` or `auto`. One true reference per entry, or `null` when none of the crawled refs match.

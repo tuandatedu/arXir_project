@@ -3,7 +3,7 @@ Script thực thi trọn gói: Chuẩn bị dữ liệu cho Milestone 3.
 
 Thực hiện toàn bộ 6 bước:
 1. Đọc và chuẩn hóa dữ liệu từ bibtex.jsonl và references.jsonl.
-2. Kiểm tra các nhãn thủ công (data/labels/*.jsonl) của nhóm.
+2. Kiểm tra các nhãn thủ công (data/labels/manual/*.json) của nhóm.
 3. Chạy gán nhãn tự động cho ≥ 10% các bài báo còn lại (ngoài nhóm manual).
 4. Kiểm tra toàn bộ hạn mức (quota) theo quy định của thầy.
 5. Chia tập train / valid / test theo publication (hỗ trợ nhóm k thành viên).
