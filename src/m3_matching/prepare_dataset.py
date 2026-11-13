@@ -133,9 +133,6 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
     LOG.info("Đã tạo dữ liệu mẫu với %d bài báo, sẵn sàng chạy pipeline!", total_papers)
 
 
-def _read_elements_from_zip(
-
-
 def _write_labels_to_zip(
     auto_labels: dict[str, list[dict[str, Any]]],
     labels_dir: Path,
