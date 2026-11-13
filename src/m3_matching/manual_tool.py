@@ -6,6 +6,11 @@ Công cụ gán nhãn thủ công và tổng hợp kết quả M3.
 - References: đọc references.json (mảng JSON) hoặc references.jsonl.
 - Manual templates: lưu tại data/labels/manual/{arxiv_id}.csv.
 - Manual labels: lưu tại data/labels/manual/{arxiv_id}.json.
+
+QUY TẮC MANUAL LABELING:
+- Chỉ lấy BibTeX entry có trường bib_title gốc và không rỗng.
+- Không sử dụng title được suy luận từ authors để thay thế bib_title.
+- Entry không có bib_title sẽ không được xuất vào manual template.
 """
 
 from __future__ import annotations
@@ -19,7 +24,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from src.common.config import DATA_DIR, TABLES_DIR
+from src.common.config import DATA_DIR
 from src.common.io import read_json, read_jsonl, write_json
 
 from src.m3_matching.cleaning import (
@@ -62,20 +67,22 @@ def load_json_records(path: Path) -> list[dict[str, Any]]:
     if not content:
         return []
 
-    # Thử đọc JSON thông thường
     try:
         data = json.loads(content)
 
     except json.JSONDecodeError:
-        # Nếu thực tế là JSONL nhưng mang đuôi .json
+        # Hỗ trợ JSONL nhưng mang đuôi .json
         records = []
+
         for line_no, line in enumerate(content.splitlines(), start=1):
             line = line.strip()
+
             if not line:
                 continue
 
             try:
                 records.append(json.loads(line))
+
             except json.JSONDecodeError as exc:
                 raise ValueError(
                     f"JSON lỗi tại dòng {line_no} trong {path}"
@@ -99,9 +106,9 @@ def load_json_records(path: Path) -> list[dict[str, Any]]:
 def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
     """
     Đọc BibTeX từ:
-    - .json chứa mảng records (bibtex.json của M3)
-    - .jsonl trực tiếp (bibtex.jsonl của M2)
-    - .zip chứa bibtex.json hoặc bibtex.jsonl
+    - .json chứa mảng records.
+    - .jsonl trực tiếp.
+    - .zip chứa bibtex.json hoặc bibtex.jsonl.
     """
 
     path = Path(path)
@@ -111,19 +118,30 @@ def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
 
     if path.suffix.lower() == ".zip":
         with zipfile.ZipFile(path, "r") as archive:
+
             members = [
-                name for name in archive.namelist()
-                if Path(name).name.lower() in ("bibtex.json", "bibtex.jsonl")
+                name
+                for name in archive.namelist()
+                if Path(name).name.lower()
+                in ("bibtex.json", "bibtex.jsonl")
             ]
 
             if not members:
                 raise FileNotFoundError(
-                    f"Không tìm thấy bibtex.json/bibtex.jsonl bên trong {path.name}"
+                    f"Không tìm thấy bibtex.json/bibtex.jsonl "
+                    f"bên trong {path.name}"
                 )
 
-            members.sort(key=lambda name: Path(name).name.lower() != "bibtex.json")
+            members.sort(
+                key=lambda name:
+                Path(name).name.lower() != "bibtex.json"
+            )
 
-            if len(members) > 1 and Path(members[0]).name.lower() == Path(members[1]).name.lower():
+            if (
+                len(members) > 1
+                and Path(members[0]).name.lower()
+                == Path(members[1]).name.lower()
+            ):
                 raise ValueError(
                     "ZIP chứa nhiều file BibTeX cùng tên:\n"
                     + "\n".join(members)
@@ -149,13 +167,33 @@ def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
 
 
 def load_reference_records(path: Path) -> list[dict[str, Any]]:
-    """References được đọc trực tiếp từ references.json."""
+    """Đọc References từ JSON hoặc JSONL."""
 
     return load_json_records(path)
 
 
 # ============================================================
-# 2. TÌM PUBLICATION ĐỦ ĐIỀU KIỆN MANUAL
+# 2. KIỂM TRA BIB_TITLE
+# ============================================================
+
+def has_bib_title(bib: dict[str, Any]) -> bool:
+    """
+    Kiểm tra BibTeX entry có bib_title gốc hay không.
+
+    Không fallback sang title, title_norm hoặc title được
+    suy luận từ authors.
+    """
+
+    title = bib.get("bib_title")
+
+    return (
+        title is not None
+        and bool(str(title).strip())
+    )
+
+
+# ============================================================
+# 3. TÌM PUBLICATION ĐỦ ĐIỀU KIỆN MANUAL
 # ============================================================
 
 def find_candidate_manual_papers(
@@ -166,36 +204,40 @@ def find_candidate_manual_papers(
     coverage_ratio: float = 0.1,
 ) -> list[tuple[str, int, int]]:
     """
-    Tìm papers đủ điều kiện cho manual labeling.
-    
+    Tìm publications đủ điều kiện cho manual labeling.
+
     Tiêu chí:
-    - BibTeX entries: >= min_entries (default 20)
-    - References with arXiv ID: >= min_references (default 20)
-    - Coverage ratio: references/bibtex >= coverage_ratio (default 10%)
-    
-    Giải thích:
-    - Papers với 600 BibTeX nhưng chỉ 3 references → (3/600 = 0.5%) → bỏ
-    - Papers với 200 BibTeX và 30 references → (30/200 = 15%) → chọn
-    - Papers với 310 BibTeX và 157 references → (157/310 = 50%) → tốt
-    
-    Lý do:
-    - Tỷ lệ coverage cao → matching capacity tốt → manual labeling hiệu quả
-    - Tỷ lệ coverage thấp → khó tìm match → lãng phí công sức
+    - Có ít nhất min_entries BibTeX entries có bib_title.
+    - Có ít nhất min_references References.
+    - Coverage ratio >= coverage_ratio.
+
+    Lưu ý:
+    Chỉ đếm BibTeX entry có bib_title.
     """
 
     bib_records = load_bibtex_records(bibtex_path)
     ref_records = load_reference_records(references_path)
 
+    # Đếm BibTeX có bib_title
     bib_counts: dict[str, int] = {}
+
     for record in bib_records:
         pid = record.get("arxiv_id")
-        if pid:
+
+        if pid and has_bib_title(record):
             bib_counts[pid] = bib_counts.get(pid, 0) + 1
 
+    # Đếm References có arXiv ID
     ref_counts: dict[str, int] = {}
+
     for record in ref_records:
         pid = record.get("arxiv_id")
-        if pid:
+        ref_id = (
+            record.get("ref_arxiv_id_norm")
+            or record.get("ref_arxiv_id")
+        )
+
+        if pid and ref_id:
             ref_counts[pid] = ref_counts.get(pid, 0) + 1
 
     eligible = []
@@ -203,26 +245,27 @@ def find_candidate_manual_papers(
     for pid, bib_count in bib_counts.items():
         ref_count = ref_counts.get(pid, 0)
 
-        # Cả 3 điều kiện phải thỏa
-        if bib_count >= min_entries and ref_count >= min_references:
-            actual_ratio = ref_count / bib_count if bib_count > 0 else 0.0
-            if actual_ratio >= coverage_ratio:
-                eligible.append((pid, bib_count, ref_count))
+        if bib_count < min_entries:
+            continue
 
-    # Sắp xếp: Ưu tiên volume cao (BibTeX + References đều cao)
-    # Tiêu chí:
-    # 1. References cao hơn → nhiều candidates hơn → ưu tiên
-    # 2. BibTeX cao hơn → nhiều entries hơn → ưu tiên
-    # 3. Coverage cao hơn → phần trăm matching tốt → ưu tiên (tie-breaker)
-    # Ví dụ:
-    #  - Paper A: 2500 BibTeX | 500 refs | 20% coverage → CHỌN (volume cao)
-    #  - Paper B: 30 BibTeX | 50 refs | 167% coverage → bỏ qua
-    #  → Lợi ích: nhiều data để labeling, nhiều matching opportunities
+        if ref_count < min_references:
+            continue
+
+        actual_ratio = (
+            ref_count / bib_count
+            if bib_count > 0
+            else 0.0
+        )
+
+        if actual_ratio >= coverage_ratio:
+            eligible.append((pid, bib_count, ref_count))
+
+    # Ưu tiên publications có nhiều references và BibTeX
     eligible.sort(
         key=lambda item: (
-            -item[2],               # ref_count (descending - nhiều refs)
-            -item[1],               # bib_count (descending - nhiều bibtex)
-            -(item[2] / item[1]),   # coverage_ratio (descending - coverage cao)
+            -item[2],
+            -item[1],
+            -(item[2] / item[1]),
         )
     )
 
@@ -230,8 +273,48 @@ def find_candidate_manual_papers(
 
 
 # ============================================================
-# 3. XUẤT MANUAL TEMPLATE
+# 4. XUẤT MANUAL TEMPLATE
 # ============================================================
+
+def _bibtex_id(
+    bib: dict[str, Any],
+    arxiv_id: str,
+) -> str:
+    """Lấy ID của BibTeX entry."""
+
+    for field in (
+        "bibtex_id",
+        "bib_id",
+        "entry_id",
+        "id",
+    ):
+        value = bib.get(field)
+
+        if value not in (None, ""):
+            return str(value)
+
+    return f"{arxiv_id}:{bib.get('citation_key') or ''}"
+
+
+def _ref_id(ref: dict[str, Any]) -> str:
+    """Lấy arXiv ID của reference."""
+
+    return str(
+        ref.get("ref_arxiv_id_norm")
+        or ref.get("ref_arxiv_id")
+        or ""
+    )
+
+
+def _ref_title(ref: dict[str, Any]) -> str:
+    """Lấy title của reference."""
+
+    return str(
+        ref.get("ref_title")
+        or ref.get("title")
+        or ""
+    )
+
 
 def export_manual_template(
     arxiv_id: str,
@@ -242,23 +325,39 @@ def export_manual_template(
 ) -> Path:
     """
     Xuất template CSV cho manual labeling.
-    
-    Nếu use_doi_resolver=True:
-    - Xây dựng bảng DOI → arXiv ID từ bibtex
-    - Khi suggest_ref_arxiv_id rỗng, thử tra cứu từ DOI của reference
-    - Giúp tăng coverage khi S2 không tìm được match
+
+    Chỉ xuất BibTeX entry có bib_title gốc và không rỗng.
+
+    Thứ tự tìm candidate:
+    1. DOI của BibTeX trùng DOI của reference -> score 1.00.
+    2. DOI resolver tìm được arXiv ID nằm trong references -> 0.90.
+    3. Title + author + year similarity -> score >= 0.50.
+
+    Entry không có bib_title sẽ bị loại trước khi xử lý.
     """
 
     output_csv = Path(output_csv)
-    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    output_csv.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     all_bib = load_bibtex_records(bibtex_path)
     all_refs = load_reference_records(references_path)
 
+    # --------------------------------------------------------
+    # Chỉ lấy BibTeX entry:
+    # - Thuộc publication đang xét.
+    # - Có bib_title trong dữ liệu gốc.
+    # --------------------------------------------------------
+
     paper_bib = [
         prepare_bibtex_record(record)
         for record in all_bib
-        if record.get("arxiv_id") == arxiv_id
+        if (
+            record.get("arxiv_id") == arxiv_id
+            and has_bib_title(record)
+        )
     ]
 
     paper_refs = [
@@ -268,23 +367,53 @@ def export_manual_template(
     ]
 
     if not paper_bib:
-        raise ValueError(f"Không tìm thấy BibTeX của {arxiv_id}")
+        raise ValueError(
+            f"Không tìm thấy BibTeX entry có bib_title "
+            f"của {arxiv_id}"
+        )
 
     if not paper_refs:
-        raise ValueError(f"Không tìm thấy References của {arxiv_id}")
-    
-    # Build DOI resolver if enabled
-    doi_map = {}
+        raise ValueError(
+            f"Không tìm thấy References của {arxiv_id}"
+        )
+
+    # Chỉ xét reference có arXiv ID
+    candidate_refs = [
+        ref
+        for ref in paper_refs
+        if _ref_id(ref)
+    ]
+
+    refs_by_id = {
+        _ref_id(ref): ref
+        for ref in candidate_refs
+    }
+
+    # --------------------------------------------------------
+    # Xây dựng DOI -> arXiv ID map
+    # --------------------------------------------------------
+
+    doi_map: dict[str, str] = {}
+
     if use_doi_resolver:
-        from src.m3_matching.doi_resolver import build_doi_to_arxiv_map
+        from src.m3_matching.doi_resolver import (
+            build_doi_to_arxiv_map,
+        )
+
         doi_map = build_doi_to_arxiv_map(all_bib)
 
+    # --------------------------------------------------------
+    # CSV columns
+    # --------------------------------------------------------
+
     fieldnames = [
+        "bibtex_id",
         "citation_key",
         "bib_title",
         "bib_authors",
         "bib_year",
         "bib_doi",
+        "bib_raw",
         "suggested_ref_arxiv_id",
         "suggested_ref_title",
         "suggested_score",
@@ -293,101 +422,172 @@ def export_manual_template(
         "note",
     ]
 
+    exported_count = 0
+
     with output_csv.open(
         "w",
         encoding="utf-8-sig",
         newline="",
     ) as file:
 
-        writer = csv.DictWriter(file, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(
+            file,
+            fieldnames=fieldnames,
+            extrasaction="ignore",
+        )
+
         writer.writeheader()
 
         for bib in paper_bib:
-            best_ref = None
+
+            # Đã lọc bib_title từ dữ liệu gốc ở paper_bib.
+            # Không cần kiểm tra hoặc fallback title tại đây.
+
+            best_ref: dict[str, Any] | None = None
             best_score = 0.0
 
-            for ref in paper_refs:
-                ref_id = (
-                    ref.get("ref_arxiv_id_norm")
-                    or ref.get("ref_arxiv_id")
+            bib_doi = bib.get("doi_norm")
+
+            # ------------------------------------------------
+            # 1. DOI trùng trực tiếp
+            # ------------------------------------------------
+
+            if bib_doi:
+                for ref in candidate_refs:
+
+                    ref_doi = ref.get("doi_norm")
+
+                    if ref_doi and ref_doi == bib_doi:
+                        best_ref = ref
+                        best_score = 1.0
+                        break
+
+            # ------------------------------------------------
+            # 2. DOI -> arXiv ID -> reference
+            # ------------------------------------------------
+
+            if (
+                best_ref is None
+                and bib_doi
+                and doi_map
+            ):
+                from src.m3_matching.doi_resolver import (
+                    resolve_arxiv_by_doi,
                 )
 
-                if not ref_id:
-                    continue
-
-                t_sim = title_similarity(bib, ref)
-                a_sim = author_overlap(bib, ref)
-                y_diff = year_distance(bib, ref)
-
-                score = (
-                    t_sim * 0.7
-                    + a_sim * 0.2
-                    + (0.1 if 0 <= y_diff <= 1 else 0.0)
+                resolved = resolve_arxiv_by_doi(
+                    bib_doi,
+                    doi_map,
                 )
 
-                if score > best_score:
-                    best_score = score
-                    best_ref = ref
+                if resolved and resolved in refs_by_id:
+                    best_ref = refs_by_id[resolved]
+                    best_score = 0.9
 
-            suggested_id = ""
-            suggested_title = ""
-            suggested_score_str = ""
+            # ------------------------------------------------
+            # 3. Title + author + year similarity
+            # ------------------------------------------------
 
-            if best_ref and best_score >= 0.5:
-                suggested_id = (
-                    best_ref.get("ref_arxiv_id_norm")
-                    or best_ref.get("ref_arxiv_id")
-                    or ""
-                )
+            if best_ref is None:
 
-                suggested_title = (
-                    best_ref.get("ref_title")
-                    or best_ref.get("title")
-                    or ""
-                )
-                
-                suggested_score_str = f"{best_score:.2f}"
-            
-            # Fallback: DOI matching nếu S2 không tìm được
-            if not suggested_id and use_doi_resolver and doi_map:
-                from src.m3_matching.doi_resolver import resolve_arxiv_by_doi
-                
-                # Thử tìm từ DOI của reference
-                ref_doi = best_ref.get("doi_norm") if best_ref else None
-                if not ref_doi and best_ref:
-                    from src.m3_matching.cleaning import normalize_doi
-                    ref_doi = normalize_doi(best_ref.get("doi"))
-                
-                if ref_doi:
-                    arxiv_from_doi = resolve_arxiv_by_doi(ref_doi, doi_map)
-                    if arxiv_from_doi:
-                        suggested_id = arxiv_from_doi
-                        # Lấy title từ bibtex nếu có (DOI match không có score)
-                        suggested_title = best_ref.get("ref_title") or best_ref.get("title") or "" if best_ref else ""
-                        suggested_score_str = "0.80"  # Confidence score cho DOI match
+                for ref in candidate_refs:
 
-            # Đảm bảo fieldnames được fill đầy đủ, không có None
-            row = {
-                "citation_key": str(bib.get("citation_key") or ""),
-                "bib_title": str(bib.get("title") or ""),
-                "bib_authors": "; ".join(str(a) for a in (bib.get("authors") or [])),
-                "bib_year": str(bib.get("year") or ""),
-                "bib_doi": str(bib.get("doi") or ""),
+                    t_sim = title_similarity(bib, ref)
+                    a_sim = author_overlap(bib, ref)
+                    y_diff = year_distance(bib, ref)
+
+                    score = (
+                        t_sim * 0.7
+                        + a_sim * 0.2
+                        + (
+                            0.1
+                            if 0 <= y_diff <= 1
+                            else 0.0
+                        )
+                    )
+
+                    if score > best_score:
+                        best_score = score
+                        best_ref = ref
+
+                if best_score < 0.5:
+                    best_ref = None
+                    best_score = 0.0
+
+            # ------------------------------------------------
+            # Chuẩn bị dữ liệu CSV
+            # ------------------------------------------------
+
+            suggested_id = (
+                _ref_id(best_ref)
+                if best_ref
+                else ""
+            )
+
+            suggested_title = (
+                _ref_title(best_ref)
+                if best_ref
+                else ""
+            )
+
+            suggested_score = (
+                f"{best_score:.2f}"
+                if best_ref
+                else ""
+            )
+
+            # Dùng bib_title gốc làm nội dung hiển thị
+            bib_title_display = str(
+                bib.get("bib_title")
+            ).strip()
+
+            authors = bib.get("authors") or []
+
+            if isinstance(authors, str):
+                authors = [authors]
+
+            writer.writerow({
+                "bibtex_id": _bibtex_id(
+                    bib,
+                    arxiv_id,
+                ),
+                "citation_key": str(
+                    bib.get("citation_key") or ""
+                ),
+                "bib_title": bib_title_display,
+                "bib_authors": "; ".join(
+                    str(author)
+                    for author in authors
+                ),
+                "bib_year": str(
+                    bib.get("year") or ""
+                ),
+                "bib_doi": str(
+                    bib.get("doi") or ""
+                ),
+                "bib_raw": str(
+                    bib.get("bib_raw") or ""
+                ),
                 "suggested_ref_arxiv_id": suggested_id,
                 "suggested_ref_title": suggested_title,
-                "suggested_score": suggested_score_str,
+                "suggested_score": suggested_score,
                 "groundtruth_arxiv_id": "",
                 "is_verified": "NO",
                 "note": "",
-            }
-            
-            writer.writerow(row)
+            })
+
+            exported_count += 1
+
+    print(
+        f"[INFO] Đã xuất {exported_count} BibTeX entries "
+        f"có bib_title cho {arxiv_id}."
+    )
 
     return output_csv
 
 
 # ============================================================
-# 4. IMPORT MANUAL LABELS
+# 5. IMPORT MANUAL LABELS
 # ============================================================
 
 def import_manual_csv(
@@ -398,67 +598,147 @@ def import_manual_csv(
     require_verified: bool = True,
 ) -> Path:
     """
-    Import manual CSV → JSON for groundtruth labels.
-    
-    Workflow:
-    1. User fills groundtruth_arxiv_id (manual) OR ticks is_verified=YES
-    2. If is_verified=YES, auto-fill groundtruth_arxiv_id = suggested_ref_arxiv_id
-    3. Code creates JSON with citation_key + groundtruth_arxiv_id + source
+    Import manual CSV -> JSON.
+
+    Quy tắc:
+    1. Nếu người dùng tự điền groundtruth_arxiv_id:
+       chấp nhận trực tiếp, không cần is_verified=YES.
+
+    2. Nếu groundtruth trống:
+       chỉ lấy suggested_ref_arxiv_id khi is_verified=YES.
+
+    3. Nếu không xác định được groundtruth:
+       bỏ qua dòng, không lưu groundtruth=None.
     """
 
     csv_path = Path(csv_path)
 
+    if not csv_path.exists():
+        raise FileNotFoundError(
+            f"Không tìm thấy CSV: {csv_path}"
+        )
+
     labels_dir = labels_dir or (DATA_DIR / "labels")
-    labels_dir.mkdir(parents=True, exist_ok=True)
+    labels_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     rows = []
     skipped_unverified = 0
+    skipped_missing_gt = 0
+    seen_keys: set[str] = set()
 
-    with csv_path.open("r", encoding="utf-8-sig") as file:
+    with csv_path.open(
+        "r",
+        encoding="utf-8-sig",
+    ) as file:
+
         reader = csv.DictReader(file)
 
-        has_verified = "is_verified" in (reader.fieldnames or [])
+        if not reader.fieldnames:
+            raise ValueError(
+                f"CSV không có header: {csv_path.name}"
+            )
+
+        required_columns = {
+            "citation_key",
+            "groundtruth_arxiv_id",
+        }
+
+        missing_columns = (
+            required_columns - set(reader.fieldnames)
+        )
+
+        if missing_columns:
+            raise ValueError(
+                "CSV thiếu các cột bắt buộc: "
+                + ", ".join(sorted(missing_columns))
+            )
+
+        has_verified = (
+            "is_verified" in reader.fieldnames
+        )
 
         for record in reader:
-            key = (record.get("citation_key") or "").strip()
+
+            key = (
+                record.get("citation_key") or ""
+            ).strip()
 
             if not key:
+                continue
+
+            # Tránh import trùng citation_key
+            if key in seen_keys:
                 continue
 
             verified = (
                 record.get("is_verified") or ""
             ).strip().upper()
 
+            # Chỉ import dòng đã xác nhận nếu require_verified=True
             if require_verified and has_verified and verified != "YES":
                 skipped_unverified += 1
                 continue
+            # --------------------------------------------
+            # Ưu tiên 1: groundtruth do người dùng nhập
+            # --------------------------------------------
 
-            # Priority 1: explicit groundtruth_arxiv_id from user
             gt = (
                 record.get("groundtruth_arxiv_id") or ""
             ).strip()
 
+            invalid_values = {
+                "none",
+                "null",
+                "na",
+                "n/a",
+                "-",
+            }
+
             gt_id = (
                 gt
-                if gt and gt.lower() not in (
-                    "none", "null", "na", "n/a", "-"
-                )
+                if gt and gt.lower() not in invalid_values
                 else None
             )
 
-            # Priority 2: if is_verified=YES but no groundtruth, auto-fill from suggested
-            if not gt_id and verified == "YES":
-                suggested = (
-                    record.get("suggested_ref_arxiv_id") or ""
-                ).strip()
+            # --------------------------------------------
+            # Ưu tiên 2: dùng suggested nếu đã xác nhận
+            # --------------------------------------------
 
-                gt_id = (
-                    suggested
-                    if suggested and suggested.lower() not in (
-                        "none", "null", "na", "n/a", "-", ""
-                    )
-                    else None
-                )
+            if not gt_id:
+
+                if (
+                    require_verified
+                    and has_verified
+                    and verified != "YES"
+                ):
+                    skipped_unverified += 1
+                    continue
+
+                if verified == "YES" or not require_verified:
+
+                    suggested = (
+                        record.get(
+                            "suggested_ref_arxiv_id"
+                        ) or ""
+                    ).strip()
+
+                    if (
+                        suggested
+                        and suggested.lower()
+                        not in invalid_values
+                    ):
+                        gt_id = suggested
+
+            # --------------------------------------------
+            # Không có groundtruth -> không import
+            # --------------------------------------------
+
+            if not gt_id:
+                skipped_missing_gt += 1
+                continue
 
             rows.append({
                 "citation_key": key,
@@ -466,32 +746,61 @@ def import_manual_csv(
                 "source": "manual",
             })
 
+            seen_keys.add(key)
+
     if not rows:
         raise ValueError(
             f"Không có nhãn hợp lệ trong {csv_path.name}. "
-            "Hãy kiểm tra và đánh dấu is_verified=YES hoặc điền groundtruth_arxiv_id."
+            "Hãy điền groundtruth_arxiv_id hoặc xác nhận "
+            "suggested_ref_arxiv_id bằng is_verified=YES."
         )
+
+    # --------------------------------------------
+    # Thông báo thống kê import
+    # --------------------------------------------
+
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
+    except (AttributeError, ValueError):
+        pass
+
+    print(f"[INFO] Imported labels: {len(rows)}")
 
     if skipped_unverified:
-        import sys
-        try:
-            sys.stdout.reconfigure(encoding="utf-8")
-            sys.stderr.reconfigure(encoding="utf-8")
-        except (AttributeError, ValueError):
-            pass
         print(
-            f"[WARN] Bỏ qua {skipped_unverified} dòng chưa xác nhận."
+            f"[WARN] Bỏ qua {skipped_unverified} dòng "
+            "chưa xác nhận."
         )
 
-    output = labels_dir / "manual" / f"{arxiv_id}.json"
-    output.parent.mkdir(parents=True, exist_ok=True)
+    if skipped_missing_gt:
+        print(
+            f"[WARN] Bỏ qua {skipped_missing_gt} dòng "
+            "không có groundtruth."
+        )
+
+    # --------------------------------------------
+    # Ghi JSON
+    # --------------------------------------------
+
+    output = (
+        labels_dir
+        / "manual"
+        / f"{arxiv_id}.json"
+    )
+
+    output.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     write_json(output, rows)
 
     return output
 
 
 # ============================================================
-# 5. TỔNG HỢP TIẾN ĐỘ GÁN NHÃN
+# 6. TỔNG HỢP TIẾN ĐỘ GÁN NHÃN
 # ============================================================
 
 def summarize_team_labels(
@@ -499,6 +808,7 @@ def summarize_team_labels(
     n_publications_total: int = 50,
     k: int = 1,
 ) -> dict[str, Any]:
+    """Tổng hợp manual labels và automatic labels."""
 
     labels_dir = labels_dir or (DATA_DIR / "labels")
     labels = load_labels(labels_dir)
@@ -514,13 +824,16 @@ def summarize_team_labels(
     }
 
     for pid, entries in labels.items():
+
         manual_count = sum(
-            1 for entry in entries
+            1
+            for entry in entries
             if entry.get("source") == "manual"
         )
 
         auto_count = sum(
-            1 for entry in entries
+            1
+            for entry in entries
             if entry.get("source") == "auto"
         )
 
@@ -539,6 +852,7 @@ def summarize_team_labels(
             n_publications_total,
             k=k,
         )
+
         summary["quota_status"] = "PASSED"
 
     except Exception as exc:
@@ -548,14 +862,17 @@ def summarize_team_labels(
 
 
 # ============================================================
-# 6. COMMAND LINE
+# 7. COMMAND LINE
 # ============================================================
 
 def main() -> None:
 
     import argparse
 
-    for stream in (sys.stdout, sys.stderr):
+    for stream in (
+        sys.stdout,
+        sys.stderr,
+    ):
         try:
             stream.reconfigure(encoding="utf-8")
         except (AttributeError, ValueError):
@@ -565,55 +882,114 @@ def main() -> None:
         description="M3 Manual Labeling Tool"
     )
 
-    parser.add_argument("--find-candidates", action="store_true")
-    parser.add_argument("--export-template", type=str)
-    parser.add_argument("--import-csv", type=str)
-    parser.add_argument("--paper-id", type=str)
-    parser.add_argument("--allow-unverified", action="store_true")
-    parser.add_argument("--summary", action="store_true")
+    parser.add_argument(
+        "--find-candidates",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--export-template",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--import-csv",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--paper-id",
+        type=str,
+    )
+
+    parser.add_argument(
+        "--allow-unverified",
+        action="store_true",
+    )
+
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+    )
 
     parser.add_argument(
         "--bibtex-path",
         type=Path,
-        help="Đường dẫn bibtex.json, bibtex.jsonl hoặc ZIP chứa chúng",
+        help=(
+            "Đường dẫn bibtex.json, bibtex.jsonl "
+            "hoặc ZIP chứa chúng"
+        ),
     )
 
     parser.add_argument(
         "--references-path",
         type=Path,
-        help="Đường dẫn references.json",
+        help="Đường dẫn references.json hoặc references.jsonl",
     )
 
-    parser.add_argument("--k", type=int, default=1)
-    parser.add_argument("--n-publications", type=int, default=50)
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=1,
+    )
+
+    parser.add_argument(
+        "--n-publications",
+        type=int,
+        default=50,
+    )
 
     args = parser.parse_args()
 
-    if args.find_candidates or args.export_template:
-        if not args.bibtex_path or not args.references_path:
+    if (
+        args.find_candidates
+        or args.export_template
+    ):
+        if (
+            not args.bibtex_path
+            or not args.references_path
+        ):
             parser.error(
-                "Cần cung cấp --bibtex-path và --references-path."
+                "Cần cung cấp --bibtex-path "
+                "và --references-path."
             )
 
+    # --------------------------------------------
+    # Tìm publications đủ điều kiện
+    # --------------------------------------------
+
     if args.find_candidates:
+
         candidates = find_candidate_manual_papers(
             args.bibtex_path,
             args.references_path,
         )
 
-        print(f"Tìm thấy {len(candidates)} bài đủ điều kiện:")
+        print(
+            f"Tìm thấy {len(candidates)} bài đủ điều kiện:"
+        )
 
         for pid, bib_count, ref_count in candidates[:15]:
+
             print(
-                f"- {pid}: {bib_count} BibTeX | "
+                f"- {pid}: "
+                f"{bib_count} BibTeX có bib_title | "
                 f"{ref_count} References"
             )
 
+    # --------------------------------------------
+    # Xuất manual template
+    # --------------------------------------------
+
     elif args.export_template:
+
         pid = args.export_template
 
         output = (
-            DATA_DIR / "labels" / "manual" / f"{pid}.csv"
+            DATA_DIR
+            / "labels"
+            / "manual"
+            / f"{pid}.csv"
         )
 
         export_manual_template(
@@ -625,9 +1001,18 @@ def main() -> None:
 
         print(f"Đã xuất CSV: {output}")
 
+    # --------------------------------------------
+    # Import manual labels
+    # --------------------------------------------
+
     elif args.import_csv:
+
         csv_path = Path(args.import_csv)
-        pid = args.paper_id or csv_path.stem
+
+        pid = (
+            args.paper_id
+            or csv_path.stem
+        )
 
         output = import_manual_csv(
             csv_path,
@@ -637,19 +1022,48 @@ def main() -> None:
 
         print(f"Đã import labels: {output}")
 
+    # --------------------------------------------
+    # Tổng hợp quota
+    # --------------------------------------------
+
     elif args.summary:
+
         result = summarize_team_labels(
             n_publications_total=args.n_publications,
             k=args.k,
         )
 
         print("=== BÁO CÁO GÁN NHÃN ===")
-        print(f"Manual papers: {result['n_manual_papers']}")
-        print(f"Manual entries: {result['n_manual_entries']}")
-        print(f"Manual details: {result['manual_details']}")
-        print(f"Auto papers: {result['n_auto_papers']}")
-        print(f"Auto entries: {result['n_auto_entries']}")
-        print(f"Quota: {result['quota_status']}")
+
+        print(
+            f"Manual papers: "
+            f"{result['n_manual_papers']}"
+        )
+
+        print(
+            f"Manual entries: "
+            f"{result['n_manual_entries']}"
+        )
+
+        print(
+            f"Manual details: "
+            f"{result['manual_details']}"
+        )
+
+        print(
+            f"Auto papers: "
+            f"{result['n_auto_papers']}"
+        )
+
+        print(
+            f"Auto entries: "
+            f"{result['n_auto_entries']}"
+        )
+
+        print(
+            f"Quota: "
+            f"{result['quota_status']}"
+        )
 
     else:
         parser.print_help()

@@ -310,6 +310,7 @@ def test_manual_template_does_not_autofill_groundtruth(tmp_path):
     write_jsonl(bib_path, [{
         "arxiv_id": "test.004",
         "citation_key": "k1",
+        "bib_title": "Attention Is All You Need",
         "title": "Attention Is All You Need",
         "authors": ["Vaswani, Ashish"],
         "year": 2017,

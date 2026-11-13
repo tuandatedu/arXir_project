@@ -254,6 +254,54 @@ def normalize_doi(value: object) -> str | None:
     return doi or None
 
 
+# ---------------------------------------------------------------------------
+# Chuỗi trích dẫn kiểu ADS bị M2 nhét vào field authors (không có title):
+#   "Abdurro'uf, Accetta, K., Aerts, C., et al.\\ 2022, , 259, 35. doi:10.3847/..."
+# ---------------------------------------------------------------------------
+_ADS_RE = re.compile(
+    r"^(?P<authors>.*?)(?:,?\s*et\s+al\.)?\\?\s+(?P<year>(?:1[89]|20)\d{2})[a-z]?\s*,(?P<rest>.*)$",
+    re.S,
+)
+# Token chỉ gồm initials: "K." / "T. C." / "J.-L."
+_INITIALS_RE = re.compile(r"^(?:[A-Z]\.(?:-[A-Z]\.)?\s*)+$")
+_ADS_DOI_RE = re.compile(r"doi:\s*(10\.\S+?)[.\s]*$", re.I)
+
+
+def parse_ads_citation(raw: list | str | None) -> dict[str, Any] | None:
+    """
+    Tách chuỗi kiểu ADS thành {authors: list[str], year: int, doi: str | None}.
+
+    Ví dụ: "Allende Prieto, C., Beers, T. C., et al.\\ 2006, , 636, 804. doi:10.1086/498131"
+    -> authors ["Allende Prieto, C.", "Beers, T. C."], year 2006, doi "10.1086/498131".
+    Trả None nếu chuỗi không đúng dạng (khi đó dùng heuristic khác).
+    Chuỗi này không chứa tiêu đề bài báo, nên hàm không trả title.
+    """
+    if not raw:
+        return None
+    text = " ".join(str(a) for a in raw) if isinstance(raw, list) else str(raw)
+    match = _ADS_RE.match(text.strip())
+    if not match:
+        return None
+
+    authors: list[str] = []
+    for token in (t.strip() for t in match.group("authors").split(",")):
+        if not token:
+            continue
+        if _INITIALS_RE.match(token) and authors:
+            authors[-1] += ", " + token  # "Accetta" + "K." -> "Accetta, K."
+        else:
+            authors.append(token)
+    if not authors:
+        return None
+
+    doi_match = _ADS_DOI_RE.search(text)
+    return {
+        "authors": authors,
+        "year": int(match.group("year")),
+        "doi": doi_match.group(1) if doi_match else None,
+    }
+
+
 def _first_present(row: dict[str, Any], keys: tuple[str, ...]) -> Any:
     """Trả về giá trị đầu tiên khác None/rỗng trong các tên field tương đương."""
     for key in keys:
@@ -261,6 +309,79 @@ def _first_present(row: dict[str, Any], keys: tuple[str, ...]) -> Any:
         if value is not None and value != "":
             return value
     return None
+
+
+def _extract_title_from_authors(authors_raw: list | str | None) -> str:
+    """
+    Heuristic: với BibTeX dạng misc (thường gặp trong LaTeX thủ công),
+    M2 parser đôi khi nhét cả tiêu đề vào cuối mảng authors.
+
+    Pattern điển hình:
+        authors = ["Author A, Author B,", "Title of the Paper, Journal 123, 456 (2023)"]
+
+    Thuật toán:
+    1. Ghép toàn bộ authors thành 1 chuỗi.
+    2. Tách ra các "đoạn" bởi dấu phẩy.
+    3. Tìm đoạn đầu tiên dài > 20 ký tự mà không giống tên người
+       (không chứa chữ viết hoa đơn lẻ kiểu "A. B." hoặc pattern họ tên).
+    4. Dừng trước phần journal/số trang (số + ngoặc đơn ở cuối).
+
+    Trả về chuỗi rỗng nếu không tìm được.
+    """
+    if not authors_raw:
+        return ""
+
+    # Ghép thành chuỗi
+    if isinstance(authors_raw, list):
+        combined = " ".join(str(a) for a in authors_raw)
+    else:
+        combined = str(authors_raw)
+
+    combined = combined.strip()
+    if not combined:
+        return ""
+
+    # Regex nhận dạng "phần tên người" kiểu "Lastname, F." hoặc "F. Lastname"
+    _AUTHOR_FRAG_RE = re.compile(
+        r"^[A-Z][a-z]+,\s+[A-Z]"             # Lastname, F
+        r"|^[A-Z]\.\s*[A-Z][-a-z]+"           # F. Lastname
+        r"|^[A-Z]{1,3}\.\s*[A-Z][-a-z]+"      # F.G. Lastname
+        r"|et\s+al\.?"                          # et al
+    )
+
+    # Pattern "số trang / số tạp chí": "123, 456 (2023)" hoặc "vol. 12, no. 3"
+    _JOURNAL_NUM_RE = re.compile(r"\b\d{1,4},\s*\d{1,4}\s*\(\d{4}\)")
+
+    # Thử tách bằng dấu phẩy + xem từng đoạn
+    # Nhưng title có thể chứa dấu phẩy nên dùng cách khác:
+    # Tìm chuỗi dài bắt đầu bằng chữ hoa, không phải tên tác giả
+    parts = re.split(r",\s*(?=[A-Z])", combined)
+
+    candidate = ""
+    for part in parts:
+        part = part.strip()
+        # Bỏ phần journal (chứa số trang)
+        if _JOURNAL_NUM_RE.search(part):
+            part = _JOURNAL_NUM_RE.sub("", part).strip()
+        # Bỏ nếu giống tên người
+        if _AUTHOR_FRAG_RE.match(part):
+            continue
+        # Bỏ nếu quá ngắn
+        if len(part) < 15:
+            continue
+        # Nếu bắt đầu bằng chữ hoa và có nhiều từ → khả năng là title
+        words = part.split()
+        if words and words[0][0].isupper() and len(words) >= 3:
+            candidate = part
+            break
+
+    # Dọn sạch
+    if candidate:
+        # Cắt bỏ từ ký tự số/journal ở cuối
+        candidate = re.sub(r",?\s*[A-Z][a-z]+\.?\s+\d+.*$", "", candidate).strip()
+        candidate = candidate.strip(".,;: ")
+
+    return candidate if len(candidate) >= 10 else ""
 
 
 def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
@@ -271,19 +392,46 @@ def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
     - authors_norm: danh sách tác giả canonical
     - year_norm: năm integer hoặc None
     - doi_norm: DOI chữ thường, bỏ tiền tố https://doi.org/ nếu có
+
+    Khi title rỗng (M2 parse sai entry misc):
+    1. Nếu field authors là chuỗi kiểu ADS ("A, B., et al.\\ 2022, , 259, 35. doi:..."):
+       tách lại authors/year/doi; đặt title_missing=True và giữ chuỗi gốc ở bib_raw.
+       Chuỗi này KHÔNG có tiêu đề nên title để rỗng, không bịa.
+    2. Ngược lại: thử heuristic _extract_title_from_authors.
     """
     record = dict(row)
-    record["title_norm"] = normalize_title(
-        _first_present(row, ("title", "bib_title")) or ""
-    )
+
+    raw_title = _first_present(row, ("title", "bib_title")) or ""
+
+    if not raw_title:
+        authors_raw = _first_present(row, ("authors", "bib_authors"))
+        ads = parse_ads_citation(authors_raw)
+        if ads:
+            record["bib_raw"] = (
+                " ".join(str(a) for a in authors_raw)
+                if isinstance(authors_raw, list)
+                else str(authors_raw)
+            )
+            record["authors"] = ads["authors"]
+            record["title_missing"] = True
+            if not _first_present(row, ("year", "bib_year")):
+                record["year"] = ads["year"]
+            if not _first_present(row, ("doi", "bib_doi")) and ads["doi"]:
+                record["doi"] = ads["doi"]
+        else:
+            raw_title = _extract_title_from_authors(authors_raw)
+            if raw_title:
+                record["title"] = raw_title  # để bib_title hiện ra trong CSV
+
+    record["title_norm"] = normalize_title(raw_title)
     record["authors_norm"] = normalize_authors(
-        _first_present(row, ("authors", "bib_authors")) or []
+        _first_present(record, ("authors", "bib_authors")) or []
     )
     record["year_norm"] = normalize_year(
-        _first_present(row, ("year", "bib_year"))
+        _first_present(record, ("year", "bib_year"))
     )
     record["doi_norm"] = normalize_doi(
-        _first_present(row, ("doi", "bib_doi"))
+        _first_present(record, ("doi", "bib_doi"))
     )
 
     return record
