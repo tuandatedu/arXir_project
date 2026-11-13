@@ -154,7 +154,7 @@ def generate_training_dataset(
 
     ``element_records`` (M2 elements) là tùy chọn: nếu có, ``cite_count`` được đếm
     từ các lệnh ``\\cite{...}`` trong toàn văn. Nếu không truyền, hàm tự đọc
-    ``elements.json`` (hoặc ``elements.jsonl``) trong ``output_dir`` khi file tồn tại.
+    ``elements.jsonl`` trong ``output_dir`` khi file tồn tại.
 
     Trả về: {"train": [rows], "valid": [rows], "test": [rows]}
     """
@@ -166,11 +166,8 @@ def generate_training_dataset(
     if reference_records is None:
         reference_records = read_json(output_dir / "references.json")
     if element_records is None:
-        elements_json = output_dir / "elements.json"
         elements_jsonl = output_dir / "elements.jsonl"
-        if elements_json.exists():
-            element_records = read_json(elements_json)
-        elif elements_jsonl.exists():
+        if elements_jsonl.exists():
             element_records = read_jsonl(elements_jsonl)
         else:
             element_records = []

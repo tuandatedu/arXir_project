@@ -42,7 +42,7 @@ MyDrive/
         ├── tables/
         │   ├── bibtex.json
         │   ├── references.json
-        │   └── elements.json
+        │   └── elements.jsonl
         ├── labels/
         │   ├── manual/        # *.csv (mẫu) + *.json (sau import)
         │   └── automatic/
@@ -54,7 +54,7 @@ MyDrive/
             └── poster_feature_distribution.png
 ```
 
-- `tables/elements.json`: chuyển từ `elements.jsonl` của M2, dùng cho `cite_count` (thiếu file → `cite_count = 0`).
+- `tables/elements.jsonl`: lấy trực tiếp từ ZIP `M2_range_*_tables.zip`, dùng cho `cite_count` (thiếu file → `cite_count = 0`).
 - Chạy local: dùng cùng cấu trúc dưới `data/` (`data/tables/`, `data/labels/`, `data/prepared_dataset/`).
 
 ---
@@ -223,9 +223,9 @@ Khi train chỉ dùng 14 features + `label`; bỏ các cột định danh/ground
 Cần 3 bảng tại `data/tables/` (trên Colab là `M3_matching/range_{RANGE_ID}/tables/`):
 - `bibtex.json` ← từ M2 output (mảng JSON)
 - `references.json` ← từ M1 output (mảng JSON)
-- `elements.json` ← từ M2 output, chuyển từ `elements.jsonl` sang mảng JSON (notebook tự làm)
+- `elements.jsonl` ← lấy trực tiếp từ ZIP `M2_range_*_tables.zip` (JSONL, không convert sang JSON)
 
-`elements.json` dùng để tính feature **`cite_count`**: đếm số lần `citation_key` xuất hiện trong các lệnh `\cite{...}` của toàn văn. Nếu thiếu file này, `cite_count = 0` cho mọi cặp và feature 14 mất tác dụng; pipeline vẫn chạy nhưng in warning. Code vẫn đọc được `elements.jsonl` nếu chưa chuyển.
+`elements.jsonl` dùng để tính feature **`cite_count`**: đếm số lần `citation_key` xuất hiện trong các lệnh `\cite{...}` của toàn văn. Nếu thiếu file này, `cite_count = 0` cho mọi cặp và feature 14 mất tác dụng; pipeline vẫn chạy nhưng in warning.
 
 Và nhãn manual tại `data/labels/`:
 - `manual/{arxiv_id}.json` ← sau khi import CSV
@@ -266,7 +266,7 @@ File notebook: `src/m3_matching/M3_matching.ipynb` (24 cells)
 |------|---------|-------|--------|
 | 1-2 | Setup: clone repo, cài dependencies, chạy unit tests | GitHub branch | ✅ Tests pass |
 | 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + `RANGE_ID` | Paths ready |
-| 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json`, `elements.json` |
+| 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json`, `elements.jsonl` |
 | 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ tick) |
 | 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
 | 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
@@ -425,7 +425,7 @@ python -m pytest tests/test_m3_matching.py -v
 | | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |
 | Dataset (3) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
 | | `test_build_paper_pairs_dedups_reference_arxiv_ids` | Dedup reference theo `ref_arxiv_id` |
-| | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.json`/`elements.jsonl` |
+| | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.jsonl` |
 | Manual tool (2) | `test_manual_template_does_not_autofill_groundtruth` | Template không tự điền groundtruth |
 | | `test_import_manual_csv_requires_verified_rows` | Chỉ import dòng `is_verified=YES` |
 | Split (2) | `test_split_publications` | Chia train/valid/test theo publication |
@@ -464,6 +464,7 @@ python -m src.m3_matching.prepare_dataset --demo
 
 | Vấn đề | Nguyên nhân | Giải pháp |
 |--------|-----------|----------|
+| `ModuleNotFoundError: No module named 'src'` | Chưa chạy cell setup sau khi restart runtime, hoặc kernel không có project trong `sys.path` | Chạy lại cell Setup (clone/pull + `sys.path.insert`) rồi chạy tiếp |
 | Import CSV báo lỗi "No valid labels" | Không có dòng `is_verified=YES` | Mở CSV, tick ≥1 dòng, lưu lại |
 | Features bị NaN | Thiếu dữ liệu input | Kiểm tra `references.json` + `bibtex.json` |
 | Split không cân bằng | `k` không khớp | Đếm papers, kiểm tra `--k` parameter |
