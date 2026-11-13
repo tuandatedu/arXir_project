@@ -32,8 +32,10 @@ from src.m3_matching.features import (
 from src.m3_matching.labelling import (
     auto_match_one,
     load_labels,
+    load_labels_from_zip,
     save_labels,
     validate_label_quota,
+    zip_automatic_labels,
 )
 from src.m3_matching.manual_tool import export_manual_template, import_manual_csv
 from src.m3_matching.split import split_publications
@@ -363,6 +365,21 @@ def test_import_manual_csv_requires_verified_rows(tmp_path):
 # ---------------------------------------------------------------------------
 # 6. Test Phân chia tập (split.py)
 # ---------------------------------------------------------------------------
+def test_automatic_labels_zip_roundtrip(tmp_path):
+    labels_dir = tmp_path / "labels"
+    rows = [
+        {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "auto"}
+    ]
+    save_labels("2401.00001", rows, labels_dir)
+
+    zip_path = zip_automatic_labels(labels_dir)
+    assert zip_path is not None and zip_path.name == "automatic.zip"
+    assert load_labels_from_zip(zip_path)["2401.00001"] == rows
+
+    (labels_dir / "automatic" / "2401.00001.json").unlink()
+    assert load_labels(labels_dir)["2401.00001"] == rows
+
+
 def test_split_publications():
     labels = {
         f"man_{i}": [{"citation_key": "k1", "source": "manual"}] for i in range(5)

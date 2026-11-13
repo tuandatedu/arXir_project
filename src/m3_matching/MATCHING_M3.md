@@ -45,6 +45,8 @@ MyDrive/
         ├── labels/
         │   ├── manual/        # *.csv (mẫu) + *.json (sau import)
         │   └── automatic/
+        │       └── automatic.zip     # gộp nhãn auto
+        │           └── *.json
         └── prepared_dataset/
             ├── dataset_pairs.parquet
             ├── train_pairs.parquet
@@ -54,6 +56,7 @@ MyDrive/
 ```
 
 - `elements.jsonl` **không nằm trong M3**: pipeline đọc trực tiếp bên trong ZIP `M2_range_*_tables.zip` để tính `cite_count` (notebook truyền `elements_zip=M2_ZIP`).
+- `labels/automatic/automatic.zip`: gộp toàn bộ `labels/automatic/*.json`; pipeline tự tạo khi chạy (`zip_auto_labels=True` trong notebook, CLI `--zip-auto`). `load_labels` đọc cả file `.json` lẫn zip, file `.json` được ưu tiên.
 - Chạy local: dùng cùng cấu trúc dưới `data/` (`data/tables/`, `data/labels/`, `data/prepared_dataset/`).
 
 ---
@@ -151,7 +154,7 @@ Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nh�
 3. **Fuzzy match:** Title ~88% + có tác giả trùng + chênh lệch năm ≤1 → match
 4. **Ambiguity check:** Nếu 2 ứng viên gần bằng nhau → bỏ qua (không match)
 
-**Output:** JSON files tại `labels/automatic/{arxiv_id}.json`
+**Output:** JSON files tại `labels/automatic/{arxiv_id}.json` (+ `labels/automatic/automatic.zip` nếu bật zip)
 
 **Coverage:** ≥10% papers ngoài manual pool (tối thiểu 2 papers/người)
 
@@ -242,6 +245,7 @@ python -m src.m3_matching.prepare_dataset --k 1 --seed 42
 - `--demo`: Chế độ thử nghiệm dữ liệu mẫu nhỏ
 - `--elements-zip`: ZIP M2 chứa `elements.jsonl` (đọc trực tiếp, không giải nén)
 - `--elements-path`: đường dẫn `elements.jsonl` rời (mặc định `<tables-dir>/elements.jsonl`)
+- `--zip-auto`: gộp `labels/automatic/*.json` thành `labels/automatic/automatic.zip`
 
 ### 3. Output Parquet sẵn sàng
 
@@ -399,7 +403,7 @@ data/hf_dataset/data/predictions/*.parquet
 ```powershell
 python -m pytest tests/test_m3_matching.py -v
 ```
-✅ 27/27 tests pass
+✅ 28/28 tests pass
 
 | Nhóm | Test | Nội dung kiểm tra |
 |------|------|-------------------|
@@ -417,9 +421,10 @@ python -m pytest tests/test_m3_matching.py -v
 | | `test_prepare_records` | `prepare_bibtex_record` / `prepare_reference_record`, không sửa dict gốc |
 | | `test_prepare_reference_normalizes_arxiv_id` | `arXiv:1706.03762v5` → `1706.03762` |
 | | `test_prepare_bibtex_accepts_alias_columns` | Nhận cả `bib_title`, `bib_authors`, `bib_year`, `bib_doi` |
-| Labelling (3) | `test_auto_match_one` | Auto-label khớp exact title/DOI |
+| Labelling (4) | `test_auto_match_one` | Auto-label khớp exact title/DOI |
 | | `test_auto_match_doi_with_prefix` | DOI có prefix vẫn khớp |
 | | `test_validate_label_quota` | Quota manual/auto đúng quy định |
+| | `test_automatic_labels_zip_roundtrip` | Zip/đọc lại `labels/automatic.zip` đúng nhãn |
 | Features (3) | `test_features_dimensions` | Đủ 14 đặc trưng |
 | | `test_feature_doi_match_normalizes_prefixes` | `doi_match` chuẩn hóa prefix |
 | | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |

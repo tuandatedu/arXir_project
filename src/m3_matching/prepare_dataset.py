@@ -34,6 +34,7 @@ from src.m3_matching.labelling import (
     load_labels,
     save_labels,
     validate_label_quota,
+    zip_automatic_labels,
 )
 from src.m3_matching.split import split_publications
 
@@ -154,6 +155,7 @@ def run_preparation_pipeline(
     max_auto: int = 0,
     elements_path: Path | None = None,
     elements_zip: Path | None = None,
+    zip_auto_labels: bool = False,
 ) -> dict[str, Any]:
     """Quy trình chuẩn bị dữ liệu đầy đủ."""
     if demo:
@@ -255,6 +257,11 @@ def run_preparation_pipeline(
             labels[pid] = auto_rows
             n_auto_added += 1
 
+    if zip_auto_labels:
+        zipped = zip_automatic_labels(labels_dir)
+        if zipped:
+            LOG.info("Đã gộp nhãn auto vào %s", zipped)
+
     # 4. Kiểm tra quota
     validate_label_quota(labels, n_publications_total=len(available_papers), k=k)
     LOG.info("Đã kiểm tra Hạn mức (Quota) của thầy: ĐẠT CHUẨN 100%%!")
@@ -335,6 +342,7 @@ def main() -> None:
     parser.add_argument("--max-auto", type=int, default=0, help="Tổng số bài auto tối đa (0 = gán tất cả)")
     parser.add_argument("--elements-path", type=Path, default=None, help="elements.jsonl (mặc định <tables-dir>/elements.jsonl)")
     parser.add_argument("--elements-zip", type=Path, default=None, help="ZIP M2 chứa elements.jsonl (đọc trực tiếp, không giải nén)")
+    parser.add_argument("--zip-auto", action="store_true", help="Gộp labels/automatic/*.json thành labels/automatic.zip")
     args = parser.parse_args()
 
     print("=================================================================")
@@ -350,6 +358,7 @@ def main() -> None:
         max_auto=args.max_auto,
         elements_path=args.elements_path,
         elements_zip=args.elements_zip,
+        zip_auto_labels=args.zip_auto,
     )
 
     print("\n>>> BÁO CÁO BÀN GIAO DỮ LIỆU:")

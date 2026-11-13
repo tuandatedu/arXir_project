@@ -1,20 +1,10 @@
-"""
-Ground truth: pair BibTeX entry ↔ crawled reference CÙNG publication.
-
-Ràng buộc đề:
-- Manual: ≥ 5 publications, mỗi paper ≥ 20 labeled entries, tổng ≥ 100
-- Auto (heuristic / string similarity): ≥ 10% publications NGOÀI manual pool,
-  và auto label MỌI BibTeX entry của paper được chọn
-- 1 entry tối đa 1 true reference; không khớp → groundtruth = None (all-negative row)
-
-Format nội bộ:
-data/labels/{manual,automatic}/{arxiv_id}.json
-  {"citation_key": "...", "groundtruth_arxiv_id": "2310.12345"|null, "source": "manual"|"auto"}
-"""
 
 from __future__ import annotations
 
+import json
 import math
+import zipfile
+
 from pathlib import Path
 from typing import Any, Literal
 
@@ -25,74 +15,214 @@ from src.common.config import (
     MIN_MANUAL_PUBLICATIONS,
     TABLES_DIR,
 )
+
 from src.common.io import read_json
+
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
     prepare_reference_record,
 )
+
 from src.m3_matching.features import (
     author_overlap,
     title_similarity,
     year_distance,
 )
 
+
 LabelSource = Literal["manual", "auto"]
+
+
+# ============================================================
+# 1. MATCHING
+# ============================================================
+
+def _get_ref_id(ref_clean: dict[str, Any]) -> str | None:
+    """Lấy arXiv ID đã chuẩn hóa của một reference."""
+
+    ref_id = (
+        ref_clean.get("ref_arxiv_id_norm")
+        or ref_clean.get("ref_arxiv_id")
+    )
+
+    if ref_id is None:
+        return None
+
+    ref_id = str(ref_id).strip()
+
+    return ref_id or None
+
+
+def _get_year_difference(
+    bib_clean: dict[str, Any],
+    ref_clean: dict[str, Any],
+) -> float:
+    """
+    Tính độ lệch năm.
+
+    Giá trị âm được hiểu là không đủ dữ liệu năm,
+    tương thích với cách sử dụng year_distance hiện tại.
+    """
+
+    try:
+        difference = year_distance(bib_clean, ref_clean)
+
+        if difference is None:
+            return -1.0
+
+        return float(difference)
+
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def _unique_match(matches: list[str]) -> str | None:
+    """
+    Chỉ chấp nhận kết quả nếu có đúng một reference ID duy nhất.
+    Nhiều dòng trùng cùng một ID vẫn được xem là một candidate.
+    """
+
+    unique_ids = set(matches)
+
+    if len(unique_ids) == 1:
+        return next(iter(unique_ids))
+
+    return None
 
 
 def _match_one_prepared(
     bib_clean: dict[str, Any],
     prepared_refs: list[dict[str, Any]],
 ) -> str | None:
-    """Phần lõi của auto_match_one, nhận dữ liệu đã chuẩn hóa để tránh lặp lại."""
+    """
+    Matching một BibTeX entry với references của cùng publication.
+
+    Thứ tự ưu tiên:
+    1. Exact DOI.
+    2. Exact title.
+    3. Fuzzy title + author + year.
+
+    Nếu có nhiều candidate không phân biệt được:
+    trả về None để tránh gán nhãn sai.
+    """
+
     if not prepared_refs:
         return None
 
     doi_bib = bib_clean.get("doi_norm")
     title_bib = bib_clean.get("title_norm") or ""
 
-    candidates_with_scores: list[tuple[float, str]] = []
+    # --------------------------------------------------------
+    # Rule 1: Exact DOI
+    # --------------------------------------------------------
+
+    doi_matches = []
+
+    if doi_bib:
+        for ref_clean in prepared_refs:
+            ref_id = _get_ref_id(ref_clean)
+
+            if not ref_id:
+                continue
+
+            doi_ref = ref_clean.get("doi_norm")
+
+            if doi_ref and doi_bib == doi_ref:
+                doi_matches.append(ref_id)
+
+    if doi_matches:
+        return _unique_match(doi_matches)
+
+    # --------------------------------------------------------
+    # Rule 2: Exact title
+    # --------------------------------------------------------
+
+    title_matches = []
+
+    if len(title_bib) >= 8:
+        for ref_clean in prepared_refs:
+            ref_id = _get_ref_id(ref_clean)
+
+            if not ref_id:
+                continue
+
+            title_ref = ref_clean.get("title_norm") or ""
+
+            if title_bib == title_ref:
+                title_matches.append(ref_id)
+
+    if title_matches:
+        return _unique_match(title_matches)
+
+    # --------------------------------------------------------
+    # Rule 3: Fuzzy matching
+    # --------------------------------------------------------
+
+    # Mỗi reference ID chỉ giữ một điểm số tốt nhất.
+    scores_by_ref: dict[str, float] = {}
 
     for ref_clean in prepared_refs:
-        ref_arxiv_id = ref_clean.get("ref_arxiv_id_norm") or ref_clean.get("ref_arxiv_id")
-        if not ref_arxiv_id:
+        ref_id = _get_ref_id(ref_clean)
+
+        if not ref_id:
             continue
 
-        # Quy tắc 1: Khớp DOI chính xác (sau chuẩn hóa)
-        doi_ref = ref_clean.get("doi_norm")
-        if doi_bib and doi_ref and doi_bib == doi_ref:
-            return str(ref_arxiv_id)
+        try:
+            t_sim = float(title_similarity(bib_clean, ref_clean))
+            a_sim = float(author_overlap(bib_clean, ref_clean))
+        except (TypeError, ValueError):
+            continue
 
-        # Quy tắc 2: Khớp tiêu đề tuyệt đối
-        title_ref = ref_clean.get("title_norm") or ""
-        if len(title_bib) >= 8 and title_bib == title_ref:
-            return str(ref_arxiv_id)
+        y_diff = _get_year_difference(bib_clean, ref_clean)
 
-        # Tính độ tương đồng
-        t_sim = title_similarity(bib_clean, ref_clean)
-        a_sim = author_overlap(bib_clean, ref_clean)
-        y_diff = year_distance(bib_clean, ref_clean)
+        # Điều kiện năm:
+        # - y_diff < 0: thiếu dữ liệu năm.
+        # - y_diff <= 1: chênh lệch không quá một năm.
+        is_year_ok = y_diff < 0 or y_diff <= 1.0
 
-        # Điều kiện gán tự động khắt khe (Precision cao):
-        # - Title similarity cao (≥ 0.88)
-        # - Có tác giả trùng (overlap > 0 hoặc title cực cao ≥ 0.95)
-        # - Năm lệch không quá 1 (hoặc một bên không rõ năm)
-        is_year_ok = (y_diff < 0) or (y_diff <= 1.0)
-        is_author_ok = (a_sim > 0.0) or (t_sim >= 0.95)
+        # Phải có tác giả trùng hoặc title cực kỳ giống.
+        is_author_ok = a_sim > 0.0 or t_sim >= 0.95
 
-        if t_sim >= 0.88 and is_author_ok and is_year_ok:
-            composite_score = t_sim * 0.7 + a_sim * 0.2 + (0.1 if (0 <= y_diff <= 1) else 0.0)
-            candidates_with_scores.append((composite_score, str(ref_arxiv_id)))
+        if (
+            t_sim >= 0.88
+            and is_author_ok
+            and is_year_ok
+        ):
+            year_score = (
+                0.1 if 0 <= y_diff <= 1.0 else 0.0
+            )
 
-    if not candidates_with_scores:
+            composite_score = (
+                t_sim * 0.7
+                + a_sim * 0.2
+                + year_score
+            )
+
+            scores_by_ref[ref_id] = max(
+                scores_by_ref.get(ref_id, float("-inf")),
+                composite_score,
+            )
+
+    if not scores_by_ref:
         return None
 
-    candidates_with_scores.sort(key=lambda x: x[0], reverse=True)
-    best_score, best_ref_id = candidates_with_scores[0]
+    ranked = sorted(
+        scores_by_ref.items(),
+        key=lambda item: item[1],
+        reverse=True,
+    )
 
-    # Nếu có candidate thứ 2 quá sát điểm (< 0.05) -> ambiguity -> không gán
-    if len(candidates_with_scores) > 1:
-        second_score = candidates_with_scores[1][0]
-        if best_score - second_score < 0.05 and candidates_with_scores[1][1] != best_ref_id:
+    best_ref_id, best_score = ranked[0]
+
+    # Nếu candidate thứ hai quá sát candidate tốt nhất,
+    # không tự động chọn để tránh false positive.
+    if len(ranked) > 1:
+        second_ref_id, second_score = ranked[1]
+
+        if (
+            best_ref_id != second_ref_id
+            and best_score - second_score < 0.05
+        ):
             return None
 
     return best_ref_id
@@ -103,21 +233,30 @@ def auto_match_one(
     references: list[dict[str, Any]],
 ) -> str | None:
     """
-    Heuristic matcher (regex / string similarity / rules).
-    Chỉ so với các crawled references CỦA CÙNG bài báo đang cite.
+    Tự động tìm ground truth cho một BibTeX entry.
 
-    Quy tắc đối sánh chính xác cao:
-    1. Exact DOI trùng khớp
-    2. Exact title trùng khớp (khi title đủ dài ≥ 8 ký tự)
-    3. Fuzzy title (token_sort_ratio ≥ 88%) + Trùng ít nhất 1 tác giả + Chênh lệch năm ≤ 1
-    Nếu không thỏa điều kiện hoặc có xung đột không rõ ràng -> trả về None.
+    Chỉ so sánh với crawled references thuộc cùng publication.
     """
+
     if not references:
         return None
-    bib_clean = prepare_bibtex_record(bib_entry)
-    prepared_refs = [prepare_reference_record(ref) for ref in references]
-    return _match_one_prepared(bib_clean, prepared_refs)
 
+    bib_clean = prepare_bibtex_record(bib_entry)
+
+    prepared_refs = [
+        prepare_reference_record(ref)
+        for ref in references
+    ]
+
+    return _match_one_prepared(
+        bib_clean,
+        prepared_refs,
+    )
+
+
+# ============================================================
+# 2. AUTOMATIC LABELING
+# ============================================================
 
 def auto_label_publication(
     arxiv_id: str,
@@ -125,162 +264,701 @@ def auto_label_publication(
     references: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Gán nhãn tự động cho MỌI BibTeX entry của 1 paper (bắt buộc theo quy định M3).
-    Nếu bib_entries / references là None, tự động đọc từ data/tables/bibtex.json và references.json (hoặc .jsonl).
+    Gán nhãn tự động cho TOÀN BỘ BibTeX entries của một publication.
 
-    References được chuẩn hóa MỘT LẦN cho cả paper để tránh O(bib × ref) lặp lại.
+    Nếu không truyền bib_entries hoặc references,
+    hàm tự đọc từ TABLES_DIR.
+
+    Mỗi BibTeX entry hợp lệ tạo đúng một label:
+    {
+        "citation_key": "...",
+        "groundtruth_arxiv_id": "2310.12345" | None,
+        "source": "auto"
+    }
     """
+
+    # --------------------------------------------------------
+    # Load BibTeX
+    # --------------------------------------------------------
+
     if bib_entries is None:
         all_bib = read_json(TABLES_DIR / "bibtex.json")
-        bib_entries = [b for b in all_bib if b.get("arxiv_id") == arxiv_id]
+
+        bib_entries = [
+            bib
+            for bib in all_bib
+            if str(bib.get("arxiv_id", "")).strip() == arxiv_id
+        ]
+
+    if not bib_entries:
+        raise ValueError(
+            f"Không tìm thấy BibTeX entries cho publication {arxiv_id}."
+        )
+
+    # --------------------------------------------------------
+    # Load references
+    # --------------------------------------------------------
 
     if references is None:
         all_refs = read_json(TABLES_DIR / "references.json")
-        references = [r for r in all_refs if r.get("arxiv_id") == arxiv_id]
 
-    prepared_refs = [prepare_reference_record(ref) for ref in references]
+        references = [
+            ref
+            for ref in all_refs
+            if str(ref.get("arxiv_id", "")).strip() == arxiv_id
+        ]
 
-    labeled_rows: list[dict[str, Any]] = []
+    # Chuẩn hóa references đúng một lần.
+    prepared_refs = [
+        prepare_reference_record(ref)
+        for ref in references
+    ]
+
+    # --------------------------------------------------------
+    # Label every BibTeX entry
+    # --------------------------------------------------------
+
+    labeled_rows = []
+    seen_keys = set()
+
     for bib in bib_entries:
         citation_key = bib.get("citation_key")
-        if not citation_key:
-            continue
-        gt_id = _match_one_prepared(prepare_bibtex_record(bib), prepared_refs)
+
+        if citation_key is None or not str(citation_key).strip():
+            raise ValueError(
+                f"BibTeX entry thiếu citation_key trong publication {arxiv_id}."
+            )
+
+        citation_key = str(citation_key).strip()
+
+        if citation_key in seen_keys:
+            raise ValueError(
+                f"citation_key bị trùng: {citation_key} "
+                f"trong publication {arxiv_id}."
+            )
+
+        seen_keys.add(citation_key)
+
+        bib_clean = prepare_bibtex_record(bib)
+
+        groundtruth_id = _match_one_prepared(
+            bib_clean,
+            prepared_refs,
+        )
+
         labeled_rows.append({
             "citation_key": citation_key,
-            "groundtruth_arxiv_id": gt_id,
+            "groundtruth_arxiv_id": groundtruth_id,
             "source": "auto",
         })
+
+    # Đảm bảo không bỏ sót entry.
+    if len(labeled_rows) != len(bib_entries):
+        raise RuntimeError(
+            f"Số label không khớp số BibTeX entries của {arxiv_id}."
+        )
 
     return labeled_rows
 
 
-def load_labels(labels_dir: Path) -> dict[str, list[dict[str, Any]]]:
+def auto_label_and_save_publication(
+    arxiv_id: str,
+    labels_dir: Path,
+    bib_entries: list[dict[str, Any]] | None = None,
+    references: list[dict[str, Any]] | None = None,
+) -> Path:
     """
-    Đọc tất cả file nhãn từ:
-    - labels/manual/{arxiv_id}.json
-    - labels/automatic/{arxiv_id}.json
-    -> {arxiv_id: [label_dict, ...]}
+    Auto label toàn bộ BibTeX entries rồi lưu JSON.
     """
-    import json
-    
-    labels_dir = Path(labels_dir)
+
+    rows = auto_label_publication(
+        arxiv_id=arxiv_id,
+        bib_entries=bib_entries,
+        references=references,
+    )
+
+    return save_labels(
+        arxiv_id=arxiv_id,
+        rows=rows,
+        labels_dir=labels_dir,
+    )
+
+
+# ============================================================
+# 3. LOAD LABELS FROM ZIP
+# ============================================================
+
+def load_labels_from_zip(
+    zip_path: Path,
+) -> dict[str, list[dict[str, Any]]]:
+    """
+    Đọc labels từ ZIP.
+
+    Cấu trúc ZIP:
+        automatic.zip
+        ├── 2310.12345.json
+        ├── 2310.12346.json
+        └── ...
+    """
+
+    zip_path = Path(zip_path)
+
     result: dict[str, list[dict[str, Any]]] = {}
-    if not labels_dir.exists():
+
+    if not zip_path.exists():
         return result
 
-    # Đọc từ manual/ folder
-    manual_dir = labels_dir / "manual"
-    if manual_dir.exists():
-        for json_file in sorted(manual_dir.glob("*.json")):
-            arxiv_id = json_file.stem
-            with open(json_file, "r", encoding="utf-8") as f:
-                rows = json.load(f)
-            if rows:
-                result[arxiv_id] = rows
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        for name in sorted(zf.namelist()):
+            if not name.endswith(".json"):
+                continue
 
-    # Đọc từ automatic/ folder
-    auto_dir = labels_dir / "automatic"
-    if auto_dir.exists():
-        for json_file in sorted(auto_dir.glob("*.json")):
-            arxiv_id = json_file.stem
-            with open(json_file, "r", encoding="utf-8") as f:
-                rows = json.load(f)
-            if rows:
-                # Merge với existing nếu có (combine manual + auto)
-                if arxiv_id in result:
-                    result[arxiv_id].extend(rows)
-                else:
-                    result[arxiv_id] = rows
+            # Bỏ qua thư mục trong ZIP.
+            if name.endswith("/"):
+                continue
+
+            rows = json.loads(
+                zf.read(name).decode("utf-8-sig")
+            )
+
+            if not isinstance(rows, list):
+                raise ValueError(
+                    f"Dữ liệu trong {name} phải là một JSON list."
+                )
+
+            if not rows:
+                continue
+
+            arxiv_id = Path(name).stem
+
+            if arxiv_id in result:
+                raise ValueError(
+                    f"Publication {arxiv_id} bị trùng trong ZIP."
+                )
+
+            result[arxiv_id] = rows
 
     return result
 
 
-def save_labels(arxiv_id: str, rows: list[dict[str, Any]], labels_dir: Path) -> Path:
+# ============================================================
+# 4. ZIP AUTOMATIC LABELS
+# ============================================================
+
+def zip_automatic_labels(
+    labels_dir: Path,
+    zip_path: Path | None = None,
+) -> Path | None:
     """
-    Ghi danh sách nhãn của 1 publication vào:
-    - labels/manual/{arxiv_id}.json (nếu source="manual")
-    - labels/automatic/{arxiv_id}.json (nếu source="auto")
+    Gộp labels/automatic/*.json thành automatic.zip.
     """
-    import json
-    
+
     labels_dir = Path(labels_dir)
-    
-    # Determine source từ rows
-    source = rows[0].get("source", "auto") if rows else "auto"
-    
-    # Create subfolder dựa trên source
-    if source == "manual":
-        subfolder = labels_dir / "manual"
+    auto_dir = labels_dir / "automatic"
+
+    if zip_path is None:
+        zip_path = auto_dir / "automatic.zip"
     else:
-        subfolder = labels_dir / "automatic"
-    
-    subfolder.mkdir(parents=True, exist_ok=True)
+        zip_path = Path(zip_path)
+
+    files = sorted(
+        p for p in auto_dir.glob("*.json")
+        if p.name != "automatic.zip"
+    ) if auto_dir.exists() else []
+
+    if not files:
+        return None
+
+    zip_path.parent.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
+    with zipfile.ZipFile(
+        zip_path,
+        "w",
+        compression=zipfile.ZIP_DEFLATED,
+    ) as zf:
+
+        for json_file in files:
+            zf.write(
+                json_file,
+                arcname=json_file.name,
+            )
+
+    return zip_path
+
+
+# ============================================================
+# 5. LOAD ALL LABELS
+# ============================================================
+
+def load_labels(
+    labels_dir: Path,
+) -> dict[str, list[dict[str, Any]]]:
+    """
+    Đọc labels từ:
+
+    labels/
+    ├── manual/
+    │   └── {arxiv_id}.json
+    └── automatic/
+        ├── {arxiv_id}.json
+        └── automatic.zip
+
+    JSON file trong automatic/ được ưu tiên hơn bản trong ZIP.
+
+    Trả về:
+        {
+            arxiv_id: [
+                {
+                    "citation_key": "...",
+                    "groundtruth_arxiv_id": "...",
+                    "source": "manual" | "auto"
+                }
+            ]
+        }
+    """
+
+    labels_dir = Path(labels_dir)
+
+    result: dict[str, list[dict[str, Any]]] = {}
+
+    if not labels_dir.exists():
+        return result
+
+    # --------------------------------------------------------
+    # Load manual labels
+    # --------------------------------------------------------
+
+    manual_dir = labels_dir / "manual"
+
+    if manual_dir.exists():
+        for json_file in sorted(manual_dir.glob("*.json")):
+            arxiv_id = json_file.stem
+
+            with open(
+                json_file,
+                "r",
+                encoding="utf-8",
+            ) as f:
+                rows = json.load(f)
+
+            if not isinstance(rows, list):
+                raise ValueError(
+                    f"Manual label {json_file} phải là JSON list."
+                )
+
+            if rows:
+                result[arxiv_id] = rows
+
+    # --------------------------------------------------------
+    # Load automatic labels from ZIP
+    # --------------------------------------------------------
+
+    auto_dir = labels_dir / "automatic"
+
+    auto_zip = auto_dir / "automatic.zip"
+
+    # Hỗ trợ cả vị trí ZIP cũ.
+    if not auto_zip.exists():
+        auto_zip = labels_dir / "automatic.zip"
+
+    auto_labels = load_labels_from_zip(auto_zip)
+
+    # --------------------------------------------------------
+    # Load individual automatic JSON files.
+    # Individual JSON overrides ZIP version.
+    # --------------------------------------------------------
+
+    if auto_dir.exists():
+        for json_file in sorted(auto_dir.glob("*.json")):
+            if json_file.name == "automatic.zip":
+                continue
+
+            arxiv_id = json_file.stem
+
+            with open(
+                json_file,
+                "r",
+                encoding="utf-8",
+            ) as f:
+                rows = json.load(f)
+
+            if not isinstance(rows, list):
+                raise ValueError(
+                    f"Automatic label {json_file} phải là JSON list."
+                )
+
+            if rows:
+                auto_labels[arxiv_id] = rows
+
+    # --------------------------------------------------------
+    # Merge manual and automatic labels.
+    # Do not silently combine the same publication.
+    # --------------------------------------------------------
+
+    overlap = set(result) & set(auto_labels)
+
+    if overlap:
+        raise ValueError(
+            "Publication xuất hiện trong cả manual và automatic pool: "
+            + ", ".join(sorted(overlap))
+        )
+
+    result.update(auto_labels)
+
+    return result
+
+
+# ============================================================
+# 6. SAVE LABELS
+# ============================================================
+
+def save_labels(
+    arxiv_id: str,
+    rows: list[dict[str, Any]],
+    labels_dir: Path,
+) -> Path:
+    """
+    Lưu labels theo source:
+
+    manual -> labels/manual/{arxiv_id}.json
+    auto   -> labels/automatic/{arxiv_id}.json
+    """
+
+    labels_dir = Path(labels_dir)
+
+    if not rows:
+        raise ValueError(
+            f"Không thể lưu danh sách label rỗng cho {arxiv_id}."
+        )
+
+    sources = {
+        row.get("source")
+        for row in rows
+    }
+
+    if len(sources) != 1:
+        raise ValueError(
+            f"Publication {arxiv_id} có nhiều source khác nhau."
+        )
+
+    source = next(iter(sources))
+
+    if source not in ("manual", "auto"):
+        raise ValueError(
+            f"Source không hợp lệ: {source}."
+        )
+
+    # Validate từng row.
+    seen_keys = set()
+
+    for row in rows:
+        citation_key = row.get("citation_key")
+
+        if citation_key is None or not str(citation_key).strip():
+            raise ValueError(
+                f"Label của {arxiv_id} thiếu citation_key."
+            )
+
+        citation_key = str(citation_key).strip()
+
+        if citation_key in seen_keys:
+            raise ValueError(
+                f"citation_key bị trùng: {citation_key}."
+            )
+
+        seen_keys.add(citation_key)
+
+        gt_id = row.get("groundtruth_arxiv_id")
+
+        if gt_id is not None:
+            if not isinstance(gt_id, str) or not gt_id.strip():
+                raise ValueError(
+                    f"groundtruth_arxiv_id không hợp lệ: {gt_id}."
+                )
+
+    subfolder = (
+        labels_dir / "manual"
+        if source == "manual"
+        else labels_dir / "automatic"
+    )
+
+    subfolder.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
+
     out_path = subfolder / f"{arxiv_id}.json"
-    
-    with open(out_path, "w", encoding="utf-8") as f:
-        json.dump(rows, f, ensure_ascii=False, indent=2)
-    
+
+    with open(
+        out_path,
+        "w",
+        encoding="utf-8",
+    ) as f:
+        json.dump(
+            rows,
+            f,
+            ensure_ascii=False,
+            indent=2,
+        )
+
     return out_path
 
+
+# ============================================================
+# 7. VALIDATE LABEL FORMAT
+# ============================================================
+
+def validate_label_format(
+    labels: dict[str, list[dict[str, Any]]],
+) -> None:
+    """
+    Kiểm tra cấu trúc và tính hợp lệ của toàn bộ labels.
+    """
+
+    if not labels:
+        raise ValueError(
+            "Chưa có dữ liệu gán nhãn nào trong thư mục labels."
+        )
+
+    for arxiv_id, rows in labels.items():
+        if not isinstance(rows, list) or not rows:
+            raise ValueError(
+                f"Publication {arxiv_id} có danh sách label rỗng."
+            )
+
+        seen_keys = set()
+        sources = set()
+
+        for row in rows:
+            if not isinstance(row, dict):
+                raise ValueError(
+                    f"Label của {arxiv_id} không phải dictionary."
+                )
+
+            citation_key = row.get("citation_key")
+
+            if citation_key is None or not str(citation_key).strip():
+                raise ValueError(
+                    f"Publication {arxiv_id} có label thiếu citation_key."
+                )
+
+            citation_key = str(citation_key).strip()
+
+            if citation_key in seen_keys:
+                raise ValueError(
+                    f"Publication {arxiv_id} có citation_key trùng: "
+                    f"{citation_key}."
+                )
+
+            seen_keys.add(citation_key)
+
+            source = row.get("source")
+
+            if source not in ("manual", "auto"):
+                raise ValueError(
+                    f"Source không hợp lệ trong {arxiv_id}: {source}."
+                )
+
+            sources.add(source)
+
+            gt_id = row.get("groundtruth_arxiv_id")
+
+            if gt_id is not None and (
+                not isinstance(gt_id, str) or not gt_id.strip()
+            ):
+                raise ValueError(
+                    f"groundtruth_arxiv_id không hợp lệ trong {arxiv_id}."
+                )
+
+        if len(sources) > 1:
+            raise ValueError(
+                f"Publication {arxiv_id} có cả manual và auto labels."
+            )
+
+
+# ============================================================
+# 8. VALIDATE LABEL QUOTA
+# ============================================================
 
 def validate_label_quota(
     labels: dict[str, list[dict[str, Any]]],
     n_publications_total: int,
     k: int = 1,
+    bibtex_counts: dict[str, int] | None = None,
 ) -> None:
     """
-    Kiểm tra toàn bộ hạn mức (quota) gán nhãn theo đúng quy định của thầy:
-    - Nhóm k thành viên (mặc định k=1, nhóm 2 người k=2):
-      1. Số bài manual ≥ 5 * k (tối thiểu 5 bài cho 1 người, 10 bài cho 2 người)
-      2. Mỗi bài manual ≥ MIN_LABELED_ENTRIES_PER_MANUAL_PAPER (20 entries)
-      3. Tổng số entry manual ≥ 100 * k
-      4. Số bài auto ≥ max(ceil(10% số bài ngoài manual), 2 * k)
+    Kiểm tra quota theo yêu cầu M3.
+
+    Manual:
+        - >= 5 * k publications.
+        - Mỗi publication >= 20 labeled entries.
+        - Tổng >= 100 * k entries.
+
+    Automatic:
+        - >= 10% publications ngoài manual pool.
+        - Đồng thời >= 2 * k publications.
+        - Mỗi publication phải label toàn bộ BibTeX entries.
+
+    bibtex_counts:
+        Dictionary tùy chọn:
+        {
+            "2310.12345": 100,
+            "2310.12346": 80
+        }
+
+        Nếu truyền vào, kiểm tra số auto labels có bằng
+        số BibTeX entries thực tế hay không.
     """
-    if not labels:
-        raise ValueError("Chưa có dữ liệu gán nhãn nào trong thư mục labels!")
+
+    if k < 1:
+        raise ValueError("k phải lớn hơn hoặc bằng 1.")
+
+    if n_publications_total < 1:
+        raise ValueError(
+            "n_publications_total phải lớn hơn hoặc bằng 1."
+        )
+
+    validate_label_format(labels)
+
+    # --------------------------------------------------------
+    # Separate manual and automatic pools.
+    # --------------------------------------------------------
 
     manual_papers: dict[str, int] = {}
-    auto_papers: set[str] = set()
+    auto_papers: dict[str, int] = {}
 
-    for arxiv_id, entries in labels.items():
-        manual_count = sum(1 for e in entries if e.get("source") == "manual")
-        auto_count = sum(1 for e in entries if e.get("source") == "auto")
-        
-        if manual_count > 0:
-            manual_papers[arxiv_id] = manual_count
-        elif auto_count > 0:
-            auto_papers.add(arxiv_id)
+    for arxiv_id, rows in labels.items():
+        source = rows[0].get("source")
 
-    # 1. Kiểm tra số bài manual
-    n_manual = len(manual_papers)
-    min_manual_req = MIN_MANUAL_PUBLICATIONS * k
-    if n_manual < min_manual_req:
+        if source == "manual":
+            manual_papers[arxiv_id] = len(rows)
+
+        elif source == "auto":
+            auto_papers[arxiv_id] = len(rows)
+
+    # --------------------------------------------------------
+    # Check pool overlap.
+    # --------------------------------------------------------
+
+    overlap = set(manual_papers) & set(auto_papers)
+
+    if overlap:
         raise ValueError(
-            f"Thiếu số lượng bài gán nhãn thủ công: {n_manual} < {min_manual_req} bài (k={k})."
+            "Manual và automatic pool bị giao nhau: "
+            + ", ".join(sorted(overlap))
         )
 
-    # 2. Kiểm tra mỗi bài manual ≥ 20 entries
-    for paper_id, count in manual_papers.items():
+    # --------------------------------------------------------
+    # Check manual publication quota.
+    # --------------------------------------------------------
+
+    n_manual = len(manual_papers)
+
+    min_manual_required = MIN_MANUAL_PUBLICATIONS * k
+
+    if n_manual < min_manual_required:
+        raise ValueError(
+            f"Thiếu manual publications: "
+            f"{n_manual} < {min_manual_required} (k={k})."
+        )
+
+    # --------------------------------------------------------
+    # Check minimum manual entries per publication.
+    # --------------------------------------------------------
+
+    for arxiv_id, count in manual_papers.items():
         if count < MIN_LABELED_ENTRIES_PER_MANUAL_PAPER:
             raise ValueError(
-                f"Bài manual {paper_id} chỉ có {count} entries < {MIN_LABELED_ENTRIES_PER_MANUAL_PAPER} entries."
+                f"Manual publication {arxiv_id} có {count} entries, "
+                f"yêu cầu ít nhất "
+                f"{MIN_LABELED_ENTRIES_PER_MANUAL_PAPER}."
             )
 
-    # 3. Kiểm tra tổng số entries manual ≥ 100 * k
+    # --------------------------------------------------------
+    # Check total manual entries.
+    # --------------------------------------------------------
+
     total_manual_entries = sum(manual_papers.values())
-    min_total_req = MIN_LABELED_ENTRIES_TOTAL * k
-    if total_manual_entries < min_total_req:
+
+    min_manual_entries_required = (
+        MIN_LABELED_ENTRIES_TOTAL * k
+    )
+
+    if total_manual_entries < min_manual_entries_required:
         raise ValueError(
-            f"Tổng số entry manual là {total_manual_entries} < {min_total_req} entries (k={k})."
+            f"Tổng manual entries: {total_manual_entries} "
+            f"< {min_manual_entries_required} (k={k})."
         )
 
-    # 4. Kiểm tra số lượng bài auto ≥ 10% số bài ngoài nhóm manual và ≥ 2*k
-    remaining_pool = max(0, n_publications_total - n_manual)
-    required_auto = max(math.ceil(MIN_AUTO_LABEL_FRACTION * remaining_pool), 2 * k)
+    # --------------------------------------------------------
+    # Check automatic publication quota.
+    # --------------------------------------------------------
+
+    remaining_pool = n_publications_total - n_manual
+
+    if remaining_pool < 0:
+        raise ValueError(
+            "Số manual publications lớn hơn tổng số publications."
+        )
+
+    min_auto_by_fraction = math.ceil(
+        MIN_AUTO_LABEL_FRACTION * remaining_pool
+    )
+
+    min_auto_by_group = 2 * k
+
+    required_auto = max(
+        min_auto_by_fraction,
+        min_auto_by_group,
+    )
+
     n_auto = len(auto_papers)
+
     if n_auto < required_auto:
         raise ValueError(
-            f"Số bài gán nhãn tự động chưa đủ: {n_auto} < {required_auto} bài "
-            f"(yêu cầu ≥ {MIN_AUTO_LABEL_FRACTION*100:.0f}% của {remaining_pool} bài còn lại và ≥ {2*k})."
+            f"Thiếu automatic publications: "
+            f"{n_auto} < {required_auto}.\n"
+            f"- Remaining publications: {remaining_pool}\n"
+            f"- Required by 10% rule: {min_auto_by_fraction}\n"
+            f"- Required by group size: {min_auto_by_group}\n"
+            f"- k = {k}"
         )
+
+    # --------------------------------------------------------
+    # Check automatic labels cover every BibTeX entry.
+    # --------------------------------------------------------
+
+    if bibtex_counts is not None:
+        for arxiv_id, label_count in auto_papers.items():
+            expected_count = bibtex_counts.get(arxiv_id)
+
+            if expected_count is None:
+                raise ValueError(
+                    f"Không tìm thấy BibTeX count cho auto publication "
+                    f"{arxiv_id}."
+                )
+
+            if label_count != expected_count:
+                raise ValueError(
+                    f"Auto publication {arxiv_id}: "
+                    f"{label_count}/{expected_count} entries đã được label."
+                )
+
+    # --------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------
+
+    print("LABEL QUOTA VALIDATION: PASSED")
+    print("--------------------------------")
+    print(f"Group size (k):             {k}")
+    print(f"Total publications:         {n_publications_total}")
+    print(f"Manual publications:        {n_manual}")
+    print(f"Manual entries:             {total_manual_entries}")
+    print(f"Automatic publications:     {n_auto}")
+    print(f"Remaining publications:     {remaining_pool}")
+    print(f"Required automatic:         {required_auto}")
+    print("--------------------------------")
+    print("All labeling requirements are satisfied.")
