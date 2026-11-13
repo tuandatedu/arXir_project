@@ -11,6 +11,8 @@ import re
 import unicodedata
 from typing import Any
 
+from src.common.ids import normalize_arxiv_id
+
 # Các stopwords tiếng Anh phổ biến trong tiêu đề học thuật
 TITLE_STOPWORDS = {
     "a", "an", "the", "and", "or", "in", "on", "at", "to", "for",
@@ -19,6 +21,21 @@ TITLE_STOPWORDS = {
 }
 
 _YEAR_REGEX = re.compile(r"\b(19\d\d|20\d\d)\b")
+
+# Đuôi metadata bị dính vào title khi trích BibTeX (không thuộc tiêu đề)
+_HTML_TAG_RE = re.compile(r"<[^>]+>")
+_URL_RE = re.compile(r"(?:https?://|www\.)\S+", re.I)
+_ARXIV_PREPRINT_TAIL_RE = re.compile(
+    r"(?:^|[.;]\s+)\s*arxiv\s*preprint\b.*$", re.I
+)
+_ARXIV_ID_TAIL_RE = re.compile(
+    r"(?:^|[.;]\s+)\s*arxiv:\s*\d{4}\.\d{4,5}(?:v\d+)?.*$", re.I
+)
+_DOI_TAIL_RE = re.compile(r"(?:^|[.;]\s+)\s*doi:\s*\S+.*$", re.I)
+
+# Math inline: giữ phần nội dung thay vì xóa cả cụm (Top-$k$ -> Top k)
+_MATH_DOLLAR_RE = re.compile(r"\$([^$]+)\$")
+_MATH_PAREN_RE = re.compile(r"\\\((.*?)\\\)|\\\[(.*?)\\\]", re.S)
 
 # Accent LaTeX: \'{e}, \"{o}, \^{a}, \`{a}, \~{n}, \={a}, \.{z}
 _SINGLE_CHAR_ACCENT_RE = re.compile(r"""\\([`'^"~=.])\s*\{?([A-Za-z])\}?""")
@@ -51,6 +68,17 @@ def _decode_latex_accents(text: str) -> str:
     return text
 
 
+def _strip_citation_tails(text: str) -> str:
+    """Bỏ URL/DOI/arXiv preprint bị dính vào cuối tiêu đề khi parse BibTeX."""
+    if not text:
+        return ""
+    text = _URL_RE.sub(" ", text)
+    text = _ARXIV_PREPRINT_TAIL_RE.sub(" ", text)
+    text = _ARXIV_ID_TAIL_RE.sub(" ", text)
+    text = _DOI_TAIL_RE.sub(" ", text)
+    return text
+
+
 def _clean_latex_text(text: str) -> str:
     """Loại bỏ markup LaTeX phổ biến trong tiêu đề BibTeX."""
     if not text:
@@ -58,11 +86,17 @@ def _clean_latex_text(text: str) -> str:
     # Đổi các ký tự escaped phổ biến
     text = text.replace(r"\&", "&").replace(r"\%", "%").replace(r"\_", "_")
     text = text.replace(r"\$", "$").replace(r"\#", "#")
-    text = text.replace("&amp;", "&")
+    text = text.replace("&amp;", "&").replace("\u00a0", " ").replace("~", " ")
     # Giải mã accent trước khi ngoặc nhọn bị thay bằng khoảng trắng
     text = _decode_latex_accents(text)
-    # Bỏ math inline $...$
-    text = re.sub(r"\$[^$]*\$", " ", text)
+    # Bỏ thẻ HTML (một số reference crawl về còn <i>, <sub>...)
+    text = _HTML_TAG_RE.sub(" ", text)
+    # Giữ nội dung math (Top-$k$ -> Top k) rồi bỏ dấu phân cách
+    text = _MATH_PAREN_RE.sub(
+        lambda m: f" {m.group(1) or m.group(2) or ''} ", text
+    )
+    text = _MATH_DOLLAR_RE.sub(r" \1 ", text)
+    text = text.replace("$", " ")
     # Bỏ command latex dạng \command hoặc \command{arg}
     text = re.sub(r"\\[a-zA-Z]+", " ", text)
     # Bỏ các cặp ngoặc nhọn nhóm trong BibTeX: {{Title}} -> Title
@@ -80,7 +114,10 @@ def normalize_title(title: str, remove_stopwords: bool = False) -> str:
     """
     if not title:
         return ""
-    text = _clean_latex_text(str(title))
+    text = _strip_citation_tails(str(title))
+    text = _clean_latex_text(text)
+    # NFKC gộp ligature/full-width (ﬁ -> fi) trước khi bỏ dấu
+    text = unicodedata.normalize("NFKC", text)
     text = _strip_accents(text).lower()
     # Chỉ giữ lại chữ cái và số
     text = re.sub(r"[^a-z0-9\s]", " ", text)
@@ -146,8 +183,8 @@ def normalize_authors(authors: list[str] | str) -> list[str]:
 
     raw_list: list[str] = []
     if isinstance(authors, str):
-        # Tách chuỗi theo ' and ' hoặc ';'
-        chunks = re.split(r"\s+and\s+|;", authors, flags=re.IGNORECASE)
+        # Tách chuỗi theo ' and ', ';' hoặc xuống dòng
+        chunks = re.split(r"\s+and\s+|[;\n]", authors, flags=re.IGNORECASE)
         raw_list.extend(chunks)
     elif isinstance(authors, (list, tuple)):
         for item in authors:
@@ -217,6 +254,15 @@ def normalize_doi(value: object) -> str | None:
     return doi or None
 
 
+def _first_present(row: dict[str, Any], keys: tuple[str, ...]) -> Any:
+    """Trả về giá trị đầu tiên khác None/rỗng trong các tên field tương đương."""
+    for key in keys:
+        value = row.get(key)
+        if value is not None and value != "":
+            return value
+    return None
+
+
 def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
     """
     Thêm các trường chuẩn hóa *_norm cho 1 BibTeX row (không sửa bảng gốc).
@@ -227,10 +273,18 @@ def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
     - doi_norm: DOI chữ thường, bỏ tiền tố https://doi.org/ nếu có
     """
     record = dict(row)
-    record["title_norm"] = normalize_title(row.get("title") or "")
-    record["authors_norm"] = normalize_authors(row.get("authors") or [])
-    record["year_norm"] = normalize_year(row.get("year"))
-    record["doi_norm"] = normalize_doi(row.get("doi"))
+    record["title_norm"] = normalize_title(
+        _first_present(row, ("title", "bib_title")) or ""
+    )
+    record["authors_norm"] = normalize_authors(
+        _first_present(row, ("authors", "bib_authors")) or []
+    )
+    record["year_norm"] = normalize_year(
+        _first_present(row, ("year", "bib_year"))
+    )
+    record["doi_norm"] = normalize_doi(
+        _first_present(row, ("doi", "bib_doi"))
+    )
 
     return record
 
@@ -262,7 +316,14 @@ def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
         raw_doi = row["externalIds"].get("DOI")
     record["doi_norm"] = normalize_doi(raw_doi)
 
-    ref_arxiv_id = str(row.get("ref_arxiv_id") or "").strip()
-    record["ref_arxiv_id_norm"] = ref_arxiv_id
+    raw_ref_id = str(row.get("ref_arxiv_id") or "").strip()
+    if raw_ref_id:
+        try:
+            # Bỏ prefix arXiv: / URL và hậu tố version vN để so khớp ổn định.
+            raw_ref_id = normalize_arxiv_id(raw_ref_id)
+        except ValueError:
+            # Giữ nguyên dữ liệu lạ (ví dụ ID giả trong demo) thay vì làm sập pipeline.
+            pass
+    record["ref_arxiv_id_norm"] = raw_ref_id
 
     return record

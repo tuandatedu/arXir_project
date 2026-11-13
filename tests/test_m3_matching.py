@@ -96,6 +96,49 @@ def test_prepare_records():
     assert ref_clean["year_norm"] == 2020
 
 
+def test_normalize_title_strips_citation_tails():
+    raw = (
+        "Outcome Monitors: Recovery Affordances for Silent Tool Failures. "
+        "arXiv preprint. https://arxiv.org/abs/2608.19303v1"
+    )
+    assert normalize_title(raw) == "outcome monitors recovery affordances for silent tool failures"
+
+
+def test_normalize_title_keeps_math_content():
+    assert normalize_title("Beyond Top-$k$ Skill Retrieval") == "beyond top k skill retrieval"
+    assert normalize_title("Beyond Top-k Skill Retrieval") == "beyond top k skill retrieval"
+
+
+def test_normalize_title_strips_html_tags():
+    assert normalize_title("<i>Attention</i> Is All You Need") == "attention is all you need"
+
+
+def test_normalize_authors_splits_newlines():
+    assert normalize_authors("Vaswani, Ashish\nShazeer, Noam") == [
+        "vaswani, a",
+        "shazeer, n",
+    ]
+
+
+def test_prepare_reference_normalizes_arxiv_id():
+    ref = {"ref_arxiv_id": "arXiv:1706.03762v5", "ref_title": "Attention"}
+    assert prepare_reference_record(ref)["ref_arxiv_id_norm"] == "1706.03762"
+
+
+def test_prepare_bibtex_accepts_alias_columns():
+    bib = {
+        "bib_title": "Top-$k$ Retrieval",
+        "bib_authors": "Doe, Jane",
+        "bib_year": "2024",
+        "bib_doi": "https://doi.org/10.1/ABC",
+    }
+    clean = prepare_bibtex_record(bib)
+    assert clean["title_norm"] == "top k retrieval"
+    assert clean["authors_norm"] == ["doe, j"]
+    assert clean["year_norm"] == 2024
+    assert clean["doi_norm"] == "10.1/abc"
+
+
 def test_normalize_doi():
     assert normalize_doi("https://doi.org/10.1145/ABC.") == "10.1145/abc"
     assert normalize_doi("http://dx.doi.org/10.1145/abc") == "10.1145/abc"

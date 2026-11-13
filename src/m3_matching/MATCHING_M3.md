@@ -257,7 +257,58 @@ print(f"Test Accuracy: {accuracy_score(test_df['label'], y_pred):.4f}")
 ```powershell
 python -m pytest tests/test_m3_matching.py -v
 ```
-✅ 21/21 tests pass
+✅ 27/27 tests pass
+
+| Nhóm | Test | Nội dung kiểm tra |
+|------|------|-------------------|
+| Cleaning (14) | `test_normalize_title` | Bỏ LaTeX/markup, giữ nội dung tiêu đề |
+| | `test_normalize_title_decodes_latex_accents_before_braces` | `Schr\"{o}dinger` → `schrodinger`, không tách chữ |
+| | `test_normalize_title_strips_citation_tails` | Bỏ đuôi `arXiv preprint`, URL, DOI |
+| | `test_normalize_title_keeps_math_content` | `Top-$k$` → `top k` (không mất `k`) |
+| | `test_normalize_title_strips_html_tags` | Bỏ `<i>`, `<sub>`... |
+| | `test_normalize_authors` | Chuẩn hóa tên + bỏ `et al.` |
+| | `test_normalize_authors_keeps_name_particles_consistent` | `van der Berg` / `de la Cruz` nhất quán |
+| | `test_normalize_authors_splits_newlines` | Tách tác giả theo xuống dòng |
+| | `test_normalize_year` | `int`, `YYYY`, `YYYY-MM-DD`, năm sai → `None` |
+| | `test_normalize_doi` | Bỏ `https://doi.org/`, `doi:`, lowercase |
+| | `test_reference_doi_from_external_ids` | Lấy DOI từ `externalIds.DOI` |
+| | `test_prepare_records` | `prepare_bibtex_record` / `prepare_reference_record`, không sửa dict gốc |
+| | `test_prepare_reference_normalizes_arxiv_id` | `arXiv:1706.03762v5` → `1706.03762` |
+| | `test_prepare_bibtex_accepts_alias_columns` | Nhận cả `bib_title`, `bib_authors`, `bib_year`, `bib_doi` |
+| Labelling (3) | `test_auto_match_one` | Auto-label khớp exact title/DOI |
+| | `test_auto_match_doi_with_prefix` | DOI có prefix vẫn khớp |
+| | `test_validate_label_quota` | Quota manual/auto đúng quy định |
+| Features (3) | `test_features_dimensions` | Đủ 14 đặc trưng |
+| | `test_feature_doi_match_normalizes_prefixes` | `doi_match` chuẩn hóa prefix |
+| | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |
+| Dataset (3) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
+| | `test_build_paper_pairs_dedups_reference_arxiv_ids` | Dedup reference theo `ref_arxiv_id` |
+| | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.jsonl` |
+| Manual tool (2) | `test_manual_template_does_not_autofill_groundtruth` | Template không tự điền groundtruth |
+| | `test_import_manual_csv_requires_verified_rows` | Chỉ import dòng `is_verified=YES` |
+| Split (2) | `test_split_publications` | Chia train/valid/test theo publication |
+| | `test_split_rejects_invalid_k` | Báo lỗi khi `k` không hợp lệ |
+
+Chỉ chạy test phần làm sạch dữ liệu (Task 1):
+```powershell
+python -m pytest tests/test_m3_matching.py -v -k "normalize or prepare"
+```
+
+Kiểm tra nhanh cleaning bằng Python:
+```python
+from src.m3_matching.cleaning import normalize_title, prepare_reference_record
+
+assert normalize_title(
+    "Outcome Monitors: Recovery Affordances for Silent Tool Failures. "
+    "arXiv preprint. https://arxiv.org/abs/2608.19303v1"
+) == "outcome monitors recovery affordances for silent tool failures"
+
+assert normalize_title("Beyond Top-$k$ Retrieval") == "beyond top k retrieval"
+
+assert prepare_reference_record(
+    {"ref_arxiv_id": "arXiv:1706.03762v5", "ref_title": "Attention"}
+)["ref_arxiv_id_norm"] == "1706.03762"
+```
 
 ### Demo pipeline
 ```powershell
