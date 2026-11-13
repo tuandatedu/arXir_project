@@ -199,7 +199,7 @@ def test_validate_label_quota():
     validate_label_quota(labels, n_publications_total=20, k=1)
 
     # Thiếu manual papers (< 5)
-    with pytest.raises(ValueError, match="Thiếu số lượng bài gán nhãn thủ công"):
+    with pytest.raises(ValueError, match="Thiếu manual publications"):
         bad_labels = {k: v for k, v in list(labels.items())[:4]}
         validate_label_quota(bad_labels, n_publications_total=20, k=1)
 
