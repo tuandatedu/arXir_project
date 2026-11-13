@@ -178,18 +178,14 @@ def load_reference_records(path: Path) -> list[dict[str, Any]]:
 
 def has_bib_title(bib: dict[str, Any]) -> bool:
     """
-    Kiểm tra BibTeX entry có bib_title gốc hay không.
-
-    Không fallback sang title, title_norm hoặc title được
-    suy luận từ authors.
+    Kiểm tra BibTeX entry gốc có tiêu đề (bib_title hoặc title) và không rỗng.
+    Gọi trên record thô trước prepare_bibtex_record để không lấy title suy luận từ authors.
     """
-
     title = bib.get("bib_title")
+    if title is None or not str(title).strip():
+        title = bib.get("title")
 
-    return (
-        title is not None
-        and bool(str(title).strip())
-    )
+    return title is not None and bool(str(title).strip())
 
 
 # ============================================================
