@@ -385,12 +385,11 @@ def import_manual_csv(
                     else None
                 )
 
-            if gt_id:
-                rows.append({
-                    "citation_key": key,
-                    "groundtruth_arxiv_id": gt_id,
-                    "source": "manual",
-                })
+            rows.append({
+                "citation_key": key,
+                "groundtruth_arxiv_id": gt_id,
+                "source": "manual",
+            })
 
     if not rows:
         raise ValueError(
