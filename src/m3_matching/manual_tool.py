@@ -176,16 +176,22 @@ def load_reference_records(path: Path) -> list[dict[str, Any]]:
 # 2. KIỂM TRA BIB_TITLE
 # ============================================================
 
-def has_bib_title(bib: dict[str, Any]) -> bool:
-    """
-    Kiểm tra BibTeX entry gốc có tiêu đề (bib_title hoặc title) và không rỗng.
-    Gọi trên record thô trước prepare_bibtex_record để không lấy title suy luận từ authors.
-    """
-    title = bib.get("bib_title")
-    if title is None or not str(title).strip():
-        title = bib.get("title")
+_MISSING_TITLES = {"", "none", "null", "nan", "n/a"}
 
-    return title is not None and bool(str(title).strip())
+def get_bib_title(bib: dict[str, Any]) -> str:
+    """Trả title gốc (bib_title hoặc title); chuỗi rỗng nếu thiếu/giá trị giả."""
+    for key in ("bib_title", "title"):
+        value = bib.get(key)
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text.lower() not in _MISSING_TITLES:
+            return text
+    return ""
+
+
+def has_bib_title(bib: dict[str, Any]) -> bool:
+    return bool(get_bib_title(bib))
 
 
 # ============================================================
@@ -347,14 +353,12 @@ def export_manual_template(
     # - Có bib_title trong dữ liệu gốc.
     # --------------------------------------------------------
 
-    paper_bib = [
-        prepare_bibtex_record(record)
-        for record in all_bib
-        if (
-            record.get("arxiv_id") == arxiv_id
-            and has_bib_title(record)
-        )
-    ]
+    paper_bib = []
+    for record in all_bib:
+        if record.get("arxiv_id") == arxiv_id and has_bib_title(record):
+            rec = prepare_bibtex_record(record)
+            rec["bib_title"] = get_bib_title(record)
+            paper_bib.append(rec)
 
     paper_refs = [
         prepare_reference_record(record)
@@ -532,10 +536,7 @@ def export_manual_template(
                 else ""
             )
 
-            # Dùng bib_title gốc làm nội dung hiển thị
-            bib_title_display = str(
-                bib.get("bib_title")
-            ).strip()
+            bib_title_display = get_bib_title(bib)
 
             authors = bib.get("authors") or []
 
