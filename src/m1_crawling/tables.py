@@ -93,18 +93,28 @@ def s2_records_to_reference_rows(
     return dedupe_reference_rows(rows)
 
 
-def write_m1_tables(papers: list[PaperRow], references: list[ReferenceRow]) -> None:
+def write_m1_tables(
+        papers: list[PaperRow],
+        references: list[ReferenceRow],
+        raw_references: list[dict[str, Any]] | None = None,
+    ) -> None:
     """
-    Ghi data/tables/papers.json + references.json (mảng JSON, UTF-8).
-    Parquet sharded nằm ở bước export HF (M3).
-    """
+        Ghi data/tables/papers.json + references.json (mảng JSON, UTF-8, 6 cột chuẩn HF).
+        Nếu truyền raw_references, ghi thêm data/tables/references_raw_response.json
+        chứa đầy đủ trường (bao gồm ref_doi, external_ids) cho M3.
+        """
     from src.common.io import write_json
 
     tables_dir = Path(config.TABLES_DIR)
-    write_json(tables_dir / "papers.json",
-               [dataclass_to_dict(row) for row in papers])
-    write_json(tables_dir / "references.json",
-               [dataclass_to_dict(row) for row in references])
+    write_json(
+        tables_dir / "papers.json", [dataclass_to_dict(row) for row in papers]
+    )
+    write_json(
+        tables_dir / "references.json",
+        [dataclass_to_dict(row) for row in references],
+    )
+    if raw_references is not None:
+        write_json(tables_dir / "references_raw_response.json", raw_references)
 
 
 # ---------------------------------------------------------------------------
