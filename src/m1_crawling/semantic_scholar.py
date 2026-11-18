@@ -304,8 +304,8 @@ def s2_ref_to_local_record(
     for author in raw.get("authors") or []:
         if isinstance(author, dict):
             name = author.get("name")
-        if isinstance(name, str) and name.strip():
-            authors.append(name.strip())
+            if isinstance(name, str) and name.strip():
+                authors.append(name.strip())
     publication_date = raw.get("publicationDate")
     if isinstance(publication_date, str) and publication_date.strip():
         ref_submission_date = publication_date.strip()[:10]
