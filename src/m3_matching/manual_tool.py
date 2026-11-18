@@ -167,9 +167,12 @@ def load_bibtex_records(path: Path) -> list[dict[str, Any]]:
 
 
 def load_reference_records(path: Path) -> list[dict[str, Any]]:
-    """Đọc References từ JSON hoặc JSONL."""
+    """Đọc References từ JSON hoặc JSONL; gắn ref_doi nếu có references_raw_response.json."""
 
-    return load_json_records(path)
+    from src.m3_matching.references_io import enrich_from_tables_dir
+
+    records = load_json_records(path)
+    return enrich_from_tables_dir(records, Path(path).parent)
 
 
 # ============================================================
@@ -400,7 +403,9 @@ def export_manual_template(
             build_doi_to_arxiv_map,
         )
 
-        doi_map = build_doi_to_arxiv_map(all_bib)
+        # DOI -> arXiv ID của BÀI ĐƯỢC CITE, dựng từ references (không phải từ bibtex:
+        # trong bibtex, arxiv_id là paper đang cite, không phải bài được cite).
+        doi_map = build_doi_to_arxiv_map(all_refs)
 
     # --------------------------------------------------------
     # CSV columns

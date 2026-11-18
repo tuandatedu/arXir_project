@@ -300,7 +300,10 @@ def auto_label_publication(
     # --------------------------------------------------------
 
     if references is None:
-        all_refs = read_json(TABLES_DIR / "references.json")
+        from src.m3_matching.references_io import enrich_from_tables_dir
+
+        all_refs = enrich_from_tables_dir(
+            read_json(TABLES_DIR / "references.json"), TABLES_DIR)
 
         references = [
             ref

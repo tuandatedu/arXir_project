@@ -191,8 +191,12 @@ def pair_feature_vector(
     doi2 = ref.get("doi_norm") or normalize_doi(
         ref.get("doi") or ref.get("ref_doi") or ref.get("DOI")
     )
-    if not doi2 and isinstance(ref.get("externalIds"), dict):
-        doi2 = normalize_doi(ref["externalIds"].get("DOI"))
+    if not doi2:
+        for ids_key in ("externalIds", "external_ids"):
+            if isinstance(ref.get(ids_key), dict):
+                doi2 = normalize_doi(ref[ids_key].get("DOI"))
+                if doi2:
+                    break
     if doi1 and doi2:
         f_doi_match = 1.0 if doi1 == doi2 else -1.0
     else:

@@ -460,8 +460,12 @@ def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
 
     # DOI có thể nằm ở nhiều tên field tùy nguồn crawl (M1 lưu externalIds)
     raw_doi = row.get("doi") or row.get("ref_doi") or row.get("DOI")
-    if not raw_doi and isinstance(row.get("externalIds"), dict):
-        raw_doi = row["externalIds"].get("DOI")
+    if not raw_doi:
+        for ids_key in ("externalIds", "external_ids"):  # S2 gốc / M1 mới
+            ids = row.get(ids_key)
+            if isinstance(ids, dict) and ids.get("DOI"):
+                raw_doi = ids["DOI"]
+                break
     record["doi_norm"] = normalize_doi(raw_doi)
 
     raw_ref_id = str(row.get("ref_arxiv_id") or "").strip()

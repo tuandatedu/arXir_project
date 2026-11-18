@@ -164,7 +164,10 @@ def generate_training_dataset(
     if bibtex_records is None:
         bibtex_records = read_json(output_dir / "bibtex.json")
     if reference_records is None:
-        reference_records = read_json(output_dir / "references.json")
+        from src.m3_matching.references_io import enrich_from_tables_dir
+
+        reference_records = enrich_from_tables_dir(
+            read_json(output_dir / "references.json"), output_dir)
     if element_records is None:
         elements_jsonl = output_dir / "elements.jsonl"
         if elements_jsonl.exists():

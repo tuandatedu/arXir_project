@@ -37,8 +37,11 @@ def build_doi_to_arxiv_map(
     doi_map: dict[str, str] = {}
     
     for record in bibtex_records:
-        arxiv_id = record.get("arxiv_id")
-        doi = record.get("doi")
+        # arxiv_id trong bibtex/references là paper ĐANG CITE; arXiv ID của bài
+        # được cite nằm ở ref_arxiv_id. Không có ref_arxiv_id -> bỏ qua, tránh
+        # gán nhầm DOI của bài được cite cho paper đang cite.
+        arxiv_id = record.get("ref_arxiv_id_norm") or record.get("ref_arxiv_id")
+        doi = record.get("ref_doi") or record.get("doi")
         
         if not arxiv_id or not doi:
             continue

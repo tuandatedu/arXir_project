@@ -191,6 +191,9 @@ def run_preparation_pipeline(
 
     all_bib = read_json(bib_path)
     all_refs = read_json(ref_path)
+    from src.m3_matching.references_io import enrich_from_tables_dir
+
+    all_refs = enrich_from_tables_dir(all_refs, tables_dir)
 
     LOG.info("Đã đọc %d dòng BibTeX và %d dòng References.", len(all_bib), len(all_refs))
 
