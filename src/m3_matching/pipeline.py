@@ -6,7 +6,7 @@ from src.common.schemas import PredictionRow
 
 
 def run_labelling() -> dict:
-    """Load manual jsonl + auto_label pool; validate_label_quota."""
+    """Load manual json + auto_label pool; validate_label_quota."""
     raise NotImplementedError("TODO(M3): run_labelling")
 
 

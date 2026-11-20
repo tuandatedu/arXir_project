@@ -21,6 +21,35 @@ Chạy:
 python -m src.m3_matching.run_m3
 ```
 
+## Phần việc tasks 1–6 (Người 1) — đã hoàn thiện
+
+| Task | File | Lệnh / kiểm chứng |
+| --- | --- | --- |
+| 1. Làm sạch dữ liệu | `cleaning.py` | `pytest tests/test_m3_matching.py` |
+| 2. Mẫu gán nhãn thủ công | `manual_tool.py` | `python -m src.m3_matching.manual_tool --find-candidates` |
+| 3. Gán nhãn tự động | `labelling.py` | `auto_label_publication`, `validate_label_quota` |
+| 4. 14 đặc trưng | `features.py` | `pair_feature_vector`, `feature_names` |
+| 5. Bảng cặp huấn luyện | `dataset.py` | `python -m src.m3_matching.prepare_dataset --demo` |
+| 6. Chia train/valid/test | `split.py` | `split_publications(labels, k=...)` |
+
+Bàn giao cho Người 2: `data/tables/{train,valid,test,dataset}_pairs.parquet`
+(gồm `label` 0/1 và đủ 14 cột đặc trưng).
+
+Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.json` + `references.json`):
+
+```bash
+python -m src.m3_matching.manual_tool --find-candidates
+python -m src.m3_matching.manual_tool --export-template <arxiv_id>
+# Mở CSV, kiểm tra gợi ý bằng mắt, điền groundtruth_arxiv_id và đổi is_verified=YES
+python -m src.m3_matching.manual_tool --import-csv data/labels/manual/<arxiv_id>.csv
+python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
+```
+
+`--export-template` chỉ điền các cột `suggested_*`; `groundtruth_arxiv_id` để trống
+cho tới khi con người xác nhận. `--import-csv` chỉ nhận dòng `is_verified=YES`.
+
+Chi tiết cách ghép `references.jsonl` từ output M1: xem `MATCHING_M3.md` mục 6.
+
 ---
 
 ## Thứ tự nên code
@@ -57,11 +86,13 @@ Ghép **trong cùng publication** thôi (bib của paper A không khớp ref c�
 
 File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đã chốt):
 
-`data/labels/{arxiv_id}.jsonl`
+`data/labels/manual/{arxiv_id}.json`
 
 ```json
-{"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"}
-{"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+[
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
+  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
@@ -103,10 +134,11 @@ Nhóm dùng LLM / pretrained model sẽ bị chấm **tách** nhóm chỉ dùng 
 
 | Hàm | Code cái gì |
 | --- | --- |
-| `normalize_title` | lower, bỏ punct dư, optional stopword — ghi poster vì sao |
-| `normalize_authors` | `Vaswani, Ashish` vs `Ashish Vaswani` → cùng dạng (last name + initials) |
+| `normalize_title` | lower, bỏ punct dư, optional stopword; giải mã accent LaTeX (`Schr\"{o}dinger` → `schrodinger`) |
+| `normalize_authors` | `Vaswani, Ashish` vs `Ashish Vaswani` → cùng dạng (last name + initials), giữ tiền tố họ (`van der Berg`) |
 | `normalize_year` | int / `"2017"` / ISO → `int` hoặc `None` |
-| `prepare_bibtex_record` / `prepare_reference_record` | Thêm field `*_norm`, **không** sửa bảng gốc |
+| `normalize_doi` | bỏ tiền tố `https://doi.org/`, `doi:` → cùng dạng để so khớp |
+| `prepare_bibtex_record` / `prepare_reference_record` | Thêm field `*_norm` (gồm `doi_norm`), **không** sửa bảng gốc |
 
 ### `labelling.py`
 
@@ -114,7 +146,7 @@ Nhóm dùng LLM / pretrained model sẽ bị chấm **tách** nhóm chỉ dùng 
 | --- | --- |
 | `auto_match_one` | Heuristic: DOI → title giống → fuzzy (rapidfuzz) + overlap author. Chỉ refs **cùng** paper. Trả `ref_arxiv_id` hoặc `None` |
 | `auto_label_publication` | Chạy matcher cho **mọi** bib entry của 1 paper |
-| `load_labels` / `save_labels` | jsonl như trên |
+| `load_labels` / `save_labels` | json như trên |
 | `validate_label_quota` | Raise nếu thiếu 5 papers / 20 / 100 / 10% auto |
 
 ### `features.py` — bắt buộc giải thích từng feature (README + poster)

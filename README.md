@@ -3,9 +3,12 @@
 Group skeleton for the three milestones in
 <https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/>.
 
-This repository currently contains **function stubs only** (`NotImplementedError` +
-docstrings describing *what* to implement). Fill in the bodies; do not change
-table column names unless the lab book changes.
+This repository contains the group's cumulative implementation. M3 tasks 1–6
+(cleaning, manual/auto labelling, 14 pair features, training-pair dataset, and
+paper-level split) are implemented in `src/m3_matching/`; the model-serving
+steps (`model.py`, `evaluate.py`, `tables.py`) remain stubs for the next member.
+See [`src/m3_matching/MATCHING_M3.md`](src/m3_matching/MATCHING_M3.md) for the
+hand-off format and run instructions.
 
 | Milestone | Goal | Hugging Face tables |
 | --- | --- | --- |
@@ -51,7 +54,8 @@ Working data (suggested):
 ```text
 data/working/{2310-12345}/     # M1 sources + metadata + S2 refs
 data/working/{2310-12345}/parsed/   # M2 elements / hierarchy / bibtex
-data/labels/{arxiv_id}.jsonl   # M3 ground truth (manual + auto)
+data/labels/manual/{arxiv_id}.json       # M3 manual ground truth
+data/labels/automatic/{arxiv_id}.json    # M3 auto labels
 data/tables/                   # jsonl + metrics_*.json
 data/hf_dataset/               # 6 Parquet configs + dataset card
 ```
@@ -105,11 +109,13 @@ Column schemas live in `src/common/schemas.py` (must stay flat: one-level string
 
 ## Label file format (M3)
 
-`data/labels/{arxiv_id}.jsonl`:
+`data/labels/manual/{arxiv_id}.json` (và `data/labels/automatic/{arxiv_id}.json`):
 
 ```json
-{"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"}
-{"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
+[
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
+  {"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
+]
 ```
 
 `source` is `manual` or `auto`. One true reference per entry, or `null` when none of the crawled refs match.
