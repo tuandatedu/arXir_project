@@ -276,6 +276,18 @@ def extract_arxiv_id_from_external_ids(external_ids: dict[str, Any] | None) -> O
         return None
 
 
+def extract_doi_from_external_ids(
+    external_ids: dict[str, Any] | None,
+) -> Optional[str]:
+    """Lấy key 'DOI' từ externalIds nếu tồn tại."""
+    if not external_ids or not isinstance(external_ids, dict):
+        return None
+    raw = external_ids.get("DOI")
+    if isinstance(raw, str) and raw.strip():
+        return raw.strip()
+    return None
+
+
 def s2_ref_to_local_record(citing_arxiv_id: str, raw: dict[str, Any]) -> dict[str, Any]:
     """
     Chuẩn hóa 1 reference S2 thành record local (giữ cả khi không có ArXiv).
@@ -284,8 +296,9 @@ def s2_ref_to_local_record(citing_arxiv_id: str, raw: dict[str, Any]) -> dict[st
     - ref_title, ref_authors (list[str] từ objects {authorId, name})
     - ref_submission_date (publicationDate hoặc year)
     - ref_arxiv_id (nullable ở local)
+    - ref_doi (nullable ở local, phục vụ M3 đối chiếu)
     - ref_s2_id = paperId
-    - venue, year (optional, tiện M3)
+    - external_ids, venue, year (optional, tiện M3)
     """
     authors: list[str] = []
     for author in raw.get("authors") or []:
@@ -303,13 +316,18 @@ def s2_ref_to_local_record(citing_arxiv_id: str, raw: dict[str, Any]) -> dict[st
     title = raw.get("title")
     venue = raw.get("venue")
     year = raw.get("year")
+    external_ids = (
+        raw.get("externalIds") if isinstance(raw.get("externalIds"), dict) else {}
+    )
     return {
         "arxiv_id": normalize_arxiv_id(citing_arxiv_id),
         "ref_title": title.strip() if isinstance(title, str) else "",
         "ref_authors": authors,
         "ref_submission_date": ref_submission_date,
-        "ref_arxiv_id": extract_arxiv_id_from_external_ids(raw.get("externalIds")),
+        "ref_arxiv_id": extract_arxiv_id_from_external_ids(external_ids),
+        "ref_doi": extract_doi_from_external_ids(external_ids),
         "ref_s2_id": str(raw.get("paperId") or ""),
+        "external_ids": external_ids,
         "venue": venue.strip() if isinstance(venue, str) and venue.strip() else None,
         "year": year if isinstance(year, int) else None,
     }
