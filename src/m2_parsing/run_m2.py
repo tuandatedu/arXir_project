@@ -18,7 +18,7 @@ from src.common import config
 from .pipeline import run_milestone2, run_raw_hierarchy
 from .batch_pipeline import run_checkpoint_batches
 from .range_inputs import (create_input_layout, parse_range_selection,
-                           run_selected_ranges, selection_output_dir)
+                           run_selected_ranges, selection_output_dir, discover_available_ranges)
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -57,6 +57,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     selection.add_argument("--ranges", nargs="+", help="Ranges to run: 1 3, 1,3 or all")
     selection.add_argument("--select-ranges", action="store_true",
                            help="Prompt for ranges to run")
+    selection.add_argument("--auto-ranges", action="store_true",
+                           help="Auto-detect checkpoint ranges in data/input or data/ (including range_N_dev)")
     parser.add_argument("--input-root", type=Path, default=config.DATA_DIR / "input",
                         help="Contains range_1 through range_5, each with sources/ and references/")
     parser.add_argument("--output-root", type=Path, default=config.DATA_DIR / "output" / "m2",
@@ -65,9 +67,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--require-references", action="store_true",
                         help="Fail if a selected range has no M1 references table")
     args = parser.parse_args(argv)
-    range_mode = args.ranges is not None or args.select_ranges
+    range_mode = args.ranges is not None or args.select_ranges or args.auto_ranges
     if range_mode and (args.batch_dir is not None or args.raw_only or args.arxiv_ids):
-        parser.error("--ranges/--select-ranges cannot combine with --batch-dir, --raw-only or --arxiv-id")
+        parser.error("Range modes cannot combine with --batch-dir, --raw-only or --arxiv-id")
     if args.require_references and not range_mode:
         parser.error("--require-references requires --ranges or --select-ranges")
     if args.init_layout and range_mode:
@@ -87,10 +89,23 @@ def main(argv: list[str] | None = None) -> int:
         create_input_layout(args.input_root)
         print(f"Đã tạo 5 range, mỗi range có sources/ và references/: {args.input_root}")
         return 0
-    if args.ranges is not None or args.select_ranges:
+    # If the user simply runs python -m src.m2_parsing.run_m2 and has
+    # M1 ranges already under data/, discover them automatically.
+    explicit_input = args.ranges is not None or args.select_ranges or args.auto_ranges
+    default_mode = (not explicit_input and args.batch_dir is None and
+                    args.arxiv_ids is None and not args.raw_only and
+                    args.working_dir == config.WORKING_DIR)
+    if default_mode and discover_available_ranges(args.input_root):
+        args.auto_ranges = True
+    if args.ranges is not None or args.select_ranges or args.auto_ranges:
         create_input_layout(args.input_root)
         try:
-            if args.select_ranges:
+            if args.auto_ranges:
+                selected = discover_available_ranges(args.input_root)
+                if not selected:
+                    raise FileNotFoundError(f"No checkpoint ranges detected in {args.input_root}")
+                print("Auto-detected M1 ranges:", selected, flush=True)
+            elif args.select_ranges:
                 print("Chọn range cần chạy: 1 đến 5; nhiều range: 1,3; toàn bộ: all.")
                 while True:
                     try:

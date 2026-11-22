@@ -5,6 +5,8 @@ from __future__ import annotations
 import hashlib
 import json
 import tarfile
+import re
+import shutil
 from pathlib import Path, PurePosixPath
 
 
@@ -21,6 +23,21 @@ def restore_batch(archive: Path, working_dir: Path) -> int:
             digest.update(block)
     if archive.stat().st_size != expected.get("archive_bytes") or digest.hexdigest() != expected.get("archive_sha256"):
         raise ValueError(f"Checkpoint checksum mismatch: {archive}")
+    from src.common.ids import folder_name_for_arxiv_id, normalize_arxiv_id
+    root = working_dir.resolve()
+    # A changed checkpoint must not inherit removed versions/files from an
+    # older restoration. Keep publication-level verified parsed caches; only
+    # replace the M1 version copies restored by this function.
+    for raw_id in expected['ids']:
+        publication = root / folder_name_for_arxiv_id(normalize_arxiv_id(raw_id))
+        if not publication.resolve().is_relative_to(root):
+            raise ValueError(f'Unsafe publication restore target: {publication}')
+        if publication.is_dir():
+            for version_dir in publication.iterdir():
+                if version_dir.is_dir() and re.fullmatch(r'v\d+', version_dir.name):
+                    if not version_dir.resolve().is_relative_to(root):
+                        raise ValueError(f'Unsafe version restore target: {version_dir}')
+                    shutil.rmtree(version_dir)
     written = 0
     with tarfile.open(archive, "r:gz") as bundle:
         for member in bundle:

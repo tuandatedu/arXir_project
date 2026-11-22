@@ -184,13 +184,13 @@ def test_reference_read_failure_is_not_counted_as_parsed(tmp_path: Path, monkeyp
     assert metrics["coverage"][0]["parsed_versions"] == []
 
 
-def test_missing_source_is_failure_not_empty_record(tmp_path: Path):
+def test_missing_source_is_skip_not_parser_failure(tmp_path: Path):
     version = tmp_path / 'working' / '2310-12345' / 'v1'
     version.mkdir(parents=True)
     run_milestone2(tmp_path / 'working', ['2310.12345'], tmp_path / 'tables')
     metrics = json.loads((tmp_path / 'tables' / 'metrics_m2.json').read_text(encoding='utf-8'))
-    assert (metrics['n_versions_empty'], metrics['n_versions_failed']) == (0, 1)
-    assert metrics['coverage'][0]['failed_versions'][0]['error'] == 'missing sources directory'
+    assert (metrics['n_versions_empty'], metrics['n_versions_failed']) == (1, 0)
+    assert metrics['coverage'][0]['source_trace'][0]['reason'] == 'missing sources directory'
 
 
 def test_full_pipeline_two_versions_and_empty(tmp_path: Path):

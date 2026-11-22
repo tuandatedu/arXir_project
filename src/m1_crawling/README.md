@@ -1,6 +1,6 @@
 # Milestone 1 — arXiv Crawler
 
-Tài liệu hợp nhất của `src/m1_crawling/`. **Quy trình chạy được ưu tiên hiện nay là notebook concurrent ở thư mục gốc**: `M1_Colab_Concurrent_Limited.ipynb`.
+Tài liệu hợp nhất của `src/m1_crawling/`. Notebook crawler nằm tại [`notebooks/m1/M1.ipynb`](../../notebooks/m1/M1.ipynb); các notebook và hướng dẫn M1 khác được liệt kê trong [mục lục notebook](../../notebooks/README.md) và [tài liệu M1](../../docs/m1/README.md). Các phần bên dưới có thể chứa ghi chú lịch sử về nhánh và trạng thái triển khai.
 
 ## Đọc nhanh
 
@@ -25,7 +25,7 @@ It is designed to run from a **GitHub feature branch** and save checkpoint archi
 - `src/m1_crawling/run_arxiv_only.py` — concurrent paper workers + updated recovery behavior: keep successful versions and retry only failed versions.
 - `src/m1_crawling/arxiv_http.py` — shared one-connection HTTP gate and global request pacing.
 - `src/m1_crawling/export_reports.py` — report exporter.
-- `M1_Colab_Concurrent_Limited.ipynb` — Colab notebook.
+- `notebooks/m1/M1.ipynb` — Colab notebook.
 - `tests/test_concurrent_crawler.py` — offline concurrency/rate-limit/recovery regression tests.
 
 The existing crawler modules `arxiv_http.py`, `download.py`, `discover.py`, `assigned_ranges.py`, `src/common/config.py`, etc. are still required. **Do not upload only these four files into an empty repo.**
@@ -33,7 +33,7 @@ The existing crawler modules `arxiv_http.py`, `download.py`, `discover.py`, `ass
 ### Các bước chạy trên Colab
 
 1. Push the files to your **feature branch**, not `main`.
-2. Open `M1_Colab_Concurrent_Limited.ipynb` from GitHub or upload to Colab.
+2. Open `notebooks/m1/M1.ipynb` from GitHub or upload to Colab.
 3. Change `REPO_URL` and `BRANCH` in section 1.
 4. Set CPU-only runtime, run clone/install/test, mount Google Drive.
 5. Choose your assigned `RANGE_ID` (1–5) and `BATCH_SIZE` (50 recommended). **Keep the same batch size for the same backup folder.**
@@ -371,7 +371,7 @@ Phụ thuộc: xong `src/common` (xem `src/common/README.md`).
 ## Cách chạy phần đã hiện thực
 
 Phần **Semantic Scholar references + 2 bảng `papers`/`references` + pipeline đầy đủ**
-đã code xong và có test offline. Hai cách chạy (chi tiết: [`README_S2_REFERENCES_VI.md`](README_S2_REFERENCES_VI.md)):
+đã code xong và có test offline. Hai cách chạy (chi tiết: [`README_S2_REFERENCES_VI.md`](../../docs/m1/README_S2_REFERENCES_VI.md)):
 
 1. **Colab trên checkpoint của người 1** (production) — notebook `colab_s2_references.ipynb`:
    đọc `batch_*.tar.gz` trên Drive → crawl references (resume) → xuất 2 bảng + validate.
@@ -384,7 +384,7 @@ python -m src.m1_crawling.run_m1 --ids assigned_ids.txt   # env S2_API_KEY=... n
 ```
 
 Crawler arXiv (tải source `.tex`/`.bib` hàng loạt, chạy riêng trước phần này) do người 1 phụ trách:
-[`README_ARXIV_CRAWLER.md`](README_ARXIV_CRAWLER.md), [`README_CONCURRENT_VI.md`](README_CONCURRENT_VI.md).
+[`README_ARXIV_CRAWLER.md`](../../docs/m1/README_ARXIV_CRAWLER.md), [`README_CONCURRENT_VI.md`](../../docs/m1/README_CONCURRENT_VI.md).
 
 ---
 

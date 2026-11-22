@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import unicodedata
+from urllib.parse import unquote
 from collections import Counter, defaultdict
 from typing import Any
 
@@ -14,12 +16,18 @@ from .hierarchy import ParseNode
 
 
 def _norm(value: Any) -> str:
-    return re.sub(r"[^a-z0-9]+", "", str(value or "").casefold())
+    return ''.join(c for c in unicodedata.normalize('NFKC', str(value or '')).casefold() if c.isalnum())
+
+
+def normalize_doi(value: Any) -> str:
+    """DOI punctuation is significant; remove only a resolver or DOI prefix."""
+    value = unquote(str(value or '').strip())
+    return re.sub(r'^(?:https?://(?:dx\.)?doi\.org/|doi:\s*)', '', value, flags=re.I).casefold()
 
 
 def references_similar(a: dict[str, Any], b: dict[str, Any]) -> bool:
     """Match on DOI, otherwise title with compatible year/author evidence."""
-    da, db = _norm(a.get("doi")), _norm(b.get("doi"))
+    da, db = normalize_doi(a.get("doi")), normalize_doi(b.get("doi"))
     if da and db:
         return da == db
     ta, tb = _norm(a.get("title")), _norm(b.get("title"))
@@ -78,7 +86,7 @@ def dedup_bibtex_across_versions(
     all_entries = [{**entry, "_version": version} for version in sorted(per_version_entries)
                    for entry in per_version_entries[version] if entry.get("citation_key")]
     roots = list(range(len(all_entries)))
-    cluster_dois = [{doi} if (doi := _norm(entry.get("doi"))) else set() for entry in all_entries]
+    cluster_dois = [{doi} if (doi := normalize_doi(entry.get("doi"))) else set() for entry in all_entries]
 
     def find(i: int) -> int:
         while roots[i] != i:
@@ -93,7 +101,7 @@ def dedup_bibtex_across_versions(
     by_key: dict[str, list[int]] = defaultdict(list)
     sparse_by_key: dict[str, list[int]] = defaultdict(list)
     for i, entry in enumerate(all_entries):
-        doi, title = _norm(entry.get("doi")), _norm(entry.get("title"))
+        doi, title = normalize_doi(entry.get("doi")), _norm(entry.get("title"))
         key = entry["citation_key"]
         candidates = set(by_doi[doi]) if doi else set()
         if title:
