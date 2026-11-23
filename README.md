@@ -31,7 +31,7 @@ Nếu chỉ chạy M2, có thể cài `python -m pip install -r src/m2_parsing/r
 python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
 ```
 
-**M2:** [notebook M2](notebooks/m2/M2.ipynb) đã cấu hình checkpoint M1 cho range 1 và 2. Cần đưa project đã cập nhật lên Google Drive, sửa `PROJECT_ROOT` trong notebook rồi chạy các cell. Bài hoặc phiên bản không có LaTeX được ghi nhận là empty và bỏ qua phần chuẩn hóa. Xem [README M2](src/m2_parsing/README.md) để chạy local, tiếp tục batch và đọc kết quả. Code hiện tại dùng pipeline revision 14; kết quả Rev13/FIX143 cũ được lưu riêng.
+**M2:** [notebook M2](notebooks/m2/M2.ipynb) tự tải code M2 từ GitHub vào Colab. Đổi `RANGES` rồi chạy các cell; tài khoản Google cần có quyền đọc checkpoint M1 của các range đã chọn. Bài hoặc phiên bản không có LaTeX được ghi nhận là empty và bỏ qua phần chuẩn hóa. Xem [README M2](src/m2_parsing/README.md) để chạy local, tiếp tục batch và đọc kết quả. Code hiện tại dùng pipeline revision 14; kết quả Rev13/FIX143 cũ được lưu riêng.
 
 **M3:** notebook [M3_matching.ipynb](notebooks/m3/M3_matching.ipynb) và [hướng dẫn matching](src/m3_matching/MATCHING_M3.md) mô tả các bước làm sạch, gán nhãn, tạo đặc trưng và bộ dữ liệu. Các bước model, đánh giá và xuất dữ liệu vẫn còn phần chưa triển khai; `run_m3.py` chưa phải CLI hoàn chỉnh.
 

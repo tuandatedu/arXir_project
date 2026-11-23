@@ -6,12 +6,11 @@ Bài hoặc phiên bản không có LaTeX được ghi nhận là `empty` và b�
 
 ## Chạy trên Google Colab
 
-1. Chép thư mục `arXir_project` đã cập nhật lên Google Drive.
-2. Mở [notebooks/m2/M2.ipynb](../../notebooks/m2/M2.ipynb) bằng Colab.
-3. Chạy các cell theo thứ tự. Ở cell cấu hình, sửa `PROJECT_ROOT` nếu thư mục project trên Drive không nằm tại `/content/drive/MyDrive/arXir_project`.
-4. Xác thực Google Drive khi Colab yêu cầu. Mặc định notebook chạy range 1 và 2, dùng link checkpoints M1 đã cấu hình sẵn.
+1. Mở [notebooks/m2/M2.ipynb](../../notebooks/m2/M2.ipynb) bằng Colab.
+2. Đổi `RANGES` ở cell cấu hình, ví dụ `[3]` hoặc `[3, 4, 5]`, rồi chọn **Runtime → Run all**. Notebook tự tải code M2 từ GitHub vào máy Colab, cố định tại commit `21aa3f3c32cbe528b02ca5d45a7475ae3099155f` (Rev14); không cần chép project lên Drive. Muốn dùng phiên bản code khác, đổi `CODE_COMMIT` thành commit đã được đẩy lên GitHub.
+3. Xác thực Google Drive khi Colab yêu cầu. `M1_PARENT_ID` mặc định là thư mục checkpoint chung của nhóm; tài khoản chạy phải có quyền đọc và thư mục đó phải chứa `range_N_dev` cho từng range được chọn. Nếu dùng thư mục khác, thay ID tương ứng.
 
-Kết quả mặc định được lưu ở `MyDrive/M2_STANDARDIZED_REV14`; workspace nằm ở `MyDrive/M2_STANDARDIZED_WORKSPACE_REV14`. Giữ workspace nếu muốn tiếp tục sau khi Colab ngắt. Notebook dùng code trong project, vì vậy cần chép bản project đã cập nhật lên Drive trước khi chạy.
+Kết quả mặc định được lưu ở `MyDrive/M2_STANDARDIZED_REV14`; workspace nằm ở `MyDrive/M2_STANDARDIZED_WORKSPACE_REV14`. Giữ workspace nếu muốn tiếp tục sau khi Colab ngắt. Mỗi range mặc định cần đủ 5.000 bài M1. Nếu code hoặc checkpoint thay đổi, chọn thư mục output mới để giữ kết quả cũ.
 
 Khi chạy lại, M2 kiểm tra dữ liệu nguồn, code, phiên bản thư viện và checksum trước khi dùng lại kết quả. Kết quả Rev13/FIX143 trước đây được lưu riêng và không tự động trở thành cache của revision 14.
 
