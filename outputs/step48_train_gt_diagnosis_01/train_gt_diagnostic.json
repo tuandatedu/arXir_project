@@ -1,0 +1,77 @@
+{
+  "train_query_count": 142125,
+  "citing_publication_count": 3664,
+  "status_counts": {
+    "KNOWN_GT_ABSENT_FROM_CANDIDATE_POOL": 3,
+    "OK_GT_NULL": 66810,
+    "OK_ONE_POSITIVE": 75312
+  },
+  "anomaly_query_count": 3,
+  "anomalies": [
+    {
+      "arxiv_id": "2609.39989",
+      "citation_key": "ref5",
+      "classification": "KNOWN_GT_ABSENT_FROM_CANDIDATE_POOL",
+      "groundtruth_arxiv_id": "2503.23037",
+      "candidate_pairs": 268,
+      "positive_pair_rows": 0,
+      "target_id_occurrences": 0,
+      "positive_candidate_ids": [],
+      "per_pair_label_mismatches": 0,
+      "inconsistent_gt": false
+    },
+    {
+      "arxiv_id": "2609.39989",
+      "citation_key": "ref7",
+      "classification": "KNOWN_GT_ABSENT_FROM_CANDIDATE_POOL",
+      "groundtruth_arxiv_id": "2605.25998",
+      "candidate_pairs": 268,
+      "positive_pair_rows": 0,
+      "target_id_occurrences": 0,
+      "positive_candidate_ids": [],
+      "per_pair_label_mismatches": 0,
+      "inconsistent_gt": false
+    },
+    {
+      "arxiv_id": "2609.39989",
+      "citation_key": "ref14",
+      "classification": "KNOWN_GT_ABSENT_FROM_CANDIDATE_POOL",
+      "groundtruth_arxiv_id": "2608.02880",
+      "candidate_pairs": 268,
+      "positive_pair_rows": 0,
+      "target_id_occurrences": 0,
+      "positive_candidate_ids": [],
+      "per_pair_label_mismatches": 0,
+      "inconsistent_gt": false
+    }
+  ],
+  "focus_query": {
+    "arxiv_id": "2609.39989",
+    "citation_key": "ref5",
+    "found": true,
+    "groundtruth_arxiv_id": "2503.23037",
+    "candidate_pairs": 268,
+    "positive_pair_rows": 0,
+    "target_id_occurrences": 0,
+    "positive_candidate_ids": [],
+    "candidate_ids_first_8": [
+      "2609.25911",
+      "2609.25647",
+      "2609.26532",
+      "2609.22951",
+      "2609.22819",
+      "2609.18126",
+      "2609.18304",
+      "2609.16453"
+    ],
+    "inconsistent_gt": false,
+    "per_pair_label_mismatches": 0,
+    "classification": "KNOWN_GT_ABSENT_FROM_CANDIDATE_POOL"
+  },
+  "read_only": true,
+  "dataset": "data\\m3\\range_1_frozen_20261123\\prepared_dataset\\train_pairs.parquet",
+  "dataset_sha256": "f9cf5eb22ad1aad07b2db3135c26802cf00cd06fffc9e183dbaa3275c7dec27f",
+  "processed_candidate_pairs": 4185238,
+  "manual_label_crosscheck_for_focus": "2503.23037",
+  "manual_label_matches_frozen_gt": true
+}

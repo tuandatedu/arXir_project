@@ -1,0 +1,3 @@
+[NOTE] pyarrow not installed in current environment; synthetic Parquet roundtrip skipped
+[PASS] Synthetic streaming Top-5 heap: stable ties, 7/3 candidates, GT-null, full pool
+Selftest completed; no real data/model/Test touched

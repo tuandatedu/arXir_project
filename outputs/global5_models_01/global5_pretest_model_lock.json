@@ -1,0 +1,80 @@
+{
+  "status": "PASS",
+  "protocol": "M3_GLOBAL5_LR13_PRIMARY_BEFORE_TEST_v1",
+  "primary": "LR13",
+  "models": {
+    "LR13": {
+      "path": "lr13_model.joblib",
+      "sha256": "b6a1997fb354b411ff34c6923ab255a62687486f8588828cf253a8e4e0222732",
+      "pipeline": "StandardScaler -> LogisticRegression",
+      "lbfgs_n_iter": 14
+    },
+    "LGBM13": {
+      "path": "lgbm13_model.joblib",
+      "sha256": "0530f7c46bce5dff5d16f231d3a695f07b27a37010e857858f998844a45301e9",
+      "trees": 300,
+      "lightgbm_version": "4.7.0"
+    }
+  },
+  "features": [
+    "title_levenshtein",
+    "title_token_sort",
+    "title_token_set",
+    "title_jaccard",
+    "title_exact",
+    "title_len_diff_ratio",
+    "author_jaccard",
+    "author_first_match",
+    "author_any_match",
+    "year_diff",
+    "year_exact",
+    "year_missing",
+    "cite_count"
+  ],
+  "train_sha256": "495786dbe6a23e605430e9e216ff0402f3625400e88e6e8c69a116be7c34510e",
+  "valid_sha256": "d7018a228a9887b898d15fd88ee9f62821d392705f0eaa510a9bd90f1effbe85",
+  "global5_split_csv_sha256": "4e88d61e8c028eb5a3c4c20de174c717a59b623940b7ebddd9a88e2d0e96771b",
+  "validation": {
+    "B1": {
+      "queries": 64,
+      "positive_queries": 42,
+      "gt_null_queries": 22,
+      "known_gt_outside_pool": 0,
+      "mrr_at_5_all": 0.65625,
+      "mrr_at_5_positive_only": 1.0,
+      "hit_at_1_positive_only": 1.0
+    },
+    "B2": {
+      "queries": 64,
+      "positive_queries": 42,
+      "gt_null_queries": 22,
+      "known_gt_outside_pool": 0,
+      "mrr_at_5_all": 0.65625,
+      "mrr_at_5_positive_only": 1.0,
+      "hit_at_1_positive_only": 1.0
+    },
+    "LR13": {
+      "queries": 64,
+      "positive_queries": 42,
+      "gt_null_queries": 22,
+      "known_gt_outside_pool": 0,
+      "mrr_at_5_all": 0.65625,
+      "mrr_at_5_positive_only": 1.0,
+      "hit_at_1_positive_only": 1.0
+    },
+    "LGBM13": {
+      "queries": 64,
+      "positive_queries": 42,
+      "gt_null_queries": 22,
+      "known_gt_outside_pool": 0,
+      "mrr_at_5_all": 0.65625,
+      "mrr_at_5_positive_only": 1.0,
+      "hit_at_1_positive_only": 1.0
+    }
+  },
+  "valid_top1_disagreement_count": 22,
+  "train_pairs": 23221640,
+  "groundtruth_limitations": "Automatic labels may be DOI-first/title/author/year heuristic; GT-null RR 0; no abstention",
+  "test_was_not_opened": true,
+  "selection_protocol": "LR13 preselected prior to global test. No test tuning."
+}

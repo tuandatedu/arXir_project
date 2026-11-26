@@ -11,3 +11,6 @@ __pycache__/
 .python-version
 .env
 *.joblib
+
+# Generated M3 datasets and prediction exports
+outputs/**/*.parquet

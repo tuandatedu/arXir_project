@@ -1,0 +1,159 @@
+{
+  "protocol_id": "IntroDS_M3_R1_LR13_PreTest_2026-11-25_v1",
+  "status": "PENDING_LOCAL_ARTIFACT_VERIFICATION__DO_NOT_OPEN_TEST",
+  "decision_date": "2026-11-25",
+  "scope": "Individual ML+Evaluation workstream; do not integrate shared pipeline yet",
+  "github": {
+    "repo": "tuandatedu/arXir_project",
+    "branch": "M3-model",
+    "commit_sha": "7f542abd88f4864b58bbca3fe183a0a4b7e7628b",
+    "source_git_blob_shas": {
+      "scripts/train_logistic_regression.py": "25f9f800090a9e86835c8e17afa9f65b4a51bc93",
+      "scripts/train_lightgbm.py": "a4d30905f6b9a59527bfef1cefbfc6e06f140564",
+      "scripts/run_weighted_baseline.py": "a1740f0afe10abd1afc96e7d7613d0540a6736c1",
+      "scripts/evaluate_five_ranges.py": "afecd8959e2ec283c21cbfd932c6f277f6a72417"
+    }
+  },
+  "selected_model": {
+    "name": "LR13",
+    "type": "StandardScaler + LogisticRegression",
+    "artifact_relative_path": "outputs/lr13_full_20261125_01/lr13_model.joblib",
+    "selection_basis": "Among trained ML candidates, LR13 and LGBM13 tie on frozen Validation; prefer LR13 for model interpretability and simplicity; NOT a claim of superior MRR or independent GT performance",
+    "fit_config": {
+      "solver": "lbfgs",
+      "max_iter": 1000,
+      "class_weight": null,
+      "random_state": 42,
+      "scaler_fit": "Range1 Train only"
+    },
+    "model_sha256": null,
+    "artifact_status": "NOT_AVAILABLE_IN_GITHUB; verify trusted local joblib first"
+  },
+  "comparators": [
+    {
+      "name": "B1_TitleOnly",
+      "score": "title_levenshtein",
+      "status": "frozen baseline"
+    },
+    {
+      "name": "B2_Weighted",
+      "score": "0.7*title_levenshtein + 0.2*author_jaccard + 0.1*year_exact",
+      "status": "frozen baseline"
+    },
+    {
+      "name": "LGBM13",
+      "artifact_relative_path": "outputs/lgbm13_full_20261125_01/lgbm13_model.joblib",
+      "fit_config": {
+        "n_estimators": 300,
+        "learning_rate": 0.05,
+        "num_leaves": 31,
+        "min_child_samples": 100,
+        "random_state": 42
+      },
+      "model_sha256": null,
+      "status": "frozen comparison model; local joblib verification pending"
+    }
+  ],
+  "features": [
+    "title_levenshtein",
+    "title_token_sort",
+    "title_token_set",
+    "title_jaccard",
+    "title_exact",
+    "title_len_diff_ratio",
+    "author_jaccard",
+    "author_first_match",
+    "author_any_match",
+    "year_diff",
+    "year_exact",
+    "year_missing",
+    "cite_count"
+  ],
+  "exclude_from_model_inputs": [
+    "doi_match",
+    "label",
+    "groundtruth_arxiv_id",
+    "arxiv_id",
+    "citation_key",
+    "ref_arxiv_id",
+    "partition"
+  ],
+  "training_r1": {
+    "rows": 4185238,
+    "positives": 75312,
+    "negatives": 4109926,
+    "sha256": "f9cf5eb22ad1aad07b2db3135c26802cf00cd06fffc9e183dbaa3275c7dec27f",
+    "path_relative": "data/m3/range_1_frozen_20261123/prepared_dataset/train_pairs.parquet"
+  },
+  "validation_r1": {
+    "rows": 4261,
+    "queries": 53,
+    "positive_queries": 38,
+    "gt_null_queries": 15,
+    "sha256": "f62896841d6f3b5ebbc38ea098873eaa4daacaa34a22d5c4efc7c5cde49fd294",
+    "path_relative": "data/m3/range_1_frozen_20261123/prepared_dataset/valid_pairs.parquet",
+    "mrr_at_5_all": 0.7169811320754716,
+    "mrr_at_5_positive_only": 1.0
+  },
+  "validation_extra": {
+    "ranges": [
+      2,
+      3,
+      4,
+      5
+    ],
+    "purpose": "external-range robustness audit, not 5-fold CV",
+    "aggregate_queries": 281,
+    "aggregate_positive_queries": 158,
+    "aggregate_gt_null_queries": 123,
+    "all_four_methods_mrr_at_5_micro": 0.5622775800711743,
+    "note": "cross-range R1 Train vs R2-R5 Valid source-publication overlap not independently audited; avoid claiming independent generalization"
+  },
+  "scoring": {
+    "unit": "one BibTeX citation query vs candidate references of same citing publication",
+    "positive_class": 1,
+    "score_method": "predict_proba(X)[:, index_of_class_1]",
+    "candidate_pool": "frozen M3 Parquet reference candidates only",
+    "sort": "score_descending",
+    "tie_break": "candidate_original_row_order",
+    "top_k": 5,
+    "if_candidates_less_than_five": "keep available candidates, pad nullable cand columns on final predictions export",
+    "abstention": "none",
+    "decision_threshold": "none",
+    "no_test_tuning": true
+  },
+  "evaluation": {
+    "ranking_label_used_only_for_metric": true,
+    "mrr_at_k": 5,
+    "rr_if_positive_rank_in_top5": "1/rank",
+    "rr_outside_top5": 0,
+    "gt_null_rr": 0,
+    "all_query_denominator": "all citation queries including GT-null",
+    "additional_reporting": [
+      "positive-only MRR@5",
+      "positive-only Hit@1",
+      "positive-only Hit@5",
+      "query count",
+      "GT-null count",
+      "manual citing publication MRR@5",
+      "automatic citing publication MRR@5"
+    ],
+    "test_scope": "One-time evaluation after all selected model and code/data hashes verified; Range1 official first, other ranges only under group agreement",
+    "test_opened": false
+  },
+  "cautions": [
+    "Automatic labels are DOI-first hybrid with title/author/year fallback; not verified-independent GT",
+    "GT-null does not prove no correct reference exists in real world",
+    "Same Validation scores do not imply identical Top1 predictions",
+    "Do not claim ML outperforms B1 or LGBM13",
+    "Do not alter frozen M2/M3 labels for this protocol",
+    "Never load untrusted joblib: it is a pickle payload"
+  ],
+  "pending_gates": [
+    "Verify local trusted LR13 and LGBM13 joblib with readonly preflight",
+    "Compute and record SHA-256 of both model artifacts",
+    "Recompute and exactly compare all 265 Top-5 rows on frozen Range1 Valid",
+    "Review any cross-range overlap if making external-generalization claims",
+    "User or team adopts this primary-model choice before final Test"
+  ]
+}

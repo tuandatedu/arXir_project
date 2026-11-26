@@ -1,0 +1,88 @@
+{
+  "result": "PASS",
+  "verified_files": [
+    "test_metrics.json",
+    "test_summary.md",
+    "test_query_metrics.csv",
+    "test_top5_comparison.csv",
+    "test_lr13_predictions_ONLY.csv"
+  ],
+  "records": {
+    "query_method_rows": 332,
+    "top5_rows": 1660,
+    "test_predictions_rows": 83,
+    "distinct_test_queries": 83
+  },
+  "per_method": {
+    "B1": {
+      "queries": 83,
+      "positive": 61,
+      "gt_null": 22,
+      "mrr_at_5": 0.7349397590361446
+    },
+    "B2": {
+      "queries": 83,
+      "positive": 61,
+      "gt_null": 22,
+      "mrr_at_5": 0.7349397590361446
+    },
+    "LR13": {
+      "queries": 83,
+      "positive": 61,
+      "gt_null": 22,
+      "mrr_at_5": 0.7349397590361446
+    },
+    "LGBM13": {
+      "queries": 83,
+      "positive": 61,
+      "gt_null": 22,
+      "mrr_at_5": 0.7349397590361446
+    }
+  },
+  "per_publication": [
+    {
+      "arxiv_id": "2610.01287",
+      "source": "auto",
+      "queries": 61,
+      "positives": 39,
+      "gt_null": 22,
+      "mrr_at_5": 0.639344262295082
+    },
+    {
+      "arxiv_id": "2610.01936",
+      "source": "manual",
+      "queries": 22,
+      "positives": 22,
+      "gt_null": 0,
+      "mrr_at_5": 1.0
+    }
+  ],
+  "top1_differences": {
+    "any_disagreement_positive": 0,
+    "any_disagreement_gt_null": 19,
+    "gt_null_total": 22,
+    "pairwise": {
+      "B1 vs B2": 7,
+      "B1 vs LR13": 13,
+      "B1 vs LGBM13": 19,
+      "B2 vs LR13": 11,
+      "B2 vs LGBM13": 17,
+      "LR13 vs LGBM13": 15
+    }
+  },
+  "constraints_verified": [
+    "Test query rows unique",
+    "Exactly 4 methods per query",
+    "Exactly 5 ranks per method/query",
+    "Scores sorted descending",
+    "Candidate IDs unique in each Top-5",
+    "LR13 CSV matches all 415 candidates in Top-5",
+    "Ground Truth consistency within query",
+    "Recomputed per publication/method MRR matches metrics.json"
+  ],
+  "limitations": [
+    "Does not independently verify the frozen Test Parquet nor model joblib, only user uploaded output files",
+    "Full Train/Valid/Test predictions.parquet not yet produced",
+    "Automatic Ground Truth might depend on title and author/year matching"
+  ]
+}

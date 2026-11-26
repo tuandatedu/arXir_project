@@ -1,0 +1,93 @@
+{
+  "status": "PASS",
+  "split_protocol": "M3_GLOBAL5_PUBLICATION_SPLIT_PRETRAIN_v1_2026-11-26",
+  "split_csv_sha256": "4e88d61e8c028eb5a3c4c20de174c717a59b623940b7ebddd9a88e2d0e96771b",
+  "source_parquet": {
+    "R1": {
+      "path": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\data\\m3\\global5_input\\range_1\\dataset_pairs.parquet",
+      "size_bytes": 41555823,
+      "sha256": "af441ebb90b918fac46b49b0eef526f262b81caae36f07683969d2d330764ad6",
+      "pairs": 4197246,
+      "publications": 3668
+    },
+    "R2": {
+      "path": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\data\\m3\\global5_input\\range_2\\dataset_pairs.parquet",
+      "size_bytes": 45996673,
+      "sha256": "50090f5955e08fd72443c4aa7ba21bdd850b9340adc0eee63c8d0dd632d6ae50",
+      "pairs": 4612426,
+      "publications": 3817
+    },
+    "R3": {
+      "path": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\data\\m3\\global5_input\\range_3\\dataset_pairs.parquet",
+      "size_bytes": 47229007,
+      "sha256": "1ce65aa29fce22e405700fa9ff26a8882f78c6bc581aa2368523c64272f19fe7",
+      "pairs": 4833297,
+      "publications": 3737
+    },
+    "R4": {
+      "path": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\data\\m3\\global5_input\\range_4\\dataset_pairs.parquet",
+      "size_bytes": 43019402,
+      "sha256": "60082bfafe48802f69c662da1166ad2b004b165602ef35c71d5e16ccca3ccec2",
+      "pairs": 4443094,
+      "publications": 3563
+    },
+    "R5": {
+      "path": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\data\\m3\\global5_input\\range_5\\dataset_pairs.parquet",
+      "size_bytes": 50228908,
+      "sha256": "959ec0e6e5d089e029f0e877d5f705bb246a6eee945288970b1e93692da9fa65",
+      "pairs": 5145083,
+      "publications": 3738
+    }
+  },
+  "partition": {
+    "train": {
+      "path": "outputs\\global5_prepared_01\\train_pairs.parquet",
+      "pairs": 23221640,
+      "queries": 790739,
+      "publications": 18519,
+      "sha256": "495786dbe6a23e605430e9e216ff0402f3625400e88e6e8c69a116be7c34510e"
+    },
+    "valid": {
+      "path": "outputs\\global5_prepared_01\\valid_pairs.parquet",
+      "pairs": 4104,
+      "queries": 64,
+      "publications": 2,
+      "sha256": "d7018a228a9887b898d15fd88ee9f62821d392705f0eaa510a9bd90f1effbe85"
+    },
+    "test": {
+      "path": "outputs\\global5_prepared_01\\test_pairs.parquet",
+      "pairs": 5402,
+      "queries": 59,
+      "publications": 2,
+      "sha256": "e070c20c2b92843d90590594ce9649a3087a826f453465ed9cdc95d553d70ba1"
+    }
+  },
+  "all_pairs": 23231146,
+  "all_queries": 790862,
+  "no_model_or_test_evaluation": true,
+  "frozen_holdouts": {
+    "test": [
+      "2604.01323",
+      "2603.18656"
+    ],
+    "valid": [
+      "2604.00125",
+      "2604.03553"
+    ]
+  },
+  "features": [
+    "title_levenshtein",
+    "title_token_sort",
+    "title_token_set",
+    "title_jaccard",
+    "title_exact",
+    "title_len_diff_ratio",
+    "author_jaccard",
+    "author_first_match",
+    "author_any_match",
+    "year_diff",
+    "year_exact",
+    "year_missing",
+    "cite_count"
+  ]
+}

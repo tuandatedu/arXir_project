@@ -1,0 +1,50 @@
+{
+  "status": "PASS",
+  "scope": "5 ranges unified",
+  "primary": "LR13",
+  "model_sha256": "b6a1997fb354b411ff34c6923ab255a62687486f8588828cf253a8e4e0222732",
+  "split_csv_sha256": "4e88d61e8c028eb5a3c4c20de174c717a59b623940b7ebddd9a88e2d0e96771b",
+  "prepared_manifest": {
+    "train": {
+      "path": "outputs\\global5_prepared_01\\train_pairs.parquet",
+      "pairs": 23221640,
+      "queries": 790739,
+      "publications": 18519,
+      "sha256": "495786dbe6a23e605430e9e216ff0402f3625400e88e6e8c69a116be7c34510e"
+    },
+    "valid": {
+      "path": "outputs\\global5_prepared_01\\valid_pairs.parquet",
+      "pairs": 4104,
+      "queries": 64,
+      "publications": 2,
+      "sha256": "d7018a228a9887b898d15fd88ee9f62821d392705f0eaa510a9bd90f1effbe85"
+    },
+    "test": {
+      "path": "outputs\\global5_prepared_01\\test_pairs.parquet",
+      "pairs": 5402,
+      "queries": 59,
+      "publications": 2,
+      "sha256": "e070c20c2b92843d90590594ce9649a3087a826f453465ed9cdc95d553d70ba1"
+    }
+  },
+  "schema": [
+    "arxiv_id",
+    "partition",
+    "citation_key",
+    "groundtruth_arxiv_id",
+    "cand_1",
+    "cand_2",
+    "cand_3",
+    "cand_4",
+    "cand_5"
+  ],
+  "predictions_rows": 790862,
+  "partition_query_counts": {
+    "train": 790739,
+    "valid": 64,
+    "test": 59
+  },
+  "known_gt_outside_pool_count": 3,
+  "predictions_sha256": "db02fd5eb79b06b1d67ac4cae619fce49523f066372dd630a2986b732d18f5e1",
+  "no_data_change_or_model_tuning": true
+}

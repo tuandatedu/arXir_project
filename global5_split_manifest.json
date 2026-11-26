@@ -1,0 +1,152 @@
+{
+  "status": "PASS",
+  "protocol_id": "M3_GLOBAL5_PUBLICATION_SPLIT_PRETRAIN_v1_2026-11-26",
+  "scope": "5 Range (R1-R5), publication-level unified split",
+  "source": "HCMUS M3 statement + M3-matching/split.py k=1 seed=42 + five Range manual JSON/automatic ZIP",
+  "seed": 42,
+  "strategy": "Test and Valid from original Range2-5 old TRAIN-only publications, never previous per-Range Validation/Test nor original Range1; Train = all remaining labeled publications.",
+  "old_split_reconstructed": {
+    "R1": {
+      "test_manual": "2610.01936",
+      "test_auto": "2610.01287",
+      "valid_manual": "2610.00928",
+      "valid_auto": "2610.00922"
+    },
+    "R2": {
+      "test_manual": "2604.16792",
+      "test_auto": "2604.17955",
+      "valid_manual": "2604.16183",
+      "valid_auto": "2604.16933"
+    },
+    "R3": {
+      "test_manual": "2604.01865",
+      "test_auto": "2604.04048",
+      "valid_manual": "2604.01277",
+      "valid_auto": "2604.01298"
+    },
+    "R4": {
+      "test_manual": "2603.28489",
+      "test_auto": "2603.29021",
+      "valid_manual": "2603.26560",
+      "valid_auto": "2604.00527"
+    },
+    "R5": {
+      "test_manual": "2603.18167",
+      "test_auto": "2603.16204",
+      "valid_manual": "2603.16796",
+      "valid_auto": "2603.16565"
+    }
+  },
+  "source_auto_zip_sha256": {
+    "R1": "78c4d097581a6503aeeebdda7a0bd592c7e03e4d69f79df9acf52aa3699b60c1",
+    "R2": "e2ca241a95399a4c6dfe45d9066d60914fa3fddae4403e8c4f934dba5d1730a3",
+    "R3": "e47381b8384dac97eab572312c740f1d2362d72f447ce01395a1b019804bc554",
+    "R4": "d8fbadebe535dd3e657f0e104a1d3f9f56688c023d2ccbc7b05c488711f57837",
+    "R5": "20159fa8ecba815c45c0cf63c695f1dc16f4c8bf99df7bdcfe8a3141d225cdba"
+  },
+  "counts": {
+    "total_publications": 18523,
+    "manual": 25,
+    "automatic": 18498,
+    "total_queries": 790862,
+    "total_gt_nonnull": 365666,
+    "by_partition": {
+      "train": 18519,
+      "test": 2,
+      "valid": 2
+    },
+    "by_source_and_partition": {
+      "train:auto": 18496,
+      "train:manual": 23,
+      "test:manual": 1,
+      "valid:auto": 1,
+      "valid:manual": 1,
+      "test:auto": 1
+    },
+    "by_range": {
+      "R1": {
+        "n_publications": 3668,
+        "n_manual": 5,
+        "n_auto": 3663,
+        "n_labeled_queries": 142261,
+        "n_gt_nonnull": 75414
+      },
+      "R2": {
+        "n_publications": 3817,
+        "n_manual": 5,
+        "n_auto": 3812,
+        "n_labeled_queries": 164498,
+        "n_gt_nonnull": 74916
+      },
+      "R3": {
+        "n_publications": 3737,
+        "n_manual": 5,
+        "n_auto": 3732,
+        "n_labeled_queries": 161584,
+        "n_gt_nonnull": 72477
+      },
+      "R4": {
+        "n_publications": 3563,
+        "n_manual": 5,
+        "n_auto": 3558,
+        "n_labeled_queries": 154025,
+        "n_gt_nonnull": 67136
+      },
+      "R5": {
+        "n_publications": 3738,
+        "n_manual": 5,
+        "n_auto": 3733,
+        "n_labeled_queries": 168494,
+        "n_gt_nonnull": 75723
+      }
+    }
+  },
+  "global_holdouts": {
+    "test": [
+      "2604.01323",
+      "2603.18656"
+    ],
+    "valid": [
+      "2604.00125",
+      "2604.03553"
+    ]
+  },
+  "holdout_meta": {
+    "2604.01323": {
+      "range": "R3",
+      "label_source": "manual",
+      "partition": "test",
+      "labeled_queries": 25,
+      "old_partition": "train"
+    },
+    "2604.03553": {
+      "range": "R3",
+      "label_source": "auto",
+      "partition": "valid",
+      "labeled_queries": 40,
+      "old_partition": "train"
+    },
+    "2604.00125": {
+      "range": "R4",
+      "label_source": "manual",
+      "partition": "valid",
+      "labeled_queries": 24,
+      "old_partition": "train"
+    },
+    "2603.18656": {
+      "range": "R5",
+      "label_source": "auto",
+      "partition": "test",
+      "labeled_queries": 34,
+      "old_partition": "train"
+    }
+  },
+  "split_csv_sha256": "4e88d61e8c028eb5a3c4c20de174c717a59b623940b7ebddd9a88e2d0e96771b",
+  "audit": {
+    "auto_and_manual_overlap": 0,
+    "cross_range_overlap": 0,
+    "anomalies": [],
+    "no_previously_heldout_in_new_test_or_valid": true
+  },
+  "warning": "This final split was created from real label files. This is a NEW EXPERIMENT; former Range1 Test metric is development/history, not new global Test. No new global Test rows/features/models were opened or trained."
+}

@@ -1,0 +1,4 @@
+partition,arxiv_id,citation_key,groundtruth_arxiv_id,candidate_count
+train,2609.39989,ref5,2503.23037,268
+train,2609.39989,ref7,2605.25998,268
+train,2609.39989,ref14,2608.02880,268

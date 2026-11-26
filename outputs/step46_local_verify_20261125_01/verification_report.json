@@ -1,0 +1,36 @@
+{
+  "result": "PASS",
+  "scope": "Range1 Train + Range1 Validation only; Test unopened",
+  "commit_reference": "7f542abd88f4864b58bbca3fe183a0a4b7e7628b",
+  "source_protocol_sha256": "54c4c58928056d0eee969ba6d8d139fb38772a2a5b768ab5e07f317109b1d4a3",
+  "train_sha256": "f9cf5eb22ad1aad07b2db3135c26802cf00cd06fffc9e183dbaa3275c7dec27f",
+  "valid_sha256": "f62896841d6f3b5ebbc38ea098873eaa4daacaa34a22d5c4efc7c5cde49fd294",
+  "validation_positive_queries": 38,
+  "validation_gt_null_queries": 15,
+  "models": {
+    "LR13": {
+      "model_file": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\outputs\\lr13_full_20261125_01\\lr13_model.joblib",
+      "model_sha256": "a5052feb83eeac5f7be05fc1ca54f80feedc9907edd19186d0619762d4c02757",
+      "metrics_file_sha256": "8e556286870f5b32c590ef54b0c26a8eed82368efacf3f39cecc6517cb7e31f3",
+      "validation": {
+        "queries": 53,
+        "positive_queries": 38,
+        "mrr_at_5": 0.7169811320754716,
+        "mrr_at_5_positive_only": 1.0
+      },
+      "top5_rows_verified": 265
+    },
+    "LGBM13": {
+      "model_file": "C:\\1_HDD\\IntroDS_M3\\arXir_project_ML\\outputs\\lgbm13_full_20261125_01\\lgbm13_model.joblib",
+      "model_sha256": "5ddc881b10e698fffd7e741a01474bac56d8e4d6419f2ad372b9eebb4839e91d",
+      "metrics_file_sha256": "dca94e607bd575cad09c04bcd5d64e50da25874198f12d73918639ea82907fb5",
+      "validation": {
+        "queries": 53,
+        "positive_queries": 38,
+        "mrr_at_5": 0.7169811320754716,
+        "mrr_at_5_positive_only": 1.0
+      },
+      "top5_rows_verified": 265
+    }
+  }
+}
