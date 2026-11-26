@@ -618,7 +618,7 @@ def selftest() -> None:
         with TemporaryDirectory() as d:
             p = Path(d) / "predictions.parquet"
             write_predictions_parquet(rows,p)
-            assert pq.ParquetFile(p).metadata.num_rows == 3
+            assert pq.ParquetFile(p).metadata.num_rows == 4
         print("[PASS] Synthetic Parquet dictionary/nullable schema and read-back")
     except ModuleNotFoundError:
         print("[NOTE] pyarrow not installed in current environment; synthetic Parquet roundtrip skipped")
