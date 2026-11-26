@@ -14,3 +14,6 @@ __pycache__/
 
 # Generated M3 datasets and prediction exports
 outputs/**/*.parquet
+
+# M3: all trained models, intermediate outputs, and large predictions are local
+outputs/

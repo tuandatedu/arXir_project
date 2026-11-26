@@ -1,0 +1,2 @@
+# SHA-256-frozen CSV used by Global5: preserve exact CRLF bytes on all operating systems.
+configs/m3_global5/global5_publication_split.csv -text
