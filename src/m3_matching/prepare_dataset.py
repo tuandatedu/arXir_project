@@ -34,7 +34,6 @@ from src.m3_matching.labelling import (
     load_labels,
     save_labels,
     validate_label_quota,
-    zip_automatic_labels,
 )
 from src.m3_matching.split import split_publications
 
@@ -133,25 +132,6 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
     LOG.info("Đã tạo dữ liệu mẫu với %d bài báo, sẵn sàng chạy pipeline!", total_papers)
 
 
-def _write_labels_to_zip(
-    auto_labels: dict[str, list[dict[str, Any]]],
-    labels_dir: Path,
-) -> None:
-    """
-    Ghi auto labels trực tiếp vào ZIP mà không lưu file JSON riêng lẻ.
-    """
-    labels_dir = Path(labels_dir)
-    auto_dir = labels_dir / "automatic"
-    auto_dir.mkdir(parents=True, exist_ok=True)
-    
-    zip_path = auto_dir / "automatic.zip"
-    
-    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
-        for arxiv_id, rows in sorted(auto_labels.items()):
-            json_data = json.dumps(rows, ensure_ascii=False, indent=2)
-            zf.writestr(f"{arxiv_id}.json", json_data.encode("utf-8"))
-
-
 def _read_elements_from_zip(zip_path: Path) -> tuple[list[dict[str, Any]], str]:
     """Đọc elements.jsonl trực tiếp trong ZIP M2 (không giải nén ra đĩa)."""
     if not zip_path.exists():
@@ -174,7 +154,6 @@ def run_preparation_pipeline(
     max_auto: int = 0,
     elements_path: Path | None = None,
     elements_zip: Path | None = None,
-    zip_auto_labels: bool = False,
 ) -> dict[str, Any]:
     """Quy trình chuẩn bị dữ liệu đầy đủ."""
     if demo:
@@ -268,7 +247,6 @@ def run_preparation_pipeline(
         if any(e.get("source") == "auto" for e in entries)
     )
     n_auto_added = 0
-    auto_labels_in_memory = {}  # Lưu auto labels trong memory
     for pid in auto_candidates:
         if max_auto and existing_auto + n_auto_added >= max_auto:
             break
@@ -276,18 +254,24 @@ def run_preparation_pipeline(
         p_refs = refs_by_paper.get(pid, [])
         auto_rows = auto_label_publication(pid, p_bibs, p_refs)
         if auto_rows:
-            # Lưu vào memory, không save file
-            auto_labels_in_memory[pid] = auto_rows
+            # Lưu riêng từng publication để giữ provenance và hỗ trợ chạy tiếp.
+            save_labels(pid, auto_rows, labels_dir)
             labels[pid] = auto_rows
             n_auto_added += 1
-
-    # Ghi auto labels vào ZIP (không lưu file riêng lẻ)
-    if zip_auto_labels and auto_labels_in_memory:
-        _write_labels_to_zip(auto_labels_in_memory, labels_dir)
-        LOG.info("Đã ghi %d auto labels vào ZIP", len(auto_labels_in_memory))
+    if n_auto_added:
+        LOG.info("Đã lưu %d auto label files riêng lẻ", n_auto_added)
 
     # 4. Kiểm tra quota
-    validate_label_quota(labels, n_publications_total=len(available_papers), k=k)
+    bibtex_counts = {
+        pid: len(bibs_by_paper[pid])
+        for pid in available_papers
+    }
+    validate_label_quota(
+        labels,
+        n_publications_total=len(available_papers),
+        k=k,
+        bibtex_counts=bibtex_counts,
+    )
     LOG.info("Đã kiểm tra Hạn mức (Quota) của thầy: ĐẠT CHUẨN 100%%!")
 
     # 5. Phân chia tập dữ liệu train / valid / test
@@ -366,7 +350,6 @@ def main() -> None:
     parser.add_argument("--max-auto", type=int, default=0, help="Tổng số bài auto tối đa (0 = gán tất cả)")
     parser.add_argument("--elements-path", type=Path, default=None, help="elements.jsonl (mặc định <tables-dir>/elements.jsonl)")
     parser.add_argument("--elements-zip", type=Path, default=None, help="ZIP M2 chứa elements.jsonl (đọc trực tiếp, không giải nén)")
-    parser.add_argument("--zip-auto", action="store_true", help="Gộp labels/automatic/*.json thành labels/automatic.zip")
     args = parser.parse_args()
 
     print("=================================================================")
@@ -382,7 +365,6 @@ def main() -> None:
         max_auto=args.max_auto,
         elements_path=args.elements_path,
         elements_zip=args.elements_zip,
-        zip_auto_labels=args.zip_auto,
     )
 
     print("\n>>> BÁO CÁO BÀN GIAO DỮ LIỆU:")

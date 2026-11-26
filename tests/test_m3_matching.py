@@ -32,10 +32,8 @@ from src.m3_matching.features import (
 from src.m3_matching.labelling import (
     auto_match_one,
     load_labels,
-    load_labels_from_zip,
     save_labels,
     validate_label_quota,
-    zip_automatic_labels,
 )
 from src.m3_matching.manual_tool import export_manual_template, import_manual_csv
 from src.m3_matching.split import split_publications
@@ -257,16 +255,16 @@ def test_build_paper_pairs():
     ]
 
     pairs = build_paper_pairs(arxiv_id, bibs, refs, labels, partition="train")
-    assert len(pairs) == 4  # 2 bibs x 2 refs
+    assert len(pairs) == 2  # chỉ entry k1 có ground truth xác định được tạo cặp
     # Cặp k1 - ref.101 phải có label = 1
     match_pairs = [p for p in pairs if p["citation_key"] == "k1" and p["ref_arxiv_id"] == "ref.101"]
     assert match_pairs[0]["label"] == 1
     # Cặp k1 - ref.102 label = 0
     neg_pairs = [p for p in pairs if p["citation_key"] == "k1" and p["ref_arxiv_id"] == "ref.102"]
     assert neg_pairs[0]["label"] == 0
-    # k2 có groundtruth None -> mọi cặp đều label = 0
+    # k2 có groundtruth None -> bị bỏ khỏi dataset, không biến thành negative
     k2_pairs = [p for p in pairs if p["citation_key"] == "k2"]
-    assert all(p["label"] == 0 for p in k2_pairs)
+    assert k2_pairs == []
 
 
 def test_build_paper_pairs_dedups_reference_arxiv_ids():
@@ -331,16 +329,16 @@ def test_manual_template_does_not_autofill_groundtruth(tmp_path):
     assert row["suggested_ref_arxiv_id"] == "1706.03762"
     assert row["suggested_score"]
     assert row["groundtruth_arxiv_id"] == ""
-    assert row["is_verified"] == "NO"
+    assert "is_verified" not in row
 
 
-def test_import_manual_csv_requires_verified_rows(tmp_path):
+def test_import_manual_csv_uses_only_nonempty_groundtruth(tmp_path):
     csv_path = tmp_path / "test.005.csv"
     with csv_path.open("w", encoding="utf-8-sig", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "suggested_ref_arxiv_id"])
         writer.writeheader()
-        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "YES"})
-        writer.writerow({"citation_key": "k2", "groundtruth_arxiv_id": "ref.2", "is_verified": "NO"})
+        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "suggested_ref_arxiv_id": "ref.9"})
+        writer.writerow({"citation_key": "k2", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.2"})
 
     labels_dir = tmp_path / "labels"
     out_file = import_manual_csv(csv_path, "test.005", labels_dir=labels_dir)
@@ -348,42 +346,17 @@ def test_import_manual_csv_requires_verified_rows(tmp_path):
     assert [r["citation_key"] for r in rows] == ["k1"]
     assert rows[0]["groundtruth_arxiv_id"] == "ref.1"
 
-    # Chế độ bỏ qua kiểm tra dùng cho CSV cũ không có cột is_verified.
-    out_file_all = import_manual_csv(
-        csv_path, "test.005", labels_dir=labels_dir, require_verified=False
-    )
-    assert len(read_json(out_file_all)) == 2
-
-    unverified_only = tmp_path / "test.006.csv"
-    with unverified_only.open("w", encoding="utf-8-sig", newline="") as fh:
+    legacy_csv = tmp_path / "test.006.csv"
+    with legacy_csv.open("w", encoding="utf-8-sig", newline="") as fh:
         writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
         writer.writeheader()
         writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "NO"})
-    with pytest.raises(ValueError, match="Không có nhãn hợp lệ"):
-        import_manual_csv(unverified_only, "test.006", labels_dir=labels_dir)
-
+    legacy_output = import_manual_csv(legacy_csv, "test.006", labels_dir=labels_dir)
+    assert read_json(legacy_output)[0]["groundtruth_arxiv_id"] == "ref.1"
 
 # ---------------------------------------------------------------------------
 # 6. Test Phân chia tập (split.py)
 # ---------------------------------------------------------------------------
-def test_automatic_labels_zip_roundtrip(tmp_path):
-    labels_dir = tmp_path / "labels"
-    rows = [
-        {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "auto"}
-    ]
-    save_labels("2401.00001", rows, labels_dir)
-
-    zip_path = zip_automatic_labels(labels_dir)
-    assert zip_path is not None and zip_path.name == "automatic.zip"
-    assert load_labels_from_zip(zip_path)["2401.00001"] == rows
-    
-    # zip_automatic_labels đã xóa file JSON riêng lẻ
-    assert not (labels_dir / "automatic" / "2401.00001.json").exists()
-    
-    # Nhưng load_labels vẫn đọc được từ ZIP
-    assert load_labels(labels_dir)["2401.00001"] == rows
-
-
 def test_split_publications():
     labels = {
         f"man_{i}": [{"citation_key": "k1", "source": "manual"}] for i in range(5)
@@ -414,3 +387,21 @@ def test_split_publications():
 def test_split_rejects_invalid_k():
     with pytest.raises(ValueError, match="k phải >= 1"):
         split_publications({}, seed=42, k=0)
+
+
+def test_build_paper_pairs_normalizes_gt_version_suffix():
+    from src.m3_matching.dataset import build_paper_pairs
+
+    bibs = [
+        {"arxiv_id": "2401.00001", "citation_key": "k1", "title": "Paper A", "authors": ["A, B"], "year": 2023},
+    ]
+    refs = [
+        {"arxiv_id": "2401.00001", "ref_arxiv_id": "2301.12345", "ref_title": "Paper A", "ref_authors": ["A, B"], "ref_submission_date": "2023-01-01"},
+    ]
+    labels = [
+        {"citation_key": "k1", "groundtruth_arxiv_id": "arXiv:2301.12345v2", "source": "manual"},
+    ]
+    pairs = build_paper_pairs("2401.00001", bibs, refs, labels, partition="test")
+    assert len(pairs) == 1
+    assert pairs[0]["groundtruth_arxiv_id"] == "2301.12345"
+    assert pairs[0]["label"] == 1

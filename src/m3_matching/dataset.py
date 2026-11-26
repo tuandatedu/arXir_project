@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.config import DATA_DIR, TABLES_DIR
+from src.common.ids import normalize_arxiv_id
 from src.common.io import read_json, read_jsonl, write_parquet_shard
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
@@ -59,6 +60,19 @@ def build_citation_context_map(
     return contexts
 
 
+def _normalize_gt_id(gt_id: str | None) -> str | None:
+    """Chuẩn hóa groundtruth_arxiv_id (bỏ prefix arXiv: / version vN) để khớp với ref_arxiv_id_norm."""
+    if gt_id is None:
+        return None
+    text = str(gt_id).strip()
+    if not text:
+        return None
+    try:
+        return normalize_arxiv_id(text)
+    except ValueError:
+        return text
+
+
 def build_paper_pairs(
     arxiv_id: str,
     bib_entries: list[dict[str, Any]],
@@ -73,19 +87,44 @@ def build_paper_pairs(
     - Mỗi ``ref_arxiv_id`` chỉ xuất hiện một lần (dedup reference trùng trong M1).
     - Cặp đúng (positive): ref_arxiv_id == groundtruth_arxiv_id -> label = 1
     - Cặp sai (negative): ref_arxiv_id != groundtruth_arxiv_id -> label = 0
-    - Nếu groundtruth_arxiv_id is None -> toàn bộ các cặp của entry đó đều có label = 0.
+    - Entry có groundtruth_arxiv_id là None bị loại khỏi dataset; không xem là negative.
     - ``citation_context`` (tùy chọn) cung cấp ``cite_count`` cho từng citation_key.
     """
-    label_map: dict[str, str | None] = {
-        row["citation_key"]: row.get("groundtruth_arxiv_id")
-        for row in labels_for_paper
-        if "citation_key" in row
-    }
+    label_map: dict[str, str | None] = {}
+    for row in labels_for_paper:
+        key = row.get("citation_key")
+        if key is None or not str(key).strip():
+            raise ValueError(
+                f"Label thiếu citation_key trong publication {arxiv_id}."
+            )
+        key = str(key).strip()
+        if key in label_map:
+            raise ValueError(
+                f"citation_key bị gán nhãn trùng trong publication "
+                f"{arxiv_id}: {key}."
+            )
+        label_map[key] = row.get("groundtruth_arxiv_id")
 
-    # Lọc bib entries đã có nhãn
-    labeled_bibs = [b for b in bib_entries if b.get("citation_key") in label_map]
+    # Chỉ tạo cặp cho entry có ground truth xác định. None không đồng nghĩa với
+    # negative: đó có thể là chưa biết hoặc đã xác nhận không có match, nên không
+    # tạo các cặp label=0 từ những entry này.
+    labeled_bibs = [
+        b for b in bib_entries
+        if (
+            str(b.get("citation_key") or "").strip() in label_map
+            and _normalize_gt_id(
+                label_map[str(b.get("citation_key") or "").strip()]
+            ) is not None
+        )
+    ]
     if not labeled_bibs or not references:
         return []
+
+    bib_keys = [str(b["citation_key"]).strip() for b in labeled_bibs]
+    if len(bib_keys) != len(set(bib_keys)):
+        raise ValueError(
+            f"BibTeX có citation_key trùng trong publication {arxiv_id}."
+        )
 
     # Chuẩn hóa + dedup reference theo ref_arxiv_id trong cùng paper
     clean_bibs = [prepare_bibtex_record(b) for b in labeled_bibs]
@@ -101,12 +140,22 @@ def build_paper_pairs(
         seen_ref_ids.add(ref_id)
         clean_refs.append(clean_ref)
 
+    for bib in clean_bibs:
+        key = str(bib["citation_key"]).strip()
+        gt_id = _normalize_gt_id(label_map.get(key))
+        if gt_id is not None and gt_id not in seen_ref_ids:
+            raise ValueError(
+                f"Ground Truth {gt_id!r} của {key!r} không nằm trong "
+                f"candidate pool của publication {arxiv_id}. Nếu đã xác nhận "
+                "không có candidate phù hợp, lưu groundtruth_arxiv_id=null."
+            )
+
     feat_names = feature_names()
     pairs: list[dict[str, Any]] = []
 
     for bib in clean_bibs:
-        key = bib["citation_key"]
-        gt_id = label_map.get(key)
+        key = str(bib["citation_key"]).strip()
+        gt_id = _normalize_gt_id(label_map.get(key))
         extra = citation_context.get(key) if citation_context else None
 
         for ref in clean_refs:

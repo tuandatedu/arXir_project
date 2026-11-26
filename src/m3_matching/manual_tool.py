@@ -423,7 +423,6 @@ def export_manual_template(
         "suggested_ref_title",
         "suggested_score",
         "groundtruth_arxiv_id",
-        "is_verified",
         "note",
     ]
 
@@ -574,7 +573,6 @@ def export_manual_template(
                 "suggested_ref_title": suggested_title,
                 "suggested_score": suggested_score,
                 "groundtruth_arxiv_id": "",
-                "is_verified": "NO",
                 "note": "",
             })
 
@@ -596,21 +594,13 @@ def import_manual_csv(
     csv_path: Path,
     arxiv_id: str,
     labels_dir: Path | None = None,
-    *,
-    require_verified: bool = True,
 ) -> Path:
     """
     Import manual CSV -> JSON.
 
-    Quy tắc:
-    1. Nếu người dùng tự điền groundtruth_arxiv_id:
-       chấp nhận trực tiếp, không cần is_verified=YES.
-
-    2. Nếu groundtruth trống:
-       chỉ lấy suggested_ref_arxiv_id khi is_verified=YES.
-
-    3. Nếu không xác định được groundtruth:
-       bỏ qua dòng, không lưu groundtruth=None.
+    Chỉ import dòng có groundtruth_arxiv_id. Dòng trống/null được xem là
+    chưa có nhãn và bị bỏ qua; suggested_ref_arxiv_id chỉ là gợi ý, không tự
+    động trở thành ground truth.
     """
 
     csv_path = Path(csv_path)
@@ -627,7 +617,6 @@ def import_manual_csv(
     )
 
     rows = []
-    skipped_unverified = 0
     skipped_missing_gt = 0
     seen_keys: set[str] = set()
 
@@ -658,10 +647,6 @@ def import_manual_csv(
                 + ", ".join(sorted(missing_columns))
             )
 
-        has_verified = (
-            "is_verified" in reader.fieldnames
-        )
-
         for record in reader:
 
             key = (
@@ -675,14 +660,6 @@ def import_manual_csv(
             if key in seen_keys:
                 continue
 
-            verified = (
-                record.get("is_verified") or ""
-            ).strip().upper()
-
-            # Chỉ import dòng đã xác nhận nếu require_verified=True
-            if require_verified and has_verified and verified != "YES":
-                skipped_unverified += 1
-                continue
             # --------------------------------------------
             # Ưu tiên 1: groundtruth do người dùng nhập
             # --------------------------------------------
@@ -705,39 +682,8 @@ def import_manual_csv(
                 else None
             )
 
-            # --------------------------------------------
-            # Ưu tiên 2: dùng suggested nếu đã xác nhận
-            # --------------------------------------------
-
-            if not gt_id:
-
-                if (
-                    require_verified
-                    and has_verified
-                    and verified != "YES"
-                ):
-                    skipped_unverified += 1
-                    continue
-
-                if verified == "YES" or not require_verified:
-
-                    suggested = (
-                        record.get(
-                            "suggested_ref_arxiv_id"
-                        ) or ""
-                    ).strip()
-
-                    if (
-                        suggested
-                        and suggested.lower()
-                        not in invalid_values
-                    ):
-                        gt_id = suggested
-
-            # --------------------------------------------
-            # Không có groundtruth -> không import
-            # --------------------------------------------
-
+            # Không có ground truth nghĩa là chưa có nhãn; không suy ra nhãn
+            # âm từ gợi ý trống hoặc từ cột trạng thái cũ nếu CSV còn chứa nó.
             if not gt_id:
                 skipped_missing_gt += 1
                 continue
@@ -753,8 +699,7 @@ def import_manual_csv(
     if not rows:
         raise ValueError(
             f"Không có nhãn hợp lệ trong {csv_path.name}. "
-            "Hãy điền groundtruth_arxiv_id hoặc xác nhận "
-            "suggested_ref_arxiv_id bằng is_verified=YES."
+            "Hãy điền groundtruth_arxiv_id cho các dòng đã xác định được tài liệu đúng."
         )
 
     # --------------------------------------------
@@ -769,17 +714,8 @@ def import_manual_csv(
 
     print(f"[INFO] Imported labels: {len(rows)}")
 
-    if skipped_unverified:
-        print(
-            f"[WARN] Bỏ qua {skipped_unverified} dòng "
-            "chưa xác nhận."
-        )
-
     if skipped_missing_gt:
-        print(
-            f"[WARN] Bỏ qua {skipped_missing_gt} dòng "
-            "không có groundtruth."
-        )
+        print(f"[INFO] Bỏ qua {skipped_missing_gt} dòng chưa có ground truth.")
 
     # --------------------------------------------
     # Ghi JSON
@@ -905,11 +841,6 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--allow-unverified",
-        action="store_true",
-    )
-
-    parser.add_argument(
         "--summary",
         action="store_true",
     )
@@ -1019,7 +950,6 @@ def main() -> None:
         output = import_manual_csv(
             csv_path,
             pid,
-            require_verified=not args.allow_unverified,
         )
 
         print(f"Đã import labels: {output}")

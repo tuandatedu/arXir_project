@@ -388,14 +388,14 @@ def auto_label_and_save_publication(
 
 
 # ============================================================
-# 3. LOAD LABELS FROM ZIP
+# 3. READ LEGACY ZIP LABELS
 # ============================================================
 
 def load_labels_from_zip(
     zip_path: Path,
 ) -> dict[str, list[dict[str, Any]]]:
     """
-    Đọc labels từ ZIP.
+    Đọc labels từ ZIP cũ để tương thích dữ liệu đã lưu trước đây.
 
     Cấu trúc ZIP:
         automatic.zip
@@ -445,76 +445,22 @@ def load_labels_from_zip(
 
 
 # ============================================================
-# 4. ZIP AUTOMATIC LABELS
-# ============================================================
-
-def zip_automatic_labels(
-    labels_dir: Path,
-    zip_path: Path | None = None,
-) -> Path | None:
-    """
-    Gộp labels/automatic/*.json thành automatic.zip rồi xóa file riêng lẻ.
-    Kết quả: chỉ có automatic.zip, không có *.json lẻ loi ngoài.
-    """
-
-    labels_dir = Path(labels_dir)
-    auto_dir = labels_dir / "automatic"
-
-    if zip_path is None:
-        zip_path = auto_dir / "automatic.zip"
-    else:
-        zip_path = Path(zip_path)
-
-    files = sorted(
-        p for p in auto_dir.glob("*.json")
-        if p.name != "automatic.zip"
-    ) if auto_dir.exists() else []
-
-    if not files:
-        return None
-
-    zip_path.parent.mkdir(
-        parents=True,
-        exist_ok=True,
-    )
-
-    with zipfile.ZipFile(
-        zip_path,
-        "w",
-        compression=zipfile.ZIP_DEFLATED,
-    ) as zf:
-
-        for json_file in files:
-            zf.write(
-                json_file,
-                arcname=json_file.name,
-            )
-
-    # Xóa file JSON riêng lẻ sau khi gộp vào zip
-    for json_file in files:
-        json_file.unlink()
-
-    return zip_path
-
-
-# ============================================================
-# 5. LOAD ALL LABELS
+# 4. LOAD ALL LABELS
 # ============================================================
 
 def load_labels(
     labels_dir: Path,
 ) -> dict[str, list[dict[str, Any]]]:
     """
-    Đọc labels từ:
+    Đọc labels từ JSON riêng lẻ:
 
     labels/
     ├── manual/
     │   └── {arxiv_id}.json
     └── automatic/
-        ├── {arxiv_id}.json
-        └── automatic.zip
+        └── {arxiv_id}.json
 
-    JSON file trong automatic/ được ưu tiên hơn bản trong ZIP.
+    ZIP Automatic cũ (nếu có) vẫn được đọc; JSON riêng lẻ được ưu tiên.
 
     Trả về:
         {
