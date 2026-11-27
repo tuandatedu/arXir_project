@@ -9,7 +9,7 @@ pandas>=2.0
 pyarrow>=14.0
 
 # M2
-bibtexparser>=1.4
+-r m2_parsing/requirements.txt
 
 # M3
 scikit-learn>=1.3

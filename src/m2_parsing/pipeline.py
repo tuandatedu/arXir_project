@@ -16,8 +16,9 @@ from src.common.io import write_json, write_jsonl
 from src.common.metrics import track_run
 from src.common.schemas import BibtexRow, ElementRow, HierarchyRow
 
-from .gather import compilation_path, concatenate_compilation_tex, find_document_root, unused_tex_files
-from .hierarchy import ParseNode, nodes_and_edges, parse_tex_to_tree
+from .gather import (compilation_path, concatenate_compilation_tex, find_document_root,
+                     unused_tex_files, is_plain_tex_document, prepare_plain_tex_for_parsing)
+from .hierarchy import ParseNode, nodes_and_edges, parse_tex_to_tree, audit_source_headings
 from .bibitem import collect_version_bibtex
 from .cleanup import cleanup_element_content
 from .dedup import assign_element_ids, dedup_bibtex_across_versions, flatten_tree_with_placeholders, rewrite_citations
@@ -42,6 +43,10 @@ class VersionParseResult:
     n_nodes: int = 0
     n_edges: int = 0
     source_tex: str = ""  # transient; omitted from serialized parse metadata
+    source_heading_count: int = 0
+    unrepresented_headings: list[str] = field(default_factory=list)
+    unused_tex_bytes: int = 0
+    root_coverage_review: bool = False
 
     def to_payload(self) -> dict[str, Any]:
         nodes, edges = nodes_and_edges(self.tree, version=self.version)
@@ -119,7 +124,7 @@ def parse_one_version(
     - Return ParseNode + raw bib entries.
     """
     base = normalize_arxiv_id(arxiv_id)
-    source_dir = _version_source_dir(base, version, working_dir)
+    source_dir = _version_source_dir(base, version, working_dir).resolve()
     version_dir = source_dir.parent
     empty_marker = version_dir / "empty.json"
 
@@ -140,6 +145,10 @@ def parse_one_version(
         return empty("empty record from M1")
     if not source_dir.is_dir():
         return empty("missing sources directory")
+    # An absent TeX payload is an input skip, not a parser failure.
+    if not any(path.is_file() and path.suffix.lower() in {".tex", ".ltx"}
+               for path in source_dir.rglob("*")):
+        return empty("no LaTeX files in source directory")
 
     root = find_document_root(source_dir)
     if root is None:
@@ -150,8 +159,40 @@ def parse_one_version(
     missing = sorted(set(missing))
     unused = unused_tex_files(source_dir, used_paths=path)
     tex = concatenate_compilation_tex(source_dir, root=root)
+    plain = is_plain_tex_document(root.read_text(encoding='utf-8', errors='replace'))
+    if plain:
+        # Plain TeX does not require LaTeX class/preamble expansion. Keep
+        # the original text; its conditional macros confuse the LaTeX masker.
+        tex = prepare_plain_tex_for_parsing(root.read_text(encoding='utf-8', errors='replace'))
+        # These TeX-distribution macro files aren't source chapters.
+        system_macros = {'miniltx', 'graphicx', 'epsf', 'psfig', 'xy'}
+        system_missing = [x for x in missing
+                          if x.split(': ', 1)[-1].lower().removesuffix('.tex') in system_macros]
+        if system_missing:
+            LOG.warning('Plain TeX external system macros (not missing body): %s', system_missing)
+            missing = [x for x in missing if x not in system_missing]
+        LOG.info('Plain TeX adapter: %sv%d -> %s', base, version, root.name)
     tree = parse_tex_to_tree(tex)
+    n_source_headings, unrepresented = audit_source_headings(tex, tree)
+    if unrepresented:
+        LOG.warning("Structural heading audit for %sv%d: %d headings unrepresented: %s",
+                    base, version, len(unrepresented), unrepresented[:8])
     nodes, edges = nodes_and_edges(tree, version=version)
+    unused_bytes = sum(file.stat().st_size for file in unused if file.is_file())
+    # QA is explicitly conservative: other unused TeX files can be templates,
+    # samples, supplements or graphics. Only raise a *review*, never claim
+    # source corruption or silently skip a TeX-bearing version.
+    coverage_review = (
+        len(unused) >= 4 and
+        ((len(path) <= 3 and n_source_headings == 0 and len(nodes) <= 150) or
+         (len(path) == 1 and unused_bytes >= 2 * max(len(tex), 1) and
+          len(nodes) <= 150))
+    )
+    if coverage_review:
+        LOG.warning('POTENTIALLY_INCOMPLETE_ROOT: %sv%d root=%s '
+                    'included=%d unused=%d unused_bytes=%d nodes=%d headings=%d',
+                    base, version, root.relative_to(source_dir), len(path),
+                    len(unused), unused_bytes, len(nodes), n_source_headings)
     if not edges and len(tex.strip()) > 500:
         return empty("no parsed content in nonempty TeX source")
     return VersionParseResult(
@@ -167,6 +208,10 @@ def parse_one_version(
         n_nodes=len(nodes),
         n_edges=len(edges),
         source_tex=tex,
+        source_heading_count=n_source_headings,
+        unrepresented_headings=unrepresented,
+        unused_tex_bytes=unused_bytes,
+        root_coverage_review=coverage_review,
     )
 
 
@@ -383,6 +428,8 @@ def run_milestone2(
     all_edges: list[HierarchyRow] = []
     all_bibtex: list[BibtexRow] = []
     coverage: list[dict[str, Any]] = []
+    from .cache import code_fingerprint, read_publication_cache, save_publication_cache
+    fingerprint = code_fingerprint()
     start = time.perf_counter()
     try:
         import psutil
@@ -403,10 +450,20 @@ def run_milestone2(
         sampler.start()
     for raw_id in ids:
         base = normalize_arxiv_id(raw_id)
+        publication = root / folder_name_for_arxiv_id(base)
+        cached = read_publication_cache(publication, fingerprint)
+        if cached is not None:
+            rows, record = cached
+            all_elements.extend(ElementRow(**row) for row in rows['elements'])
+            all_edges.extend(HierarchyRow(**row) for row in rows['hierarchy'])
+            all_bibtex.extend(BibtexRow(**row) for row in rows['bibtex'])
+            coverage.append({**record, 'cache_reused': True})
+            continue
         versions = list_local_versions(base, root)
         before_nodes = before_bib = parsed = 0
         parsed_versions: list[int] = []
         partial_versions: list[dict[str, Any]] = []
+        source_trace: list[dict[str, Any]] = []
         empty_versions: list[int] = []
         failed_versions: list[dict[str, Any]] = []
         trees: dict[int, ParseNode] = {}
@@ -415,9 +472,28 @@ def run_milestone2(
             try:
                 result = parse_one_version(base, version, root)
                 trees[version] = result.tree
+                source_trace.append({
+                    "version": version,
+                    "root_file": result.compilation_files[0] if result.compilation_files else None,
+                    "included_files": result.compilation_files,
+                    "unused_tex_count": len(result.unused_files),
+                    "unused_tex_bytes": result.unused_tex_bytes,
+                    "root_coverage_review": result.root_coverage_review,
+                    "missing_includes": result.missing_includes,
+                    "n_nodes": result.n_nodes,
+                    "n_edges": result.n_edges,
+                    "source_characters": len(result.source_tex),
+                    "source_heading_count": result.source_heading_count,
+                    "unrepresented_headings": result.unrepresented_headings,
+                    "reason": result.reason,
+                })
                 if not result.empty:
                     source_dir = _version_source_dir(base, version, root)
                     references[version] = collect_version_bibtex(source_dir, result.source_tex)
+                    source_trace[-1]['bibliography_review'] = [
+                        {'citation_key': entry['citation_key'], 'warnings': entry['_parse_warnings'],
+                         'raw_excerpt': entry.get('_raw_bibitem', '')[:1500]}
+                        for entry in references[version] if entry.get('_parse_warnings')]
                     if result.partial:
                         partial_versions.append({"version": version,
                                                  "reason": result.reason,
@@ -427,15 +503,25 @@ def run_milestone2(
                         parsed_versions.append(version)
                     before_nodes += result.n_nodes
                 else:
-                    if result.reason == "empty record from M1":
+                    # These are input skips, not M2 parser crashes. A source
+                    # without a detectable root is separately reviewed below.
+                    if result.reason in {"empty record from M1", "missing sources directory",
+                                         "no LaTeX files in source directory"}:
                         empty_versions.append(version)
                     else:
-                        failed_versions.append({"version": version, "error": result.reason})
+                        failed_versions.append({"version": version, "error": result.reason,
+                                                "error_type": "UNPARSEABLE_SOURCE"})
                     references[version] = []
                 before_bib += len(references[version])
             except Exception as exc:
                 LOG.exception("M2 failed to parse %sv%d", base, version)
-                failed_versions.append({"version": version, "error": str(exc)})
+                failed_versions.append({"version": version, "error": str(exc),
+                                        "error_type": type(exc).__name__})
+                source_trace.append({"version": version, "root_file": None,
+                                     "included_files": [], "missing_includes": [],
+                                     "unrepresented_headings": [], "source_characters": 0,
+                                     "reason": "parser exception", "error_type": type(exc).__name__,
+                                     "error": str(exc)})
                 trees[version] = ParseNode(kind="document", content="")
                 references[version] = []
         try:
@@ -443,7 +529,9 @@ def run_milestone2(
             save_publication_parsed(base, elements, edges, bibtex, root)
         except Exception as exc:
             LOG.exception("M2 failed to finalize %s", base)
-            failed_versions = [{"version": version, "error": str(exc)} for version in versions if version not in empty_versions]
+            failed_versions = [{"version": version, "error": str(exc),
+                                "error_type": "FINALIZATION_" + type(exc).__name__}
+                               for version in versions if version not in empty_versions]
             parsed_versions = []
             partial_versions = []
             parsed = 0
@@ -451,7 +539,12 @@ def run_milestone2(
         all_elements.extend(elements)
         all_edges.extend(edges)
         all_bibtex.extend(bibtex)
-        coverage.append({"arxiv_id": base, "versions": versions,
+        from .bibitem import citation_keys
+        known_keys = {row.citation_key for row in bibtex}
+        unresolved = sorted({key for row in elements if row.kind in {'sentence', 'figure', 'formula', 'heading'}
+                             for key in citation_keys(row.content) if key not in known_keys})
+        record = {"arxiv_id": base, "versions": versions,
+                         "source_trace": source_trace,
                          "parsed_versions": parsed_versions, "empty_versions": empty_versions,
                          "failed_versions": failed_versions,
                          "partial_versions": partial_versions,
@@ -461,7 +554,10 @@ def run_milestone2(
                          "n_partial": len(partial_versions),
                          "n_elements_before_dedup": before_nodes,
                          "n_elements_after_dedup": len(elements),
-                         "n_bib_before": before_bib, "n_bib_after": len(bibtex)})
+                         "n_bib_before": before_bib, "n_bib_after": len(bibtex),
+                         'unresolved_citation_keys': unresolved, 'cache_reused': False}
+        coverage.append(record)
+        save_publication_cache(publication, fingerprint, record)
         if process is not None:
             samples.append(process.memory_info().rss)
     write_m2_tables(all_elements, all_edges, all_bibtex, out)
@@ -485,6 +581,7 @@ def run_milestone2(
         "peak_rss_bytes": max(samples) if samples else None,
         "output_bytes": sum(directory_size_bytes(out / f"{name}.jsonl") for name in ("elements", "hierarchy", "bibtex")),
         "coverage": coverage, "normalized": True,
+        'n_publications_reused': sum(bool(row.get('cache_reused')) for row in coverage),
     }
     metrics["version_success_rate"] = metrics["n_versions_parsed"] / metrics["n_versions_total"] if metrics["n_versions_total"] else 0.0
     write_metrics(metrics, out / "metrics_m2.json")

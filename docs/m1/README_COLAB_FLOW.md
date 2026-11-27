@@ -8,7 +8,7 @@ It is designed to run from a **GitHub feature branch** and save checkpoint archi
 - `src/m1_crawling/run_arxiv_only.py` — concurrent paper workers + updated recovery behavior: keep successful versions and retry only failed versions.
 - `src/m1_crawling/arxiv_http.py` — shared one-connection HTTP gate and global request pacing.
 - `src/m1_crawling/export_reports.py` — report exporter.
-- `src/m1_crawling/colab_shared_crawler.ipynb` — Colab notebook.
+- `notebooks/m1/colab_shared_crawler.ipynb` — Colab notebook.
 - `tests/test_concurrent_crawler.py` — offline concurrency/rate-limit/recovery regression tests.
 
 The existing crawler modules `arxiv_http.py`, `download.py`, `discover.py`, `assigned_ranges.py`, `src/common/config.py`, etc. are still required. **Do not upload only these four files into an empty repo.**

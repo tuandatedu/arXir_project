@@ -26,6 +26,67 @@ def create_input_layout(input_root: Path) -> None:
             (Path(input_root) / f"range_{number}" / kind).mkdir(parents=True, exist_ok=True)
 
 
+def _layout_roots(input_root: Path) -> list[Path]:
+    """Look in data/input first, and also data/ for direct M1 ZIP extraction."""
+    root = Path(input_root)
+    return [root, root.parent] if root.name == "input" else [root]
+
+
+def _source_candidates(root: Path, number: int) -> list[Path]:
+    label = f"range_{number}"
+    dev = f"{label}_dev"
+    return [
+        root / label / "sources",       # documented input layout
+        root / dev,                     # extracted range_1_dev.zip
+        root / dev / dev,               # ZIP extracted into an extra wrapper
+        root / dev / "sources",
+        root / label / dev,
+        root / label,                   # direct M1 checkpoints
+    ]
+
+
+def discover_available_ranges(input_root: Path) -> list[int]:
+    """Discover only ranges containing actual M1 checkpoint .tar.gz archives."""
+    return [number for number in RANGE_NUMBERS
+            if any(any(candidate.glob("batch_*.tar.gz"))
+                   for root in _layout_roots(Path(input_root))
+                   for candidate in _source_candidates(root, number))]
+
+
+def _resolve_source_paths(input_root: Path, selected: Sequence[int]) -> dict[str, Path]:
+    directories: dict[str, Path] = {}
+    for number in selected:
+        found = []
+        for root in _layout_roots(Path(input_root)):
+            for candidate in _source_candidates(root, number):
+                if any(candidate.glob("batch_*.tar.gz")):
+                    if candidate.resolve() not in [p.resolve() for p in found]:
+                        found.append(candidate)
+        if len(found) > 1:
+            raise ValueError(f"Ambiguous range_{number} sources: {found}. Keep one copy of checkpoints.")
+        if not found:
+            raise FileNotFoundError(
+                f"No batch_*.tar.gz for range_{number} in {input_root}. "
+                f"Put checkpoints in data/input/range_{number}/sources/ "
+                f"or data/range_{number}_dev/.")
+        directories[f"range_{number}"] = found[0]
+    return directories
+
+
+def _resolve_reference_paths(input_root: Path, selected: Sequence[int]) -> dict[str, Path]:
+    paths = {}
+    for number in selected:
+        label = f"range_{number}"
+        choices = []
+        for root in _layout_roots(Path(input_root)):
+            choices.extend((root / label / "references", root / label / "tables", root / label))
+        existing = [folder for folder in choices if any(
+            (folder / f"{name}.{ext}").is_file()
+            for name in ("papers", "references") for ext in ("json", "jsonl"))]
+        paths[label] = existing[0] if existing else choices[0]
+    return paths
+
+
 def parse_range_selection(values: str | Sequence[str]) -> list[int]:
     """Accept '1', '1,3', '1 3', 'range_1 range_3', or 'all'."""
     text = values if isinstance(values, str) else " ".join(values)
@@ -68,14 +129,14 @@ def _iter_table(path: Path) -> Iterator[dict]:
             yield row
 
 
-def _prepare_reference_tables(input_root: Path, ids_by_range: dict[str, set[str]],
+def _prepare_reference_tables(reference_dirs: dict[str, Path], ids_by_range: dict[str, set[str]],
                               staging_dir: Path, require_references: bool) -> dict:
     """Validate M1 associations and stage combined tables before the M2 run starts."""
     report: dict = {"ranges": {}}
     with (staging_dir / "papers.jsonl").open("w", encoding="utf-8") as papers_out, \
             (staging_dir / "references.jsonl").open("w", encoding="utf-8") as refs_out:
         for label, source_ids in ids_by_range.items():
-            directory = input_root / label / "references"
+            directory = reference_dirs[label]
             paths = {name: _find_table(directory, name) for name in ("papers", "references")}
             if paths["references"] is None:
                 message = f"{label}: chưa có references.json/jsonl trong {directory}"
@@ -125,8 +186,8 @@ def run_selected_ranges(input_root: Path, selected: Sequence[int], working_dir: 
     input_root, working_dir, tables_dir = map(Path, (input_root, working_dir, tables_dir))
     if workers < 1:
         raise ValueError("workers must be >= 1")
-    directories = {f"range_{number}": input_root / f"range_{number}" / "sources"
-                   for number in selected}
+    directories = _resolve_source_paths(input_root, selected)
+    reference_dirs = _resolve_reference_paths(input_root, selected)
     batches = discover_checkpoint_batches(directories)
     ids_by_range: dict[str, set[str]] = {label: set() for label in directories}
     for label, _, manifest in batches:
@@ -139,9 +200,10 @@ def run_selected_ranges(input_root: Path, selected: Sequence[int], working_dir: 
     # Stage and validate all references first. A bad input cannot truncate old final tables.
     with TemporaryDirectory(prefix="m2_references_") as temp:
         staging = Path(temp)
-        report = _prepare_reference_tables(input_root, ids_by_range, staging, require_references)
+        report = _prepare_reference_tables(reference_dirs, ids_by_range, staging, require_references)
         report.update({"selected_ranges": selected, "input_root": str(input_root.resolve()),
-                       "source_directories": {label: str(path.resolve()) for label, path in directories.items()}})
+                       "source_directories": {label: str(path.resolve()) for label, path in directories.items()},
+                       "reference_directories": {label: str(path.resolve()) for label, path in reference_dirs.items()}})
         metrics = run_checkpoint_batches(directories, working_dir, tables_dir, workers, resume)
         m1_dir = tables_dir / "m1"
         m1_dir.mkdir(parents=True, exist_ok=True)

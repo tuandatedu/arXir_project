@@ -1,0 +1,6 @@
+psutil>=5.9
+bibtexparser==1.4.4
+pylatexenc==2.11
+pyparsing==3.3.3
+google-api-python-client>=2.100
+google-auth>=2.0

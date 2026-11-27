@@ -1,121 +1,51 @@
-# arXiv Project (HCMUS Intro-DS)
+# arXiv Project — HCMUS Intro-DS
 
-Group skeleton for the three milestones in
-<https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/>.
+Project xử lý dữ liệu bài báo arXiv qua ba milestone: thu thập dữ liệu (M1), chuẩn hóa LaTeX và tài liệu tham khảo (M2), sau đó chuẩn bị dữ liệu matching (M3). Yêu cầu môn học được mô tả trong [lab book](https://hcmus-cs-ta.github.io/lab-book/intro-ds/statement/).
 
-This repository contains the group's cumulative implementation. M3 tasks 1–6
-(cleaning, manual/auto labelling, 14 pair features, training-pair dataset, and
-paper-level split) are implemented in `src/m3_matching/`; the model-serving
-steps (`model.py`, `evaluate.py`, `tables.py`) remain stubs for the next member.
-See [`src/m3_matching/MATCHING_M3.md`](src/m3_matching/MATCHING_M3.md) for the
-hand-off format and run instructions.
-
-| Milestone | Goal | Hugging Face tables |
+| Phần | Công việc | Hướng dẫn |
 | --- | --- | --- |
-| M1 | Resolve assigned arXiv IDs, every version’s `.tex`/`.bib`, Semantic Scholar refs | `papers`, `references` |
-| M2 | Compilation path, hierarchy, cleanup, BibTeX, dedup across versions | `elements`, `hierarchy`, `bibtex` |
-| M3 | Clean, label, features, model, **MRR@5**, publish Parquet | `predictions` (+ export of all six) |
+| M1 | Thu thập metadata, source LaTeX và references từ Semantic Scholar | [README M1](src/m1_crawling/README.md) · [tài liệu bổ sung](docs/m1/README.md) |
+| M2 | Đọc source M1, chuẩn hóa nội dung, cấu trúc và bibliography | [README M2](src/m2_parsing/README.md) |
+| M3 | Làm sạch, gán nhãn, tạo đặc trưng và dữ liệu cho matching | [README M3](src/m3_matching/README.md) · [hướng dẫn matching](src/m3_matching/MATCHING_M3.md) |
 
-## Environment
+Notebook được chia theo milestone trong [notebooks/](notebooks/README.md). Các module Python nằm trong `src/`, kiểm thử trong `tests/`, cấu hình và schema dùng chung trong `src/common/`.
 
-Python **3.10+**.
+## Cài đặt
+
+Python 3.10 trở lên. Từ thư mục gốc project:
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 python -m pip install -r src/requirements.txt
 ```
 
-Optional: Semantic Scholar API key in `S2_API_KEY` (steadier than the shared unauthenticated pool).
+Nếu chỉ chạy M2, có thể cài `python -m pip install -r src/m2_parsing/requirements.txt`. Key Semantic Scholar có thể đặt trong biến môi trường `S2_API_KEY` khi chạy M1. Không đưa key, `assigned_ids.txt` hay dữ liệu chạy vào Git.
 
-Do **not** commit `data/`, `assigned_ids.txt`, or API keys.
+## Cách chạy
 
-## Assigned IDs
-
-Lab Instructors provide the ID range. Put one canonical arXiv ID per line in
-`assigned_ids.txt` (UTF-8). Blank lines and `#` comments are ignored. See
-`assigned_ids.example.txt`.
-
-## How to run (after implementations exist)
+**M1:** xem [hướng dẫn M1](src/m1_crawling/README.md) và [notebook M1](notebooks/m1/M1.ipynb). Các notebook khác cho crawler và Semantic Scholar được liệt kê trong mục lục notebook. Với danh sách ID cục bộ, CLI nhận file UTF-8 có một arXiv ID mỗi dòng:
 
 ```bash
-# M1 — crawl assigned papers (export.arxiv.org only, ≥ 3 s between calls)
 python -m src.m1_crawling.run_m1 --ids assigned_ids.txt
-
-# M2 — parse, standardize and deduplicate every version produced by M1
-python -m src.m2_parsing.run_m2
-
-# M3 — matching + local Hugging Face export
-python -m src.m3_matching.run_m3
 ```
 
-Working data (suggested):
+**M2:** [notebook M2](notebooks/m2/M2.ipynb) tự tải code M2 từ GitHub vào Colab. Đổi `RANGES` rồi chạy các cell; tài khoản Google cần có quyền đọc checkpoint M1 của các range đã chọn. Bài hoặc phiên bản không có LaTeX được ghi nhận là empty và bỏ qua phần chuẩn hóa. Xem [README M2](src/m2_parsing/README.md) để chạy local, tiếp tục batch và đọc kết quả. Code hiện tại dùng pipeline revision 14; kết quả Rev13/FIX143 cũ được lưu riêng.
 
-```text
-data/working/{2310-12345}/     # M1 sources + metadata + S2 refs
-data/working/{2310-12345}/parsed/   # M2 elements / hierarchy / bibtex
-data/labels/manual/{arxiv_id}.json       # M3 manual ground truth
-data/labels/automatic/{arxiv_id}.json    # M3 auto labels
-data/tables/                   # jsonl + metrics_*.json
-data/hf_dataset/               # 6 Parquet configs + dataset card
+**M3:** notebook [M3_matching.ipynb](notebooks/m3/M3_matching.ipynb) và [hướng dẫn matching](src/m3_matching/MATCHING_M3.md) mô tả các bước làm sạch, gán nhãn, tạo đặc trưng và bộ dữ liệu. Các bước model, đánh giá và xuất dữ liệu vẫn còn phần chưa triển khai; `run_m3.py` chưa phải CLI hoàn chỉnh.
+
+## Dữ liệu và đầu ra
+
+M1 sử dụng working corpus và checkpoint theo batch. M2 tạo `elements.jsonl`, `hierarchy.jsonl`, `bibtex.jsonl` và `metrics_m2.json`; khi chạy qua notebook, mỗi range có ZIP bảng và các báo cáo kiểm tra riêng. M3 sử dụng dữ liệu M1/M2 cùng nhãn manual và automatic. Xem hướng dẫn từng milestone để biết layout cụ thể.
+
+`data/` là thư mục dữ liệu local và được Git bỏ qua. Không commit checkpoint, kết quả chạy hoặc thông tin đăng nhập vào repo.
+
+## Kiểm thử
+
+```bash
+python -m pip install pytest
+python -m pytest -q tests
 ```
 
-## Hướng dẫn chi tiết theo milestone (đọc file này)
-
-Thành viên **không cần đọc hết repo**: mở đúng README của việc mình nhận, làm theo checklist.
-
-| Việc | File hướng dẫn |
-| --- | --- |
-| Utils dùng chung (làm trước) | [`src/common/README.md`](src/common/README.md) |
-| Milestone 1 — crawl | [`src/m1_crawling/README.md`](src/m1_crawling/README.md) |
-| Milestone 2 — chạy range / kiến trúc / parse / dedup | [`src/m2_parsing/README.md`](src/m2_parsing/README.md) |
-| Milestone 3 — matching + HF | [`src/m3_matching/README.md`](src/m3_matching/README.md) |
-
-Mỗi file ghi: mục tiêu, thứ tự code, **từng hàm phải viết gì**, output trên đĩa, và checklist “xong khi nào”. Trong code, chỗ `TODO(M1/M2/M3)` trùng với README đó.
-
-## Who implements what
-
-| Path | Fill in |
-| --- | --- |
-| `src/common/` | IDs, HTTP retry, JSONL/Parquet I/O, RAM/time metrics |
-| `src/m1_crawling/discover.py` | arXiv API `id_list` → metadata + version count |
-| `src/m1_crawling/download.py` | `https://export.arxiv.org/src/{id}vN`, extract `.tex`/`.bib` only |
-| `src/m1_crawling/semantic_scholar.py` | Graph API references; keep old `hep-th/9901001` IDs |
-| `src/m1_crawling/s2_batch.py` | Notebook batch runner: resume cache, payload validation, per-publication metrics |
-| `src/m1_crawling/pipeline.py` | End-to-end crawl + empty records for PDF-only versions |
-| `src/m2_parsing/gather.py` | `\documentclass` root, `\input`/`\include` path |
-| `src/m2_parsing/hierarchy.py` | Tree; sentence / block math / figure leaves; skip References |
-| `src/m2_parsing/cleanup.py` | Drop non-semantic cmds; unify `$...$` and `equation` |
-| `src/m2_parsing/bibitem.py` | `\bibitem` → BibTeX |
-| `src/m2_parsing/dedup.py` | Union BibTeX fields + shared `element_id` across versions |
-| `src/m3_matching/labelling.py` | ≥5 manual papers (≥20 entries each, ≥100 total); auto ≥10% of the rest |
-| `src/m3_matching/features.py` | Pair features (hierarchy allowed); document each in the poster |
-| `src/m3_matching/split.py` | test/valid = 1 manual + 1 auto each; train = remainder |
-| `src/m3_matching/model.py` | `m×n` candidate matrix, top-5 list |
-| `src/m3_matching/evaluate.py` | MRR@5 on test |
-| `src/m3_matching/export_hf.py` | Sharded Parquet + YAML dataset card, **no** custom load script |
-
-Column schemas live in `src/common/schemas.py` (must stay flat: one-level string lists only).
-
-## Constraints copied from the lab book
-
-- Crawl **assigned IDs only**, every version `v1..vN`. Do not harvest all of arXiv.
-- Use `export.arxiv.org`, never `arxiv.org` (403 / robot block).
-- Extract `.tex` and `.bib`; do not edit figure commands inside TeX.
-- PDF-only / non-TeX versions: **empty record**, do not drop the paper.
-- `references` table: rows **with an arXiv ID only**. Local JSON keeps all S2 refs.
-- Reports (M1/M2) are a **separate** Jupyter Book repo; figures generated at compile time.
-- Benchmark: Google Colab CPU-only; measure wall time and RAM (`psutil` / `time -v`).
-
-## Label file format (M3)
-
-`data/labels/manual/{arxiv_id}.json` (và `data/labels/automatic/{arxiv_id}.json`):
-
-```json
-[
-  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
-  {"citation_key": "unknownBook", "groundtruth_arxiv_id": null, "source": "auto"}
-]
-```
-
-`source` is `manual` or `auto`. One true reference per entry, or `null` when none of the crawled refs match.
+Có thể chạy riêng kiểm thử M2 bằng `python -m pytest -q tests/test_m2_*.py` trên shell hỗ trợ mở rộng wildcard, hoặc chọn các file kiểm thử cụ thể. Kiểm thử không thay thế việc rà soát kết quả khi chạy trên dữ liệu thật.

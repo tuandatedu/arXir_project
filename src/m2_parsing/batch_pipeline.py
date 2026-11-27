@@ -6,6 +6,7 @@ import json
 import logging
 import threading
 import time
+import hashlib
 from concurrent.futures import ProcessPoolExecutor
 from collections.abc import Mapping
 from pathlib import Path
@@ -15,9 +16,10 @@ from src.common.io import write_json
 
 from .archive_input import restore_batch
 from .pipeline import run_milestone2
+from .cache import code_fingerprint, digest_file
 
 LOG = logging.getLogger(__name__)
-PIPELINE_REVISION = 4
+PIPELINE_REVISION = 14
 
 
 def discover_checkpoint_batches(batch_dir: Path | Mapping[str, Path]) -> list[tuple[str, Path, dict]]:
@@ -57,21 +59,37 @@ def _process_batch(args: tuple[str, Path, Path, Path, bool]) -> tuple[str, int, 
     archive_key = (Path(scope) / archive.name).as_posix()
     part_dir = tables_dir / "batches" / archive_key.removesuffix(".tar.gz")
     marker = part_dir / "complete.json"
+    fingerprint = code_fingerprint()
+    manifest_digest = hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+    # A manifest claim is not a checksum of the current archive bytes.
+    if digest_file(archive) != manifest['archive_sha256'] or archive.stat().st_size != manifest['archive_bytes']:
+        raise ValueError(f'Checkpoint checksum mismatch: {archive}')
     if resume and marker.is_file():
-        completed = json.loads(marker.read_text(encoding="utf-8"))
+        try:
+            completed = json.loads(marker.read_text(encoding="utf-8"))
+        except (ValueError, OSError):
+            completed = {}
         outputs = ("elements.jsonl", "hierarchy.jsonl", "bibtex.jsonl", "metrics_m2.json")
         if (completed.get("pipeline_revision") == PIPELINE_REVISION
                 and completed.get("archive_sha256") == manifest["archive_sha256"]
+                and completed.get('manifest_sha256') == manifest_digest
+                and completed.get('code_fingerprint') == fingerprint
                 and all((part_dir / name).is_file() for name in outputs)):
-            metrics = json.loads((part_dir / "metrics_m2.json").read_text(encoding="utf-8"))
-            if metrics.get("n_publications") == len(manifest["ids"]):
+            checksums = completed.get('output_sha256', {})
+            valid = all(digest_file(part_dir / name) == checksums.get(name) for name in outputs)
+            metrics = json.loads((part_dir / "metrics_m2.json").read_text(encoding="utf-8")) if valid else {}
+            if valid and not metrics.get('n_versions_failed') and metrics.get("n_publications") == len(manifest["ids"]):
+                metrics = {**metrics, 'n_publications_reused': metrics['n_publications']}
                 return archive_key, 0, metrics, True
     marker.unlink(missing_ok=True)
     restored = restore_batch(archive, working_dir)
     run_milestone2(working_dir=working_dir, arxiv_ids=manifest["ids"], tables_dir=part_dir)
     metrics = json.loads((part_dir / "metrics_m2.json").read_text(encoding="utf-8"))
     write_json(marker, {"archive_sha256": manifest["archive_sha256"],
-                        "pipeline_revision": PIPELINE_REVISION})
+                        "pipeline_revision": PIPELINE_REVISION,
+                        'manifest_sha256': manifest_digest, 'code_fingerprint': fingerprint,
+                        'output_sha256': {name: digest_file(part_dir / name) for name in
+                                         ('elements.jsonl', 'hierarchy.jsonl', 'bibtex.jsonl', 'metrics_m2.json')}})
     return archive_key, restored, metrics, False
 
 
@@ -121,9 +139,13 @@ def run_checkpoint_batches(batch_dir: Path | Mapping[str, Path], working_dir: Pa
                     with (tables_dir / f"{name}.jsonl").open("a", encoding="utf-8") as target:
                         for line in source:
                             target.write(line)
-            LOG.info("M2 batch %d/%d: %s, %d files, %d elements, %.1f sec",
+            LOG.info("M2 batch %d/%d: %s, restored=%d, papers=%d, parsed=%d, "
+                     "skipped_no_tex=%d, partial=%d, failed=%d, elements=%d, seconds=%.1f",
                      number, len(batches), archive_name, restored,
-                     metrics["n_elements_after_dedup"], metrics["duration_sec"])
+                     metrics["n_publications"], metrics["n_versions_parsed"],
+                     metrics["n_versions_empty"], metrics["n_versions_partial"],
+                     metrics["n_versions_failed"], metrics["n_elements_after_dedup"],
+                     metrics["duration_sec"])
     finally:
         if executor:
             executor.shutdown(wait=True)
@@ -146,6 +168,8 @@ def run_checkpoint_batches(batch_dir: Path | Mapping[str, Path], working_dir: Pa
     result["batch_count"] = len(batches)
     result["reused_batches"] = reused_batches
     result["pipeline_revision"] = PIPELINE_REVISION
+    result['code_fingerprint'] = code_fingerprint()
+    result['n_publications_reused'] = sum(item.get('n_publications_reused', 0) for item in batch_metrics)
     result["end_to_end_sec"] = round(time.perf_counter() - start, 3)
     write_json(tables_dir / "metrics_m2.json", result)
     return result

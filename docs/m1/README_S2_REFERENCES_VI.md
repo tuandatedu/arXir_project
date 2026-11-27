@@ -64,8 +64,8 @@ việc payload lỗi không tạo cache thành công.
 
 ## 4. Cách chạy A — Colab trên checkpoint Drive của người 1 (production)
 
-Notebook: `src/m1_crawling/colab_s2_references.ipynb`. Chạy **sau** notebook crawl
-`M1_Colab_Concurrent_Limited.ipynb` / `colab_shared_crawler.ipynb` của người 1.
+Notebook: `notebooks/m1/colab_s2_references.ipynb`. Chạy **sau** notebook crawl
+`notebooks/m1/M1.ipynb` / `colab_shared_crawler.ipynb` của người 1.
 Quy trình: GitHub branch → Drive → đọc ID từ checkpoint → crawl references (resume)
 → xuất 2 bảng + validate.
 

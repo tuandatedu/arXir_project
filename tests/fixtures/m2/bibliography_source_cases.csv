@@ -1,0 +1,1155 @@
+﻿range,arxiv_id,citation_key,reasons,authors_in_source,emphasized_source_text,exported_title,exported_authors,raw_excerpt
+1,2609.37839,Dugas-Leuschke:2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Alex S. Dugas and Graham J. Leuschke,Some extensions of theorems of Knörrer and Herzog-Popescu,,[],"Alex~S. Dugas and Graham~J. Leuschke, \emph{Some extensions of theorems of
+  {K}n\""orrer and {H}erzog-{P}opescu}, J. Algebra \textbf{571} (2021), 94--120.
+  \MR{4200711}"
+1,2609.37839,Esentepe:2020,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Özgür Esentepe,The cohomology annihilator of a curve singularity,,[],"\""Ozg\""ur Esentepe, \emph{The cohomology annihilator of a curve singularity},
+  J. Algebra \textbf{541} (2020), 359--379. \MR{4017410}"
+1,2609.37839,Iyengar-Takahashi:2021,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Srikanth B. Iyengar and Ryo Takahashi,The Jacobian ideal of a commutative ring and annihilators of cohomology,,[],"Srikanth~B. Iyengar and Ryo Takahashi, \emph{The {J}acobian ideal of a
+  commutative ring and annihilators of cohomology}, J. Algebra \textbf{571}
+  (2021), 280--296. \MR{4200721}"
+1,2609.37839,Leuschke-Wiegand:BOOK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS;ISBN_USED_AS_TITLE,Graham J. Leuschke and Roger Wiegand,Cohen-Macaulay representations,ISBN: 978-0-8218-7581-0. 2919145,[],"Graham~J. Leuschke and Roger Wiegand, \emph{Cohen-{M}acaulay representations},
+  Mathematical Surveys and Monographs, vol. 181, American Mathematical Society,
+  Providence, RI, 2012, xviii+367 pages. ISBN: 978-0-8218-7581-0. \MR{2919145}"
+1,2609.37839,Herzog-Popescu:1997,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Jürgen Herzog and Dorin Popescu,Thom-Sebastiani problems for maximal Cohen-Macaulay modules,,[],"J{\""u}rgen Herzog and Dorin Popescu, \emph{Thom-{S}ebastiani problems for
+  maximal {C}ohen-{M}acaulay modules}, Math. Ann. \textbf{309} (1997), no.~4,
+  677--700. \MR{1483829}"
+1,2609.37908,atlas_experiment,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ATLAS Collaboration,The ATLAS Experiment at the CERN Large Hadron Collider,,[],"ATLAS Collaboration,
+\emph{The ATLAS Experiment at the CERN Large Hadron Collider},
+\emph{JINST} {\bf 3} (2008) S08003."
+1,2609.37967,JS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. A. Jorgensen and L. M. Şega,Nonvanishing cohomology and classes of Gorenstein rings,,[],"D.~A. Jorgensen and L.~M. \c{S}ega, \textit{Nonvanishing cohomology and classes of Gorenstein rings},
+Adv. Math. \textbf{188} (2004), no.~2, 470--490."
+1,2609.38026,a,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,G. Apollinari et al,"High-Luminosity Large Hadron Collider (HL-LHC): Preliminary Design Report, CERN Yellow Rep. Monogr",,[],"G. Apollinari et al.,
+\emph{High-Luminosity Large Hadron Collider (HL-LHC): Preliminary Design Report, CERN Yellow Rep. Monogr.},
+DOI: 10.5170/CERN-2015-005."
+1,2609.38026,b,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,The CMS Collaboration,The CMS Experiment at the CERN LHC,,[],"The CMS Collaboration,
+\emph{The CMS Experiment at the CERN LHC},
+2008 JINST 3 S08004."
+1,2609.38026,c,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,The CMS Collaboration,The Phase-2 Upgrade of the CMS Tracker,,[],"The CMS Collaboration,
+\emph{The Phase-2 Upgrade of the CMS Tracker},
+CMS-TDR-014."
+1,2609.38026,d,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,The CMS Collaboration,The Phase-2 Upgrade of the CMS Level-1 Trigger,,[],"The CMS Collaboration,
+\emph{The Phase-2 Upgrade of the CMS Level-1 Trigger},
+CMS-TDR-021."
+1,2609.38026,e,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,The CMS Collaboration,Development of POTATO for 2S Module Grading for the CMS Phase-2 Outer Tracker Upgrade,,[],"The CMS Collaboration,
+\emph{Development of POTATO for 2S Module Grading for the CMS Phase-2 Outer Tracker Upgrade},
+DOI: 10.2172/2446893"
+1,2609.38030,Kalmykov:2008gq,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Y. Kalmykov, B. A. Kniehl, B. F. L. Ward and S. A. Yost","Hypergeometric functions, their epsilon expansions and Feynman diagrams",http://arxiv.org/abs/0810.32380810.3238,[],"M.~Y. Kalmykov, B.~A. Kniehl, B.~F.~L. Ward and S.~A. Yost, \emph{{Hypergeometric functions, their epsilon expansions and Feynman diagrams}},  in \emph{{15th International Seminar on High Energy Physics}}, 10, 2008.
+\newblock \href{http://arxiv.org/abs/0810.3238}{{\tt 0810.3238}}."
+1,2609.38030,Bourjaily:2022bwx,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. L. Bourjaily et al,Functions Beyond Multiple Polylogarithms for Precision Collider Physics,http://arxiv.org/abs/2203.070882203.07088,[],"J.~L. Bourjaily et~al., \emph{{Functions Beyond Multiple Polylogarithms for Precision Collider Physics}},  in \emph{{Snowmass 2021}}, 3, 2022.
+\newblock \href{http://arxiv.org/abs/2203.07088}{{\tt 2203.07088}}."
+1,2609.38030,delaCruz:2019skx,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. de la Cruz,Feynman integrals as A-hypergeometric functions,,[],"L.~de~la Cruz, \emph{{Feynman integrals as A-hypergeometric functions}}, \href{http://dx.doi.org/10.1007/JHEP12(2019)123}{\emph{JHEP} {\bf 12} (2019) 123}, [\href{http://arxiv.org/abs/1907.00507}{{\tt 1907.00507}}]."
+1,2609.38031,INRENA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Instituto Nacional de Recursos Naturales (INRENA),Estudio Hidrológico del Valle Moche,,[],"Instituto Nacional de Recursos Naturales (INRENA),
+\emph{Estudio Hidrol\'ogico del Valle Moche}, 2005."
+1,2609.38037,biggs1993algebraic,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Biggs, N",Algebraic Graph Theory,,[],"Biggs, N. \textit{Algebraic Graph Theory}. 2nd ed., Cambridge Mathematical Library, Cambridge University Press, 1993."
+1,2609.38144,FuchsGraaf,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. A. Fuchs and J. van de Graaf,Cryptographic distinguishability measures for quantum-mechanical states,,[],"C.~A.~Fuchs and J.~van de Graaf,
+\emph{Cryptographic distinguishability measures for quantum-mechanical states},
+\doi{10.1109/18.761271}{IEEE Transactions on Information Theory \textbf{45}, 1216--1227 (1999)}.
+\arxiv{quant-ph/9712042}."
+1,2609.38214,delpinovogel2020,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Á. del Pino and T. Vogel,The Engel-Lutz twist and overtwisted Engel structures,,[],"\'A.~del Pino and T.~Vogel,
+	\emph{The Engel-Lutz twist and overtwisted Engel structures},
+	Geom. Topol. \textbf{24} (2020), no. 5, 2471--2546."
+1,2609.38214,MAdP2021,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Martínez-Aguinaga and Á. del Pino,"Convex integration with avoidance and hyperbolic $(4,6)$ distributions",,[],"J.~Mart\'{\i}nez-Aguinaga and \'A.~del Pino,
+	\emph{Convex integration with avoidance and hyperbolic $(4,6)$ distributions},
+	preprint (2021), arXiv:2112.14632."
+1,2609.38228,FC-SHS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. K. de Carli Silva, N. J. A. Harvey and C. M. Sato",Sparse Sums of Positive Semidefinite Matrices,,[],"M. K. de Carli Silva, N. J. A. Harvey and C. M. Sato, \emph{Sparse Sums of Positive Semidefinite Matrices}, arXiv:1107.0088, 2011. \url{https://arxiv.org/abs/1107.0088}."
+1,2609.38228,CM-Wiener,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. Feyel and A. S. Üstünel,Monge–Kantorovitch measure transportation and Monge–Ampère equation on Wiener space,,[],"D. Feyel and A. S. \""Ust\""unel,
+\emph{Monge--Kantorovitch measure transportation and Monge--Amp\`ere equation on Wiener space},
+Probability Theory and Related Fields \textbf{128} (2004), 347--385."
+1,2609.38236,indigo,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,INDIGO Astronomy,INDIGO: a system of standards and frameworks for astronomical devices,,[],"INDIGO Astronomy, \emph{INDIGO: a system of standards and frameworks for
+astronomical devices}. \url{https://www.indigo-astronomy.org/}"
+1,2609.38396,vanNeerven1992,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. M. A. M. van Neerven,A converse of Lotz's theorem on uniformly continuous semigroups,,[],"J.~M.~A.~M. van Neerven,
+\emph{A converse of Lotz's theorem on uniformly continuous semigroups},
+Proc. Amer. Math. Soc. \textbf{116} (1992), no.~2, 525--527.
+\href{https://doi.org/10.2307/2159762}{doi:10.2307/2159762}."
+1,2609.38546,Reaumur,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. A. F. de Réaumur,Methode générale pour déterminer le point díntersection de deux lignes droites infiment proches,,[],"R. A. F. de Réaumur, \emph{Methode générale pour déterminer le point díntersection de deux lignes droites infiment proches}, qui rencontrent une courbe quelconques vers le même côté sous des angles égaux moindres, ou plus grandes qúun droit, et pour connoître la nature de la courbe décrite par une infinité de
+tels points díntersection, \textit{Histoire de lÁcadémie Royale des Sciences} (1709) 149–162, http://www.academie-ciences.fr/activite/archive/ressource.htm."
+1,2609.38696,vanDouwen1991,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,E. K. van Douwen,The Čech–Stone compactification of a discrete groupoid,,[],"E.\ K.\ van Douwen,
+\emph{The \v{C}ech--Stone compactification of a discrete groupoid},
+Topology Appl.\ \textbf{39} (1991), 43--60."
+1,2609.38778,uitars,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Qin et al,UI-TARS: Pioneering Automated GUI Interaction with Native Agents,,[],"Y. Qin et al., \emph{UI-TARS: Pioneering Automated GUI Interaction with Native Agents}, arXiv:2501.12326, 2025."
+1,2609.38778,webarena,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Zhou et al,WebArena: A Realistic Web Environment for Building Autonomous Agents,,[],"S. Zhou et al., \emph{WebArena: A Realistic Web Environment for Building Autonomous Agents}, ICLR, 2024."
+1,2609.38778,qwen3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Yang et al,Qwen3 Technical Report,,[],"A. Yang et al., \emph{Qwen3 Technical Report}, arXiv:2505.09388, 2025."
+1,2609.38906,Am11,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,E. Amerik,Existence of non--periodic algebraic points for a rational self-map of infinite order,,[],"E. Amerik,: \textit{Existence of non--periodic algebraic points for a rational self-map of infinite order}, Math. Res. Lett. {\bf 18} (2011) 251--256."
+1,2609.38906,Xu20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Xu,Homogeneous fibrations on log Calabi--Yau varieties,,[],"J. Xu,: \textit{Homogeneous fibrations on log Calabi--Yau varieties}, Manuscripta Math. {\bf 162} (2020) 389--401."
+1,2609.38906,Zh09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Zhang, D.-Q",Dynamics of automorphisms on projective complex manifolds,,[],"Zhang, D.-Q., : \textit{Dynamics of automorphisms on projective complex manifolds,} J. Differential Geom. {\bf 82} (2009) 691--722."
+1,2609.38963,Accardi:2012qut,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Accardi et al,Electron Ion Collider: the next QCD frontier --- understanding the glue that binds us all,Phys,[],"A.~Accardi et al., \emph{Electron Ion Collider: the next QCD frontier ---
+understanding the glue that binds us all},
+\href{https://doi.org/10.1140/epja/i2016-16268-9}{\emph{Eur.\ Phys.\ J.\ A}
+\textbf{52} (2016) 268} [\href{https://arxiv.org/abs/1212.1701}{\texttt{1212.1701}}]."
+1,2609.39217,CG24,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Chen, M. and Guo, S",The dichotomy of Nikodym sets and local smoothing estimates for wave equations,,[],"Chen, M. and Guo, S. \emph{The dichotomy of Nikodym sets and local smoothing estimates for wave equations.} arXiv preprint arXiv:2402.15476."
+1,2609.39217,LY24,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Li, J. and Yang, T",Two principles of decoupling,,[],"Li, J. and Yang, T. \emph{Two principles of decoupling}. arXiv:2407.16108v3. (2024+)."
+1,2609.39218,AMO,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A. Álvarez, C.-J. Moreno-Ávila, and I. Ojeda",On the smallest numerical semigroups closed under affine maps,,[],"A.~\'Alvarez, C.-J.~Moreno-\'Avila, and I.~Ojeda,
+\emph{On the smallest numerical semigroups closed under affine maps}, arXiv:2607.03258, 2026."
+1,2609.39251,bib:17,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Ackermann,, M. Ajello, A. Allafort",et al,Rev,[],"M. Ackermann,, M. Ajello, A. Allafort, \emph{et al}., \href{https://doi.org/10.1103/PhysRevLett.108.011103}{Phys. Rev. Lett, \textbf{108}: 011103 (2012)}."
+1,2609.39251,bib:48,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M Jiang,et al,Theor. Exp,[],"M Jiang, \emph{et al} (Super-Kamiokande Collaboration), \href{https://doi.org/10.1093/ptep/ptz015}{Prog. Theor. Exp. Phys, \textbf{5}: 053F01 (2019)}."
+1,2609.39281,phantom8,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,DESI Collaboration (M. Abdul Karim et al.),DESI DR2 Results II: Measurements of Baryon Acoustic Oscillations and Cosmological Constraints,D 112 (2025) 083515,[],"DESI Collaboration (M. Abdul Karim et al.),
+\textit{DESI DR2 Results II: Measurements of Baryon Acoustic
+Oscillations and Cosmological Constraints}, Phys. Rev. D \textbf{112} (2025) 083515."
+1,2609.39281,phantom9,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Adams et al,"Causality, Analyticity and an IR Obstruction to UV Completion",,[],"A. Adams et al.,
+\textit{Causality, Analyticity and an IR Obstruction to UV Completion},
+J. High Energy Phys. \textbf{10} (2006) 014."
+1,2609.39281,dy3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S.D. Odintsov et al,Cosmological fluids with logarithmic equation of state,,[],"S.D. Odintsov et al., \textit{Cosmological fluids with logarithmic equation of state}, Ann. Phys. \textbf{398} (2018) 238."
+1,2609.39281,dy7,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Paliathanasis et al,Dynamical analysis in scalar field cosmology,D 91 (2015) 123535,[],"A. Paliathanasis et al., \textit{Dynamical analysis in scalar field cosmology}, Phys. Rev. D \textbf{91} (2015) 123535."
+1,2609.39281,dy10,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Carloni et al,Dynamical system analysis for a nonminimal torsion-matter coupled gravity,D 93 (2016) 024034,[],"S. Carloni et al., \textit{Dynamical system analysis for a nonminimal torsion-matter coupled gravity}, Phys. Rev. D \textbf{93} (2016) 024034."
+1,2609.39281,dy11,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Dutta et al,Cosmological dynamics of mimetic gravity,,[],"J. Dutta et al., \textit{Cosmological dynamics of mimetic gravity}, J. Cosmol. Astropart. Phys. \textbf{2018}(02) (2018) 041."
+1,2609.39309,CiocanFontanineKim2010,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Ionuţ Ciocan-Fontanine and Bumsig Kim,Moduli stacks of stable toric quasimaps,,[],"Ionu\c{t} Ciocan-Fontanine and Bumsig Kim, \emph{Moduli stacks of stable toric quasimaps}, Adv. Math. 225 (2010), no.~6, 3022--3051. \url{https://doi.org/10.1016/j.aim.2010.05.023}."
+1,2609.39309,Cox1995,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David A. Cox,The homogeneous coordinate ring of a toric variety,,[],"David A. Cox, \emph{The homogeneous coordinate ring of a toric variety}, J. Algebraic Geom. 4 (1995), no.~1, 17--50. \url{https://arxiv.org/abs/alg-geom/9210008}."
+1,2609.39309,CoxLittleSchenck2011,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"David A. Cox, John B. Little, and Henry K. Schenck",Toric Varieties,,[],"David A. Cox, John B. Little, and Henry K. Schenck, \emph{Toric Varieties}, Graduate Studies in Mathematics, vol.~124, American Mathematical Society, Providence, RI, 2011. \url{https://doi.org/10.1090/gsm/124}."
+1,2609.39309,EisenbudVanDeVenStrata,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David Eisenbud and Antonius Van de Ven,On the variety of smooth rational space curves with given degree and normal bundle,,[],"David Eisenbud and Antonius Van de Ven, \emph{On the variety of smooth rational space curves with given degree and normal bundle}, Invent. Math. 67 (1982), no.~1, 89--100. \url{https://doi.org/10.1007/BF01393373}."
+1,2609.39309,Givental1998,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Alexander B. Givental,A mirror theorem for toric complete intersections,,[],"Alexander B. Givental, \emph{A mirror theorem for toric complete intersections}, in \emph{Topological field theory, primitive forms and related topics (Kyoto, 1996)}, Progress in Mathematics, vol.~160, Birkh\""auser Boston, Boston, MA, 1998, 141--175. \url{https://doi.org/10.1007/978-1-4612-0705-4_5}."
+1,2609.39309,Larson,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Hannah K. Larson,Universal degeneracy classes for vector bundles on \(\PP^1\) bundles,,[],"Hannah K. Larson, \emph{Universal degeneracy classes for vector bundles on \(\PP^1\) bundles}, Adv. Math. 380 (2021), article 107563. \url{https://doi.org/10.1016/j.aim.2021.107563}."
+1,2609.39314,ari,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,T. Achim et al,Aristotle: IMO-level Automated Theorem Proving,,[],"T.~Achim et al.,
+	\emph{Aristotle: IMO-level Automated Theorem Proving},
+	arXiv:2510.01346, 2025.
+	\url{https://arxiv.org/abs/2510.01346}"
+1,2609.39314,git0,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,W. van Doorn,ErdosProblem866.lean,,[],"W. van Doorn,
+	\emph{ErdosProblem866.lean},
+	GitHub repository,
+	\url{https://github.com/Woett/Lean-files/blob/main/ErdosProblem866.lean}."
+1,2609.39314,git1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,W. van Doorn,ErdosProblem866h4.lean,,[],"W. van Doorn,
+	\emph{ErdosProblem866h4.lean},
+	GitHub repository,
+	\url{https://github.com/Woett/Lean-files/blob/main/ErdosProblem866h4.lean}."
+1,2609.39314,wvd,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,W. van Doorn,The cardinality of a set containing the pairwise sums of a fixed number of integers,,[],"W. van Doorn,
+	\emph{The cardinality of a set containing the pairwise sums of a fixed number of integers},
+	arXiv:2605.00040, 2026.
+	\url{https://arxiv.org/abs/2605.00040}"
+1,2609.39424,7samurai,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Ábert, N. Bergeron, I. Biringer, T. Gelander, N. Nikolov, J. Raimbault, and I. Samet",On the growth of $L^2$-invariants for sequences of lattices in Lie groups,,[],"M.~\'Abert, N.~Bergeron, I.~Biringer, T.~Gelander, N.~Nikolov,
+J.~Raimbault, and I.~Samet,
+\emph{On the growth of $L^2$-invariants for sequences of lattices in Lie groups},
+Ann.~of Math.~(2) \textbf{185} (2017), 711--790.
+\url{https://annals.math.princeton.edu/2017/185-3/p01}."
+1,2609.39622,WeeLe2020,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Wee JunJie and Le Hai Khoi,Korenblum constants for some function spaces,,[],"Wee JunJie and Le Hai Khoi,
+\emph{Korenblum constants for some function spaces},
+Proc. Amer. Math. Soc. \textbf{148} (2020), no.~3, 1175--1185."
+1,2609.39622,WeeLe2023survey,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Wee JunJie and Le Hai Khoi,On Korenblum constants for some weighted function spaces,,[],"Wee JunJie and Le Hai Khoi,
+\emph{On Korenblum constants for some weighted function spaces},
+Thang Long J. Sci. Math. Math. Sci. \textbf{2} (2023), 87--116."
+1,2609.39706,deFaveri,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. de Faveri,Simple zeros of $GL(2)$ $L$-functions,,[],"A. de Faveri, \emph{Simple zeros of $GL(2)$ $L$-functions}, J. Eur. Math. Soc. (JEMS) \textbf{27} (2025), 2985--3021."
+1,2609.39711,Nagy,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"B. Sz.-Nagy, C. Foias, H. Bercovici, L. Kerchy",Harmonic Analysis of Operators on Hilbert Space,,[],"B. Sz.-Nagy, C. Foias, H. Bercovici, L. Kerchy,
+		\textit{Harmonic Analysis of Operators on Hilbert Space}, Universitext,  Springer, (2010)."
+1,2609.39728,CO,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Chandra, S. and Ott, E",Observing microscopic transitions from macroscopic bursts: Instability-mediated resetting in the incoherent regime of the D-dimensional generalized Kuramoto model,"Chaos 29 (2019), 033124",[],"Chandra, S. and Ott, E.: \textit{Observing microscopic transitions from macroscopic bursts: Instability-mediated resetting in the incoherent regime of the D-dimensional generalized Kuramoto model.} Chaos {\bf29} (2019), 033124."
+1,2609.39728,LMZL,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"León, I., Muolo, R., Zhang, Y. and Lucas, M",Symmetry-based selection rules for higher-order interactions in coupled oscillators,,[],"León, I., Muolo, R., Zhang, Y. and Lucas, M.: \textit{Symmetry-based selection rules for higher-order interactions in coupled oscillators.} archived as arXiv:2606.04904."
+1,2609.39825,BE,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. Beltrán Álvarez and U. Etayo Rodríguez,The diamond ensemble: a constructive set of spherical points with small logarithmic energy,,[],"C. Beltr\'an~\'Alvarez and U. Etayo~Rodr\'iguez, \emph{The diamond ensemble: a constructive set of spherical points with small logarithmic energy}, J. Complexity {\bf 59} (2020), 101471, 22 pp."
+1,2609.39825,Pedro,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"C. Beltrán Álvarez, U. Etayo Rodríguez and P. R. López-Gómez",Low-energy points on the sphere and the real projective plane,,[],"C. Beltr\'an~\'Alvarez, U. Etayo~Rodr\'iguez and P.~R. L\'opez-G\'omez, \emph{Low-energy points on the sphere and the real projective plane}, J. Complexity {\bf 76} (2023), Paper No. 101742, 18 pp."
+1,2609.39850,phipps2014,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. R. Phipps et al,L'ADROIT -- A spaceborne ultraviolet laser system for space debris clearing,,[],"C. R. Phipps et al.,
+\textit{L'ADROIT -- A spaceborne ultraviolet laser system for space debris clearing},
+Acta Astronautica, Vol. 104, pp. 243--255, 2014."
+1,2609.39850,bonnal2020jtca,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. Bonnal et al,Just in time collision avoidance -- A review,,[],"C. Bonnal et al.,
+\textit{Just in time collision avoidance -- A review},
+Acta Astronautica, Vol. 170, 2020."
+1,2609.39850,gambi2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. M. Gambi and M. L. García del Pino,Autonomous shooting at middle size space debris objects from space-based APT laser systems,,[],"J. M. Gambi and M. L. García del Pino,
+\textit{Autonomous shooting at middle size space debris objects from space-based APT laser systems},
+Acta Astronautica, Vol. 131, pp. 83-91, 2017."
+1,2609.39850,izana1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,European Space Agency (ESA),ESA’s Izaña-1 laser ranging station: satellite and debris tracking,,[],"European Space Agency (ESA),
+\textit{ESA’s Izaña-1 laser ranging station: satellite and debris tracking},
+ESA ESOC Website, 2025. [Online] Available at: \url{https://esoc.esa.int/content/esa"
+1,2609.39850,jaxa,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,SKY Perfect JSAT Corporation,Designing and developing the world's first satellite for removing space debris with a laser,,[],"SKY Perfect JSAT Corporation,
+\textit{Designing and developing the world's first satellite for removing space debris with a laser},
+News Release, 2025."
+1,2609.39850,steindorfer2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. A. Steindorfer et al,Space debris and satellite laser ranging combined using a megahertz system,,[],"M. A. Steindorfer et al.,
+\textit{Space debris and satellite laser ranging combined using a 
+megahertz system},
+Nature Communications, Vol. 16, p. 399, 2025."
+1,2609.39850,miniSLR2024,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,W. Riede et al,DLR miniSLR: A mobile satellite laser ranging station,Available at: https://www.dlr.de/,[],"W. Riede et al.,
+\textit{DLR miniSLR: A mobile satellite laser ranging station},
+DLR Institute of Technical Physics, Stuttgart, 2024.
+Available at: \url{https://www.dlr.de/}"
+1,2609.39850,aladin2009,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Stoffelen et al,The Atmospheric Dynamics Mission for Global Wind Field Measurement,,[],"A. Stoffelen et al.,
+\textit{The Atmospheric Dynamics Mission for Global Wind Field 
+Measurement},
+Bulletin of the American Meteorological Society, 
+Vol. 86, No. 1, pp. 73--87, 2005."
+1,2609.39891,SWX2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Saut J-C, Wang C and Xu L",The Cauchy problem on large time for surface-waves-type Boussinesq systems II,,[],"Saut J-C,  Wang C and Xu L.  \emph{  The Cauchy problem on large time for surface-waves-type
+Boussinesq systems II},  SIAM J. Math. Anal. 49, 2 (2017),  21--86."
+1,2609.39904,ImamogluOSullivan,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Ö. İmamoğlu and C. O'Sullivan,"Parabolic, hyperbolic and elliptic Poincaré series",,[],"\""O.~\.Imamo\u{g}lu and C.~O'Sullivan,
+\emph{Parabolic, hyperbolic and elliptic Poincar\'e series},
+Acta Arith. \textbf{139} (2009), no.~3, 199--228."
+1,2609.39904,RvV,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. L. Romero and J. T. van Velthoven,The density theorem for discrete series representations restricted to lattices,,[],"J. L. Romero and J. T. van Velthoven, \emph{The density theorem for discrete series representations restricted to lattices}, Expositiones Mathematicae 40 (2022), 265--301,"
+1,2609.39943,MAC,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Maria Alberich-Carramiñana,Geometry of the Plane Cremona Maps,,[],"\textsc{Maria Alberich-Carrami\~nana},
+\emph{Geometry of the Plane Cremona Maps},
+Lecture Notes in Mathematics \textbf{1769},
+Springer-Verlag, 2002."
+1,2609.39943,B-F,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Jérémy Blanc, Jean-Philippe Furter",Length in the Cremona group,,[],"\textsc{J\'er\'emy Blanc, Jean-Philippe Furter},
+\emph{Length in the Cremona group},
+Annales Henri Lebesgue \textbf{2} (2019), 187--257."
+1,2609.39944,CarneirodaCunha:2015qln,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,B. Carneiro da Cunha and F. Novaes,Kerr de Sitter greybody factors via isomonodromy,"D93 (2016) 2, 024045",[],"B.~Carneiro da Cunha and F.~Novaes, \emph{Kerr de Sitter greybody factors via isomonodromy}, Phys. Rev. \textbf{D93} (2016) 2, 024045
+\texttt{[arXiv:1508.04046 [hep-th]]}."
+1,2609.40017,Knapp,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Anthony W. Knapp,Lie Groups Beyond an Introduction,,[],"Anthony W. Knapp,
+	\emph{Lie Groups Beyond an Introduction},
+	Second edition,
+	{Progress in Mathematics},
+	volume{\bf 140},
+	{Birkh{\""a}user}, 2002."
+1,2609.40017,Wallach,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Nolan R. Wallach,Compact Homogeneous Riemannian Manifolds with Strictly Positive Curvature,,[],"Nolan R. Wallach, \emph{Compact Homogeneous Riemannian Manifolds with Strictly Positive Curvature}, Annals of Mathematics, Second Series, Vol. {\bf 96}, No. 2 (Sep., 1972), pp. 277-295."
+1,2609.40038,heat1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Kosloff, R.; Levy, A. Quantum Heat Engines and Refrigerators: Continuous Devices",Annu. Rev. Phys. Chem,,[],"Kosloff, R.; Levy, A. Quantum Heat Engines and Refrigerators: Continuous Devices. \textit{Annu. Rev. Phys. Chem.} \textbf{2014}, \textit{65}, 365--393."
+1,2609.40052,r3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. Curtin et al,Long-lived particles at the energy frontier: the MATHUSLA physics case,,[],"D.~Curtin et al.,
+\textit{Long-lived particles at the energy frontier: the MATHUSLA physics case},
+\textit{Rep.\ Prog.\ Phys.} \textbf{82} (2019) 116201."
+1,2609.40052,r4,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Alekhin et al,A facility to search for hidden particles at the CERN SPS: the SHiP physics case,,[],"S.~Alekhin et al.,
+\textit{A facility to search for hidden particles at the CERN SPS: the SHiP physics case},
+\textit{Rep.\ Prog.\ Phys.} \textbf{79} (2016) 124201."
+1,2609.40052,r7,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,FASER Collaboration,The FASER detector,,[],"FASER Collaboration,
+\textit{The FASER detector},
+\textit{JINST} \textbf{19} (2024) P05066."
+1,2609.40052,r9,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L.A. Anchordoqui et al,"The Forward Physics Facility: Sites, experiments, and physics potential",,[],"L.A.~Anchordoqui et al.,
+\textit{The Forward Physics Facility: Sites, experiments, and physics potential},
+\textit{Phys.\ Rept.} \textbf{968} (2022) 1."
+1,2609.40068,SRTdC20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Shlapentokh-Rothman and R. Teixeira da Costa,Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: frequency space analysis,,[],"Y.  Shlapentokh-Rothman and R. Teixeira da Costa, \textit{Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: frequency space analysis}, ARMA \textbf{250} Art. 78, 157 pp, 2026."
+1,2609.40068,SRTdC23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Shlapentokh-Rothman and R. Teixeira da Costa,Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: physical space analysis,,[],"Y.  Shlapentokh-Rothman and R. Teixeira da Costa, \textit{Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: physical  space analysis}, arXiv:2302.08916, to appear in Analysis \& PDE."
+1,2609.40068,TdC20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Teixeira da Costa,Mode stability for the Teukolsky equation on extremal and subextremal Kerr spacetimes,,[],"R. Teixeira da Costa, \textit{Mode stability for the Teukolsky equation on extremal and subextremal Kerr spacetimes}, Comm. Math. Phys. \textbf{378} (2020), 705--781."
+1,2609.40145,boccardodefiguerido,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. Boccardo and D. G. de Figueiredo,Some remarks on a system of quasilinear elliptic equations,,[],"L. Boccardo and D. G. de Figueiredo, \textit{Some remarks on a system of quasilinear elliptic equations}, NoDEA Nonlinear Differential Equations Appl. \textbf{9} (2002), no. 3, 309--323."
+1,2609.40145,diazthelin,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. I. Díaz and F. de Thélin,On a nonlinear parabolic problem arising in some models related to turbulent flows,,[],"J. I. Díaz and F. de Thélin, \textit{On a nonlinear parabolic problem arising in some models related to turbulent flows}, SIAM J. Math. Anal. \textbf{25} (1994), no. 4, 1085--1111."
+1,2609.40154,Cerny1964,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Černý,Poznámka k homogénnym experimentom s konečnými automatmi,,[],"J.~\v{C}ern\'y,
+\emph{Pozn\'amka k homog\'ennym experimentom s kone\v{c}n\'ymi automatmi},
+Matematicko-fyzik\'alny \v{c}asopis SAV \textbf{14} (1964), 208--216."
+1,2609.40164,Hall00,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Brian C. Hall,An elementary introduction to groups and representations,,[],"Brian C. Hall, \emph{An elementary introduction to groups and representations},
+arXiv:math-ph/0005032v1 (2000), Propositions~5.4--5.5.
+\url{https://arxiv.org/abs/math-ph/0005032v1}."
+1,2609.40164,Baez02,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,John C. Baez,The octonions,,[],"John C. Baez, \emph{The octonions},
+Bull. Amer. Math. Soc. \textbf{39}, 145--205 (2002), Section~2.4.
+\href{https://doi.org/10.1090/S0273-0979-01-00934-X}{doi:10.1090/S0273-0979-01-00934-X}."
+1,2609.40164,BV10,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Winton G. Brown and Lorenza Viola,Convergence rates for arbitrary statistical moments of random quantum circuits,,[],"Winton G. Brown and Lorenza Viola,
+\emph{Convergence rates for arbitrary statistical moments of random quantum circuits},
+Phys. Rev. Lett. \textbf{104}, 250501 (2010).
+\href{https://doi.org/10.1103/PhysRevLett.104.250501}{doi:10.1103/PhysRevLett.104.250501}."
+1,2609.40164,HarrowLow09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Aram W. Harrow and Richard A. Low,Random quantum circuits are approximate 2-designs,,[],"Aram W. Harrow and Richard A. Low,
+\emph{Random quantum circuits are approximate 2-designs},
+Commun. Math. Phys. \textbf{291}, 257--302 (2009),
+\url{https://doi.org/10.1007/s00220-009-0873-6}."
+1,2609.40164,HarrowMehraban23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Aram W. Harrow and Saeed Mehraban,Approximate unitary $t$-designs by short random quantum circuits using nearest-neighbor and long-range gates,,[],"Aram W. Harrow and Saeed Mehraban,
+\emph{Approximate unitary $t$-designs by short random quantum circuits using nearest-neighbor and long-range gates},
+Commun. Math. Phys. \textbf{401}, 1531--1626 (2023),
+\url{https://doi.org/10.1007/s00220-023-04675-z}."
+1,2609.40164,LaRacuenteLeditzky26,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Nicholas LaRacuente and Felix Leditzky,"Approximate unitary $k$-designs from shallow, low-communication circuits",,[],"Nicholas LaRacuente and Felix Leditzky,
+\emph{Approximate unitary $k$-designs from shallow, low-communication circuits},
+Commun. Math. Phys. \textbf{407}, 51 (2026),
+\url{https://doi.org/10.1007/s00220-025-05542-9}."
+1,2609.40205,Chen:2025cxr,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J.-W. Chen et al,Large-momentum effective theory’s asymptotic extrapolation vs the inverse problem,Rev,[],"J.-W. Chen et~al., \emph{{Large-momentum effective theory{\textquoteright}s
+  asymptotic extrapolation vs the inverse problem}},
+  \href{https://doi.org/10.1103/fflw-qpcc}{\emph{Phys. Rev. D} {\bfseries 113}
+  (2026) 014509} [\href{https://arxiv.org/abs/2505.14619}{{\ttfamily
+  2505.14619}}]."
+1,2609.40205,VanderVeken:2014raa,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. Van der Veken,Wilson lines : applications in QCD,,[],"F.~Van~der Veken, \emph{{Wilson lines : applications in QCD}}, Ph.D. thesis,
+  Antwerp U., Antwerp U., 2014."
+1,2609.40304,HR19,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Henrard and A.-C. van Roosmalen,Derived categories of (one-sided) exact categories and their localizations,,[],"R.~Henrard and A.-C. van Roosmalen, \emph{Derived categories of (one-sided)
+  exact categories and their localizations},
+  arXiv:1903.12647v3, 2020."
+1,2609.40304,HR19a,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Henrard and A.-C. van Roosmalen,Localizations of (one-sided) exact categories,,[],"R.~Henrard and A.-C. van Roosmalen, \emph{Localizations of (one-sided) exact categories}, arXiv: 1903.10861v3, 2020."
+1,2609.40304,HR20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Henrard and A.-C. van Roosmalen,Preresolving subcategories and derived equivalences,,[],"R.~Henrard and A.-C. van Roosmalen, \emph{Preresolving subcategories and derived equivalences}, arXiv: 2010.13208v1, 2020."
+1,2609.40315,SRTdC20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Shlapentokh-Rothman and R. Teixeira da Costa,Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: frequency space analysis,,[],"Y.  Shlapentokh-Rothman and R. Teixeira da Costa, \textit{Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: frequency space analysis}, ARMA \textbf{250} Art. 78, 157 pp, 2026."
+1,2609.40315,SRTdC23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Shlapentokh-Rothman and R. Teixeira da Costa,Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: physical space analysis,,[],"Y.  Shlapentokh-Rothman and R. Teixeira da Costa, \textit{Boundedness and decay for the Teukolsky equation on Kerr in the full subextremal range $|a|< M$: physical  space analysis}, arXiv:2302.08916, to appear in Analysis \& PDE."
+1,2609.40315,TdC20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Teixeira da Costa,Mode stability for the Teukolsky equation on extremal and subextremal Kerr spacetimes,,[],"R. Teixeira da Costa, \textit{Mode stability for the Teukolsky equation on extremal and subextremal Kerr spacetimes}, Comm. Math. Phys. \textbf{378} (2020), 705--781."
+1,2610.00117,Group2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Hayashi,A Group Theoretic Approach to Quantum Information,https://doi.org/10.1007/978-3-319-45241-8,[],"M.~Hayashi, \emph{A Group Theoretic Approach to Quantum Information}. Springer, 2017.  
+\newblock \href{https://doi.org/10.1007/978-3-319-45241-8}{\texttt{doi:10.1007/978-3-319-45241-8}}."
+1,2610.00117,H2017QIT,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Hayashi,Quantum Information Theory,https://doi.org/10.1007/978-3-662-49725-8,[],"M.~Hayashi, \emph{Quantum Information Theory}. Springer, 2017.  
+\newblock \href{https://doi.org/10.1007/978-3-662-49725-8}{\texttt{doi:10.1007/978-3-662-49725-8}}."
+1,2610.00117,Hayashi2017GroupRepresentationQuantumTheory,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Hayashi,Group Representation for Quantum Theory,https://doi.org/10.1007/978-3-319-44906-7,[],"M.~Hayashi, \emph{Group Representation for Quantum Theory}. Springer, 2017.  
+\newblock \href{https://doi.org/10.1007/978-3-319-44906-7}{\texttt{doi:10.1007/978-3-319-44906-7}}."
+1,2610.00117,Wilde_2013,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. M. Wilde,Quantum Information Theory,https://doi.org/10.1017/CBO9781139525343,[],"M.~M.~Wilde, \emph{Quantum Information Theory}. Cambridge Univ. Press, 2013.  
+\newblock \href{https://doi.org/10.1017/CBO9781139525343}{\texttt{doi:10.1017/CBO9781139525343}}."
+1,2610.00117,Geisser1993Predictive,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Geisser,Predictive Inference: An Introduction,https://doi.org/10.1007/978-1-4899-4467-2,[],"S.~Geisser, \emph{Predictive Inference: An Introduction}. Chapman and Hall, 1993.  
+\newblock \href{https://doi.org/10.1007/978-1-4899-4467-2}{\texttt{doi:10.1007/978-1-4899-4467-2}}."
+1,2610.00179,vGGR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. van Garrel, T. Graber, and H. Ruddat",Local Gromov-Witten invariants are log invariants,,[],"M.~van Garrel, T.~Graber, and H.~Ruddat,
+\emph{Local Gromov-Witten invariants are log invariants},
+Adv. Math. \textbf{350} (2019), 860--876.
+\url{https://doi.org/10.1016/j.aim.2019.04.063}."
+1,2610.00200,dR52,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,G. de Rham,Sur la réductibilité d'un espace de Riemann,,[],"G.~de Rham,
+\emph{Sur la r\'eductibilit\'e d'un espace de Riemann},
+Comment. Math. Helv. \textbf{26} \mbox{(1952), 328--344.}"
+1,2610.00240,Lean4,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. de Moura and S. Ullrich,The Lean 4 Theorem Prover and Programming Language,,[],"L. de Moura and S. Ullrich,
+\emph{The Lean 4 Theorem Prover and Programming Language},
+in A. Platzer and G. Sutcliffe (eds.), Automated Deduction--CADE 28,
+Lecture Notes in Computer Science \textbf{12699}, Springer, 2021, 625--635.
+\href{https://doi.org/10.1007/978-3-030-79876-5_37}{doi:10.1007/978-3-030-79876-5\_37}."
+1,2610.00271,VanCasteren1983,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. A. van Casteren,Operators similar to unitary or selfadjoint ones,,[],"J. A. van Casteren,
+		\textit{Operators similar to unitary or selfadjoint ones},
+		Pacific J. Math. \textbf{104} (1983), no.~1, 241--255."
+1,2610.00324,hedin65,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. Hedin,Phys. Rev,(The original derivation of the $GW$ equations),[],"L. Hedin, \textit{Phys. Rev.} \textbf{139}, A796 (1965).
+\newblock (The original derivation of the $GW$ equations)."
+1,2610.00324,hybertsen86,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. S. Hybertsen and S. G. Louie,Phys. Rev. B,(First-principles $GW$ for solids),[],"M. S. Hybertsen and S. G. Louie, \textit{Phys. Rev. B} \textbf{34}, 5390 (1986).
+\newblock (First-principles $GW$ for solids)."
+1,2610.00324,onida02,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"G. Onida, L. Reining, and A. Rubio",Rev. Mod. Phys,"(The definitive RMP review on electronic excitations, $GW$, and the Bethe-Salpeter equation)",[],"G. Onida, L. Reining, and A. Rubio, \textit{Rev. Mod. Phys.} \textbf{74}, 601 (2002).
+\newblock (The definitive RMP review on electronic excitations, $GW$, and the Bethe-Salpeter equation)."
+1,2610.00324,georges96,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A. Georges, G. Kotliar, W. Krauth, and M. J. Rozenberg",Rev. Mod. Phys,(The foundational RMP review on Dynamical Mean-Field Theory),[],"A. Georges, G. Kotliar, W. Krauth, and M. J. Rozenberg, \textit{Rev. Mod. Phys.} \textbf{68}, 13 (1996).
+\newblock (The foundational RMP review on Dynamical Mean-Field Theory)."
+1,2610.00324,biermann03,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"S. Biermann, F. Aryasetiawan, and A. Georges",Phys. Rev. Lett,(The original $GW$+DMFT formulation),[],"S. Biermann, F. Aryasetiawan, and A. Georges, \textit{Phys. Rev. Lett.} \textbf{90}, 086402 (2003).
+\newblock (The original $GW$+DMFT formulation)."
+1,2610.00324,schlipf15,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Schlipf and F. Gygi,Comput. Phys. Commun,(Analysis of causality violations and analytic continuation issues in $GW$),[],"M. Schlipf and F. Gygi, \textit{Comput. Phys. Commun.} \textbf{196}, 36 (2015).
+\newblock (Analysis of causality violations and analytic continuation issues in $GW$)."
+1,2610.00324,bethe57,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H. A. Bethe and E. E. Salpeter,Quantum Mechanics of One- and Two-Electron Atoms,(The foundation of the Bethe-Salpeter equation),[],"H. A. Bethe and E. E. Salpeter, \textit{Quantum Mechanics of One- and Two-Electron Atoms} (Springer, Berlin, 1957).
+\newblock (The foundation of the Bethe-Salpeter equation)."
+1,2610.00324,strinati80,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"G. Strinati, H. J. Mattausch, and W. Hanke",Phys. Rev. Lett,(Foundational work on two-particle Green's functions and the BSE in solids),[],"G. Strinati, H. J. Mattausch, and W. Hanke, \textit{Phys. Rev. Lett.} \textbf{45}, 290 (1980).
+\newblock (Foundational work on two-particle Green's functions and the BSE in solids)."
+1,2610.00324,strinati82,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"G. Strinati, H. J. Mattausch, and W. Hanke",Phys. Rev. B,(Detailed formulation of the BSE and vertex corrections in extended systems),[],"G. Strinati, H. J. Mattausch, and W. Hanke, \textit{Phys. Rev. B} \textbf{25}, 2867 (1982).
+\newblock (Detailed formulation of the BSE and vertex corrections in extended systems)."
+1,2610.00324,disabatino21,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"S. Di Sabatino, J. A. Berger, and P. Romaniello",Phys. Rev. B,(Exact benchmarking of $GW$ on the Hubbard dimer),[],"S. Di Sabatino, J. A. Berger, and P. Romaniello, \textit{Phys. Rev. B} \textbf{104}, 115144 (2021).
+\newblock (Exact benchmarking of $GW$ on the Hubbard dimer)."
+1,2610.00324,toschi07,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A. Toschi, A. A. Katanin, and K. Held",Phys. Rev. B,(The Dynamical Vertex Approximation and the fully irreducible vertex $\Lambda$),[],"A. Toschi, A. A. Katanin, and K. Held, \textit{Phys. Rev. B} \textbf{75}, 045118 (2007).
+\newblock (The Dynamical Vertex Approximation and the fully irreducible vertex $\Lambda$)."
+1,2610.00324,valli15,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Valli,et al,(Parquet implementation of the Dynamical Vertex Approximation),[],"A. Valli \textit{et al.}, \textit{Phys. Rev. B} \textbf{91}, 115115 (2015).
+\newblock (Parquet implementation of the Dynamical Vertex Approximation)."
+1,2610.00324,rohringer18,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"G. Rohringer, H. Hafermann, A. Toschi, A. A. Katanin, E. Gull, M. Wallerberger, T. Schäfer, and K. Held",Rev. Mod. Phys,(Comprehensive RMP review on diagrammatic routes beyond DMFT and parquet equations),[],"G. Rohringer, H. Hafermann, A. Toschi, A. A. Katanin, E. Gull, M. Wallerberger, T. Sch\""afer, and K. Held, \textit{Rev. Mod. Phys.} \textbf{90}, 025003 (2018).
+\newblock (Comprehensive RMP review on diagrammatic routes beyond DMFT and parquet equations)."
+1,2610.00324,schaefer13,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"T. Schäfer, G. Rohringer, O. Gunnarsson, S. Ciuchi, A. Toschi, and K. Held",Phys. Rev. Lett,(Divergences of irreducible vertices and non-perturbative physics),[],"T. Sch\""afer, G. Rohringer, O. Gunnarsson, S. Ciuchi, A. Toschi, and K. Held, \textit{Phys. Rev. Lett.} \textbf{110}, 246405 (2013).
+\newblock (Divergences of irreducible vertices and non-perturbative physics)."
+1,2610.00324,wentzell20,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"N. Wentzell, G. Li, A. Tagliavini, C. Taranto, G. Rohringer, K. Held, A. Toschi, and A. Georges",Phys. Rev. B,(High-frequency asymptotics of the two-particle vertex function),[],"N. Wentzell, G. Li, A. Tagliavini, C. Taranto, G. Rohringer, K. Held, A. Toschi, and A. Georges, \textit{Phys. Rev. B} \textbf{102}, 085106 (2020).
+\newblock (High-frequency asymptotics of the two-particle vertex function)."
+1,2610.00458,Abel:2020pzs,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. Abel et al,Measurement of the Permanent Electric Dipole Moment of the Neutron,Rev. Lett. 124 (2020) 081803 [https://arxiv.org/abs/2001.119662001.11966],[],"C.~Abel et~al., \emph{{Measurement of the Permanent Electric Dipole Moment of the Neutron}}, \href{https://doi.org/10.1103/PhysRevLett.124.081803}{\emph{Phys. Rev. Lett.} {\bfseries 124} (2020) 081803} [\href{https://arxiv.org/abs/2001.11966}{{\ttfamily 2001.11966}}]."
+1,2610.00458,deSalas:2015glj,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"P. de Salas, M. Lattanzi, G. Mangano, G. Miele, S. Pastor and O. Pisanti",Bounds on very low reheating scenarios after Planck,Rev,[],"P.~de~Salas, M.~Lattanzi, G.~Mangano, G.~Miele, S.~Pastor and O.~Pisanti, \emph{{Bounds on very low reheating scenarios after Planck}}, \href{https://doi.org/10.1103/PhysRevD.92.123534}{\emph{Phys. Rev. D} {\bfseries 92} (2015) 123534} [\href{https://arxiv.org/abs/1511.00672}{{\ttfamily 1511.00672}}]."
+1,2610.00458,Caldwell:2022qsj,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Caldwell et al,Detection of early-universe gravitational-wave signatures and fundamental physics,Rel. Grav. 54 (2022) 156 [https://arxiv.org/abs/2203.079722203.07972],[],"R.~Caldwell et~al., \emph{{Detection of early-universe gravitational-wave signatures and fundamental physics}}, \href{https://doi.org/10.1007/s10714-022-03027-x}{\emph{Gen. Rel. Grav.} {\bfseries 54} (2022) 156} [\href{https://arxiv.org/abs/2203.07972}{{\ttfamily 2203.07972}}]."
+1,2610.00458,Sesana:2019vho,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Sesana et al,Unveiling the gravitational universe at $\mu$-Hz frequencies,Astron. 51 (2021) 1333 [https://arxiv.org/abs/1908.113911908.11391],[],"A.~Sesana et~al., \emph{{Unveiling the gravitational universe at $\mu$-Hz frequencies}}, \href{https://doi.org/10.1007/s10686-021-09709-9}{\emph{Exper. Astron.} {\bfseries 51} (2021) 1333} [\href{https://arxiv.org/abs/1908.11391}{{\ttfamily 1908.11391}}]."
+1,2610.00458,Alesini:2023qed,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. Alesini et al,The future search for low-frequency axions and new physics with the FLASH resonant cavity experiment at Frascati National Laboratories,Dark Univ. 42 (2023) 101370 [https://arxiv.org/abs/2309.003512309.00351],[],"D.~Alesini et~al., \emph{{The future search for low-frequency axions and new physics with the FLASH resonant cavity experiment at Frascati National Laboratories}}, \href{https://doi.org/10.1016/j.dark.2023.101370}{\emph{Phys. Dark Univ.} {\bfseries 42} (2023) 101370} [\href{https://arxiv.org/abs/2309.00351}{{\ttfamily 2309.00351}}]."
+1,2610.00458,Ouellet:2018beu,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J.L. Ouellet et al,First Results from ABRACADABRA-10 cm: A Search for Sub-$\mu$eV Axion Dark Matter,Rev. Lett. 122 (2019) 121802 [https://arxiv.org/abs/1810.122571810.12257],[],"J.L.~Ouellet et~al., \emph{{First Results from ABRACADABRA-10 cm: A Search for Sub-$\mu$eV Axion Dark Matter}}, \href{https://doi.org/10.1103/PhysRevLett.122.121802}{\emph{Phys. Rev. Lett.} {\bfseries 122} (2019) 121802} [\href{https://arxiv.org/abs/1810.12257}{{\ttfamily 1810.12257}}]."
+1,2610.00458,Semertzidis:2019gkj,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y.K. Semertzidis et al,Axion Dark Matter Research with IBS/CAPP,,[],"Y.K.~Semertzidis et~al., \emph{{Axion Dark Matter Research with IBS/CAPP}},  \href{https://arxiv.org/abs/1910.11591}{{\ttfamily 1910.11591}}."
+1,2610.00490,PikaartDeJong,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Pikaart and A. J. de Jong,Moduli of curves with non-abelian level structure,,[],"M.~Pikaart and A.~J. de Jong,
+\emph{Moduli of curves with non-abelian level structure},
+in \emph{The Moduli Space of Curves}, Progr. Math., vol.~129,
+Birkh\""auser, 1995, 483--509; arXiv:alg-geom/9501003."
+1,2610.00512,Alb1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"S. Albeverio, L. Di Persio, E. Mastrogiacomo, and B. Smii",A Class of Lévy Driven SDEs and their Explicit Invariant Measures,https://doi.org/10.1007/s11118-016-9544-3,[],"S.~Albeverio, L.~Di Persio, E.~Mastrogiacomo, and B.~Smii,
+\textit{A Class of L\'evy Driven SDEs and their Explicit Invariant Measures},
+Potential Analysis {45}(2), 229-259, 2016.
+\newblock {https://doi.org/10.1007/s11118-016-9544-3}"
+1,2610.00512,oystein,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,O.Øystein Ore,Theory of Graphs,,[],"O.\O ystein Ore,
+\emph{Theory of Graphs},
+American Mathematical Society Colloquium Publications, Vol.~38,
+American Mathematical Society, Providence, Rhode Island, 1962.
+https://doi.org/10.1090/coll/038"
+1,2610.00527,VDDGraph,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Van den Nest, J. Dehaene, and B. De Moor",Graphical description of the action of local Clifford transformations on graph states,,[],"M. Van den Nest, J. Dehaene, and B. De Moor, \emph{Graphical description of the action of local Clifford transformations on graph states}, Physical Review A \textbf{69}, 022316 (2004). \href{https://doi.org/10.1103/PhysRevA.69.022316}{doi:10.1103/PhysRevA.69.022316}."
+1,2610.00527,VDD,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Van den Nest, J. Dehaene, and B. De Moor",Efficient algorithm to recognize the local Clifford equivalence of graph states,,[],"M. Van den Nest, J. Dehaene, and B. De Moor, \emph{Efficient algorithm to recognize the local Clifford equivalence of graph states}, Physical Review A \textbf{70}, 034302 (2004). \href{https://doi.org/10.1103/PhysRevA.70.034302}{doi:10.1103/PhysRevA.70.034302}; \href{https://arxiv.org/abs/quant-ph/0405023}{arXiv:quant-ph/0405023}."
+1,2610.00527,VDDCriterion,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Van den Nest, J. Dehaene, and B. De Moor",Local unitary versus local Clifford equivalence of stabilizer states,,[],"M. Van den Nest, J. Dehaene, and B. De Moor, \emph{Local unitary versus local Clifford equivalence of stabilizer states}, Physical Review A \textbf{71}, 062323 (2005). \href{https://doi.org/10.1103/PhysRevA.71.062323}{doi:10.1103/PhysRevA.71.062323}."
+1,2610.00527,GrossVDN,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. Gross and M. Van den Nest,"The LU-LC conjecture, diagonal local operations and quadratic forms over GF(2)",,[],"D. Gross and M. Van den Nest, \emph{The LU-LC conjecture, diagonal local operations and quadratic forms over GF(2)}, Quantum Information and Computation \textbf{8}(3--4), 263--281 (2008). \href{https://arxiv.org/abs/0707.4000v2}{arXiv:0707.4000v2}; \href{https://www.rintonpress.com/xxqic8/qic-8-34/0263-0281.pdf}{journal version}."
+1,2610.00527,VDDLocal,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Van den Nest, J. Dehaene, and B. De Moor",Local equivalence of stabilizer states,,[],"M. Van den Nest, J. Dehaene, and B. De Moor, \emph{Local equivalence of stabilizer states} (2004). \href{https://ftp.esat.kuleuven.be/pub/stadius/mvandenn/04-210.pdf}{Author manuscript, 13 May 2004}."
+1,2610.00627,Fshort,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,John Erik Fornæss,Short $\C^k$,"Pure Math., vol. 42, Math. Soc",[],"John Erik Forn\ae ss,
+\emph{Short $\C^k$}, Complex Analysis in Several Variables---Memorial Conference of Kiyoshi Oka's Centennial Birthday, Kyoto/Nara 2001, Adv. Stud. Pure Math., vol.~42, Math. Soc. Japan, Tokyo, 2004, pp.~95--108."
+1,2610.00627,FP,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,John Erik Fornæss and Ratna Pal,Notes on the Short $\C^k$'s,,[],"John Erik Forn\ae ss and Ratna Pal,
+\emph{Notes on the Short $\C^k$'s}, J. Geom. Anal. \textbf{32} (2022), no.~4, Paper No.~133, 22~pp."
+1,2610.00627,PW,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Han Peters and Erlend Fornæss Wold,Non-autonomous basins of attraction and their boundaries,,[],"Han Peters and Erlend Forn\ae ss Wold,
+\emph{Non-autonomous basins of attraction and their boundaries}, J. Geom. Anal. \textbf{15} (2005), no.~1, 123--136."
+1,2610.00696,brion-vergne,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Michel Brion and Michèle Vergne,Lattice points in simple polytopes,,[],"Michel Brion and Mich\`ele Vergne,
+\emph{Lattice points in simple polytopes}, 
+J.\ Amer.\ Math.\ Soc.\ \textbf{10} (1997), no.~2, 371--392."
+1,2610.00696,khovanskii-pukhlikov,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Askold G. Khovanskii and Aleksandr V. Pukhlikov,A Riemann-Roch theorem for integrals and sums of quasipolynomials over virtual polytopes,Translation: St,[],"Askold G.\ Khovanskii and Aleksandr V.\ Pukhlikov,
+\emph{A Riemann-Roch theorem for integrals and sums of quasipolynomials
+over virtual polytopes}, Algebra and Analysis \textbf{4} (1992), 188--216.
+Translation: St.\ Petersburg Math.\ J.\ \textbf{4} (1993), no.~4, 789--812."
+1,2610.00765,OEIS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,OEIS Foundation Inc,The On-Line Encyclopedia of Integer Sequences,,[],"OEIS Foundation Inc., \emph{The On-Line Encyclopedia of Integer Sequences}, sequences A073833 and A073834, \url{https://oeis.org}."
+1,2610.00803,liptrap2008translation,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Liptrap,On translation invariant symmetric polynomials and haldane's conjecture,"World Scientific, 2008",[],"J.~Liptrap, \emph{On translation invariant symmetric polynomials and haldane's
+  conjecture},  in \emph{Topology And Physics}, pp.~279--287.
+\newblock World Scientific, 2008."
+1,2610.00886,ABSW,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"S. C. de Almeida, F. G. B. Brito, M. Scherfner and S. Weiss",On the local version of the Chern conjecture: CMC hypersurfaces with constant scalar curvature in $S^{n+1}$,,[],"S.~C.~de Almeida, F.~G.~B.~Brito, M.~Scherfner and S.~Weiss,
+	\emph{On the local version of the Chern conjecture: CMC hypersurfaces
+		with constant scalar curvature in $S^{n+1}$},
+	Kragujevac J. Math. \textbf{44} (1) (2020), 101--111."
+1,2610.00902,masec,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"C. Schroeder de Witt, K. Krawiecka, I. Krawczuk et al",Open challenges in multi-agent security: towards secure systems of interacting AI agents,,[],"C.~Schroeder de Witt, K.~Krawiecka, I.~Krawczuk et al.,
+\emph{Open challenges in multi-agent security: towards secure systems of
+interacting AI agents}, arXiv:2505.02077 (2025; revised 2026)."
+1,2610.00939,icmconjectures,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ICM Conjectures,Entry 2022-opt-18: cyclic steepest descent,Accessed August 26,[],"ICM Conjectures,
+\emph{Entry 2022-opt-18: cyclic steepest descent},
+curated online directory, accessed August 26, 2026.
+\url{https://icmconjectures.com/2022-opt-18}."
+1,2610.00939,ortega2000,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,James M. Ortega and Werner C. Rheinboldt,Iterative Solution of Nonlinear Equations in Several Variables,,[],"James M.~Ortega and Werner C.~Rheinboldt, \emph{Iterative Solution of
+Nonlinear Equations in Several Variables}, Classics in Applied Mathematics,
+vol.~30, SIAM, Philadelphia, 2000.
+\url{https://doi.org/10.1137/1.9780898719468}."
+1,2610.00942,Demailly,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Demailly, J.-P",Regularization of closed positive currents and intersection theory,,[],"Demailly, J.-P.:
+\emph{Regularization of closed positive currents and intersection theory},
+J. Algebraic Geom. \textbf{1} (1992), 361--409."
+1,2610.00942,DonaldsonSunOne,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Donaldson, S. and Sun, S",Gromov-Hausdorff limits of Kähler manifolds and algebraic geometry,,[],"Donaldson, S. and Sun, S.:
+\emph{Gromov-Hausdorff limits of K\""ahler manifolds and algebraic geometry},
+Acta Math. \textbf{213} (2014), no.~1, 63--106.
+\href{https://doi.org/10.1007/s11511-014-0116-3}{doi:10.1007/s11511-014-0116-3}."
+1,2610.00942,DonaldsonSunTwo,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Donaldson, S. and Sun, S","Gromov-Hausdorff limits of Kähler manifolds and algebraic geometry, II",,[],"Donaldson, S. and Sun, S.:
+\emph{Gromov-Hausdorff limits of K\""ahler manifolds and algebraic geometry, II},
+J. Differential Geom. \textbf{107} (2017), no.~2, 327--371.
+\href{https://doi.org/10.4310/jdg/1506650422}{doi:10.4310/jdg/1506650422}."
+1,2610.00942,Fr,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Friedman, R",Simultaneous resolution of threefold double points,,[],"Friedman, R.:
+\emph{Simultaneous resolution of threefold double points},
+Math. Ann. \textbf{274} (1986), 671--689.
+\href{https://doi.org/10.1007/BF01458602}{doi:10.1007/BF01458602}."
+1,2610.00942,GiustiSpotti,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Giusti, F. and Spotti, C",Chern--Ricci flat balanced metrics on small resolutions of Calabi-Yau three-folds,,[],"Giusti, F. and Spotti, C.:
+\emph{Chern--Ricci flat balanced metrics on small resolutions of Calabi-Yau three-folds},
+Int. Math. Res. Not. \textbf{2025} (2025), no.~18, Oxford University Press.
+\href{https://doi.org/10.1093/imrn/rnaf289}{doi:\allowbreak10.1093/imrn/rnaf289}."
+1,2610.00942,GuanLi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Guan, B. and Li, Q",Complex Monge-Ampère equations and totally real submanifolds,,[],"Guan, B. and Li, Q.:
+\emph{Complex Monge-Amp\`ere equations and totally real submanifolds},
+Adv. Math. \textbf{225} (2010), no.~3, 1185--1223.
+\href{https://doi.org/10.1016/j.aim.2010.03.019}{doi:10.1016/j.aim.2010.03.019}."
+1,2610.00942,HeinSun2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Hein, H.-J. and Sun, S",Calabi-Yau manifolds with isolated conical singularities,"Hautes Études Sci. 126 (2017), 73–130. https://doi.org/10.1007/s10240-017-0092-1",[],"Hein, H.-J. and Sun, S.:
+\emph{Calabi-Yau manifolds with isolated conical singularities},
+Publ. Math. Inst. Hautes \'Etudes Sci. \textbf{126} (2017), 73--130.
+\href{https://doi.org/10.1007/s10240-017-0092-1}{doi:10.1007/s10240-017-0092-1}."
+1,2610.00942,kolodziej,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Kołodziej, S",The complex Monge-Ampère equation,,[],"Ko{\l}odziej, S.:
+\emph{The complex Monge-Amp\`ere equation},
+Acta Math. \textbf{180} (1998), no.~1, 69--117."
+1,2610.00942,kolodziej2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Kołodziej, S",The complex Monge-Ampère equation and pluripotential theory,,[],"Ko{\l}odziej, S.:
+\emph{The complex Monge-Amp\`ere equation and pluripotential theory},
+Mem. Amer. Math. Soc. \textbf{178} (2005), no.~840, x+64 pp.
+\href{https://doi.org/10.1090/memo/0840}{doi:10.1090/memo/0840}."
+1,2610.00942,Li,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Li, X",Monge-Ampère type equations on compact Hermitian manifolds with bounded mass property,,[],"Li, X.:
+\emph{Monge-Amp\`ere type equations on compact Hermitian manifolds with bounded mass property} (2026).
+\href{https://arxiv.org/abs/2601.13446}{arXiv:2601.13446}."
+1,2610.00942,Re,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Reid, M",The moduli space of 3-folds with $K = 0$ may nevertheless be irreducible,,[],"Reid, M.:
+\emph{The moduli space of 3-folds with $K = 0$ may nevertheless be irreducible},
+Math. Ann. \textbf{278} (1987), 329--334.
+\href{https://doi.org/10.1007/BF01458074}{doi:10.1007/BF01458074}."
+1,2610.00942,RongZhang2011,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Rong, X. and Zhang, Y",Continuity of extremal transitions and flops for Calabi-Yau manifolds,,[],"Rong, X. and Zhang, Y.:
+\emph{Continuity of extremal transitions and flops for Calabi-Yau manifolds},
+J. Differential Geom. \textbf{89} (2011), no.~2, 233--269.
+\href{https://doi.org/10.4310/jdg/1324477411}{doi:10.4310/jdg/1324477411}."
+1,2610.00942,Song1.5,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Song, J",Riemannian geometry of Kähler-Einstein currents,,[],"Song, J.:
+\emph{Riemannian geometry of K\""ahler-Einstein currents} (2014).
+\href{https://arxiv.org/abs/1404.0445}{arXiv:1404.0445}."
+1,2610.00942,Song2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Song, J",Riemannian geometry of Kähler-Einstein currents II: an analytic proof of Kawamata's base point free theorem,,[],"Song, J.:
+\emph{Riemannian geometry of K\""ahler-Einstein currents II: an analytic proof of Kawamata's base point free theorem} (2014).
+\href{https://arxiv.org/abs/1409.8374}{arXiv:1409.8374}."
+1,2610.00942,Song,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Song, J",On a conjecture of Candelas and de la Ossa,,[],"Song, J.:
+\emph{On a conjecture of Candelas and de la Ossa},
+Comm. Math. Phys. \textbf{334} (2015), no.~2, 697--717.
+\href{https://doi.org/10.1007/s00220-014-2211-x}{doi:10.1007/s00220-014-2211-x}."
+1,2610.00942,T1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Tian, G",Smoothness of the universal deformation space of compact Calabi-Yau manifolds and its Peterson-Weil metric,,[],"Tian, G.:
+\emph{Smoothness of the universal deformation space of compact Calabi-Yau manifolds and its Peterson-Weil metric},
+in \emph{Mathematical aspects of string theory} (S.-T. Yau, ed.),
+World Scientific, Singapore (1987), 629--646.
+\href{https://doi.org/10.1142/9789812798411_0029}{doi:10.1142/9789812798411\_0029}."
+1,2610.00942,Tosatti2009,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Tosatti, V",Limits of Calabi-Yau metrics when the Kähler class degenerates,,[],"Tosatti, V.:
+\emph{Limits of Calabi-Yau metrics when the K\""ahler class degenerates},
+J. Eur. Math. Soc. \textbf{11} (2009), no.~4, 755--776.
+\href{https://doi.org/10.4171/JEMS/165}{doi:10.4171/JEMS/165}."
+1,2610.00942,TW-AJM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Tosatti, V. and Weinkove, B",Estimates for the complex Monge-Ampère equation on Hermitian and balanced manifolds,,[],"Tosatti, V. and Weinkove, B.:
+\emph{Estimates for the complex Monge-Amp\`ere equation on Hermitian and balanced manifolds},
+Asian J. Math. \textbf{14} (2010), no.~1, 19--40.
+\href{https://doi.org/10.4310/AJM.2010.v14.n1.a3}{doi:10.4310/AJM.\allowbreak2010.v14.n1.a3}."
+1,2610.00942,TW-JAMS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Tosatti, V. and Weinkove, B",The complex Monge-Ampère equation on compact Hermitian manifolds,,[],"Tosatti, V. and Weinkove, B.:
+\emph{The complex Monge-Amp\`ere equation on compact Hermitian manifolds},
+J. Amer. Math. Soc. \textbf{23} (2010), no.~4, 1187--1195.
+\href{https://doi.org/10.1090/S0894-0347-2010-00673-X}{doi:10.1090/S0894-0347-2010-00673-X}."
+1,2610.00942,Zhang2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Zhang, J",On polynomial convergence to tangent cones for singular Kähler-Einstein metrics,,[],"Zhang, J.:
+\emph{On polynomial convergence to tangent cones for singular K\""ahler-Einstein metrics},
+J. Reine Angew. Math. \textbf{826} (2025), 271--302.
+\href{https://doi.org/10.1515/crelle-2025-0044}{doi:10.1515/crelle-2025-0044}."
+1,2610.00955,Badreddine2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Badreddine, R",On the global well-posedness of the Calogero–Sutherland derivative nonlinear Schrödinger equation,,[],"Badreddine, R. \emph{On the global well-posedness of the Calogero--Sutherland derivative nonlinear Schr\""odinger equation},  
+Pure and Applied Analysis $\mathbf{6}$ (2024), no. 2, 379–414. \label{Badreddine2023}"
+1,2610.00955,Badred24ZerDisp,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Badreddine, R",Zero-dispersion limit of the Calogero--Moser derivative NLS equation,,[],"Badreddine, R. \emph{Zero-dispersion limit of the Calogero--Moser derivative NLS equation}, SIAM J. Math. Anal.
+ $\mathbf{56}$ (2024), no. 6, 7228–7249. \label{Badred24ZerDisp}"
+1,2610.00955,Badred26BirkMap,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Badreddine, R",Complete integrability of the Calogero--Sutherland DNLS equation on $L^2_+(\mathbb T)$,,[],"Badreddine, R. \emph{Complete integrability of the Calogero--Sutherland DNLS equation on $L^2_+(\mathbb T)$}, preprint, available on 	arXiv:2609.23625. 
+  \label{Badred26BirkMap}"
+1,2610.00955,BrezisFA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Brezis, H","Functional analysis, Sobolev spaces and partial differential equations",,[],"Brezis, H. \emph{Functional analysis, Sobolev
+spaces and partial differential equations}, Universitext, 2010, Springer.\label{BrezisFA}"
+1,2610.00955,Xchenccm25ExpFor,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Chen, X",The defocusing Calogero--Moser derivative nonlinear Schrödinger equation with a nonvanishing condition at infinity,,[],"Chen, X. \emph{The defocusing Calogero--Moser derivative nonlinear Schrödinger equation with a
+nonvanishing condition at infinity}, SIAM J. Math. Anal. Vol. 58, Iss. 1 (2026),  182-205.\label{Xchenccm25ExpFor}"
+1,2610.00955,ScaDefChen25,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Chen, X",Scattering of the defocusing Calogero–Moser derivative nonlinear Schrödinger equation,,[],"Chen,   X.  \emph{Scattering of the defocusing Calogero--Moser derivative nonlinear  Schr\""odinger equation},  preprint, available on arXiv:2511.06432.
+  \label{ScaDefChen25}"
+1,2610.00955,GerICM2026Proc,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Gérard, P",Hardy Spaces of Holomorphic Functions and Explicit Formulae for a Class of Integrable Partial Differential Equations,,[],"G\'erard, P. \emph{Hardy Spaces of Holomorphic Functions and Explicit Formulae for a Class of Integrable Partial Differential Equations}, Proceedings of the International Congress of Mathematicians 2026. Vol. 2: Plenary Lectures, Pages 81-101. SIAM, 
+Philadelphia, 2026. 
+ \label{GerICM2026Proc}"
+1,2610.00955,GerPush2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Gérard, P., Pushnitski, A",The cubic Szegő equation on the real line: explicit formula and well-posedness on the Hardy class,,[],"G\'erard, P., Pushnitski, A. \emph{The cubic Szeg\H{o} equation on the real line: explicit formula and well-posedness on the Hardy class}, Commun. Math. Phys. 405, 167 (2024). \label{GerPush2023}"
+1,2610.00955,Hadama26INLS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Hadama, S",Small-data $L^2$ theory for the intermediate NLS and the Calogero--Moser derivative NLS,,[],"Hadama,  S. \emph{Small-data $L^2$ theory for the  intermediate NLS and the Calogero--Moser derivative NLS},  preprint, available on arXiv:2608.01138v1.
+\label{Hadama26INLS}"
+1,2610.00955,LaxTransinva1959,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Lax, P",Translation invariant spaces,,[],"Lax, P. \emph{Translation invariant spaces}, Acta Math. 101 (1959), 163–178. \label{LaxTransinva1959}"
+1,2610.00955,RudinFA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Rudin, W",Functional Analysis,,[],"Rudin, W. \emph{Functional
+Analysis}, McGraw-Hill Science/Engineering/Math, 2 edition (January 1, 1991), International Series in Pure and Applied Mathematics.  \label{RudinFA}"
+1,2610.00955,SUNCMP2021,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Sun, R",Complete integrability of the Benjamin--Ono equation on the multi-soliton manifolds,,[],"Sun, R. \emph{Complete integrability of the Benjamin--Ono equation on the multi-soliton manifolds}, Commun. Math. Phys. $\mathbf{383}$, 1051–1092 (2021). https://doi.org/10.1007/s00220-021-03996-1. \label{SUNCMP2021}"
+1,2610.00955,SUNLMP2024,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Sun, R",The intertwined derivative Schrödinger system of Calogero–Moser–Sutherland type,,[],"Sun, R. \emph{The intertwined derivative Schr\""odinger system of Calogero--Moser--Sutherland type}, Lett. Math. Phys. 114, 74. (2024).     \label{SUNLMP2024}"
+1,2610.00955,SUNMSzegoR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Sun, R",Matrix solutions of the cubic Szegő equation on the real line,,[],"Sun, R. \emph{Matrix solutions of the cubic Szeg\H{o} equation on the real line}, Math. Phys. Anal. Geom., 28(1): 1-27 (2025).  \label{SUNMSzegoR}"
+1,2610.00955,WuBO2016,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Wu, Y",Simplicity and finiteness of discrete spectrum of the Benjamin--Ono scattering operator,,[],"Wu, Y. \emph{Simplicity and finiteness of discrete spectrum of the Benjamin--Ono
+scattering operator}, SIAM J. Math. Anal. 48 (2016), no. 2, 1348–1367.  \label{WuBO2016}"
+1,2610.01070,Wiedemann2016,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Wiedemann, D",et al,,[],"Wiedemann, D.; \emph{et al.}; Lerch, M. Unravelling Ultraslow
+Lithium-Ion Diffusion in $\gamma$-\ce{LiAlO2}: Experiments with Tracers, Neutrons, and
+Charge Carriers. \emph{Chem. Mater.} \textbf{2016}, \emph{28}, 915--924."
+1,2610.01084,MR2110982,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Béla Bollobás and Vladimir Nikiforov,Books in graphs,,[],"{\sc B\'{e}la Bollob\'{a}s} and {\sc Vladimir Nikiforov}, \emph{Books in graphs}, European Journal of Combinatorics \textbf{26} (2005), no.~2, 259--270."
+1,2610.01084,MR1750899,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Dominique De Caen and Zoltán Füredi,The maximum size of 3-uniform hypergraphs not containing a Fano plane,,[],"{\sc Dominique De~Caen} and {\sc Zolt\'{a}n F\""{u}redi}, \emph{The maximum size of 3-uniform hypergraphs not containing a {F}ano plane}, Journal of Combinatorial Theory Series  B \textbf{78} (2000), no.~2, 274--276."
+1,2610.01084,MR137661,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Paul Erdős,On a theorem of Rademacher-Turán,,[],"{\sc Paul Erd\H{o}s}, \emph{On a theorem of {R}ademacher-{T}ur\'{a}n}, Illinois Journal of Mathematics \textbf{6} (1962), 122--127."
+1,2610.01084,MR2160414,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Zoltán Füredi and Miklós Simonovits,Triple systems not containing a Fano configuration,,[],"{\sc Zolt\'{a}n F\""{u}redi} and {\sc Mikl\'{o}s Simonovits}, \emph{Triple systems not containing a {F}ano configuration}, Combinatorics, Probability and Computing \textbf{14} (2005), no.~4, 467--484."
+1,2610.01084,MR543051,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Vera T. Sós,"Remarks on the connection of graph theory, finite geometry and block designs","Lincei, Rome, 1976, pp. 223–233",[],"{\sc Vera~T. S\'os}, \emph{Remarks on the connection of graph theory, finite geometry and block designs}, Colloquio {I}nternazionale sulle {T}eorie {C}ombinatorie ({R}oma, 1973), {T}omo {II}, Accad. Naz. Lincei, Rome, 1976, pp.~223--233."
+1,2610.01159,KT23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Tasho Kaletha and Olivier Taïbi,Global rigid inner forms vs isocrystals,,[],"Tasho Kaletha and Olivier Ta\""ibi,
+\emph{Global rigid inner forms vs isocrystals},
+Documenta Mathematica \textbf{28} (2023), no. 4, 765--826."
+1,2610.01159,Kot14,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Robert E. Kottwitz,$B(G)$ for all local and global fields,,[],"Robert E. Kottwitz,
+\emph{$B(G)$ for all local and global fields},
+arXiv:1401.5728."
+1,2610.01276,KM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,János Kollár and Shigefumi Mori,Birational geometry of algebraic varieties,,[],"J{\'a}nos Koll{\'a}r and Shigefumi Mori, \emph{Birational geometry of algebraic
+  varieties}, Cambridge Tracts in Mathematics, vol. 134, Cambridge University
+  Press, Cambridge, 1998."
+1,2610.01276,MS84,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David R. Morrison and Glenn Stevens,Terminal quotient singularities in dimensions three and four,,[],"David R.~Morrison and Glenn Stevens,
+\emph{Terminal quotient singularities in dimensions three and four},
+Proceedings of the American Mathematical Society \textbf{90} (1984),
+no.~1, 15--20."
+1,2610.01276,SS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Matthias Schütt and Tetsuji Shioda,Elliptic surfaces,,[],"Matthias Sch\""utt and Tetsuji Shioda, \emph{Elliptic surfaces},
+Advanced Studies in Pure Mathematics \textbf{60} (2010), 51--160;
+\href{https://arxiv.org/abs/0907.0298}{arXiv:0907.0298}."
+1,2610.01550,GilbargTrudinger,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David Gilbarg and Neil S. Trudinger,Elliptic Partial Differential Equations of Second Order,,[],"David Gilbarg and Neil S.~Trudinger,
+\emph{Elliptic Partial Differential Equations of Second Order},
+2nd ed., Classics in Mathematics, Springer, Berlin, 2001.
+\href{https://doi.org/10.1007/978-3-642-61798-0}{doi:10.1007/978-3-642-61798-0}."
+1,2610.01550,HormanderI,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Lars Hörmander,The Analysis of Linear Partial Differential Operators I: Distribution Theory and Fourier Analysis,,[],"Lars H\""ormander,
+\emph{The Analysis of Linear Partial Differential Operators~I:
+Distribution Theory and Fourier Analysis},
+2nd ed., Grundlehren der mathematischen Wissenschaften, vol.~256,
+Springer-Verlag, Berlin, 1990."
+1,2610.01550,Hormander1993,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Lars Hörmander,Remarks on Holmgren's uniqueness theorem,,[],"Lars H\""ormander,
+\emph{Remarks on Holmgren's uniqueness theorem},
+Annales de l'Institut Fourier \textbf{43} (1993), no.~5, 1223--1251.
+\href{https://doi.org/10.5802/aif.1371}{doi:10.5802/aif.1371}."
+1,2610.01557,dMKR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. de Mello Koch and S. Ramgoolam,From Matrix Models and quantum fields to Hurwitz space and the absolute Galois group,,[],"R.~de Mello Koch and S.~Ramgoolam, \emph{From Matrix Models and quantum fields to Hurwitz space and the absolute Galois group}, \href{https://arxiv.org/abs/1002.1634}{arXiv:1002.1634}."
+1,2610.01582,Aubin/DaPrato:90,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Aubin, J.-P.; Da Prato, G",Stochastic viability and invariance,,[],"Aubin, J.-P.; Da Prato, G. \textit{Stochastic
+viability and invariance}, Annali della Scuola Normale Superiore di Pisa,
+Classe di Scienze 4e s\'{e}rie, tome 17, no 4, pp.595-613 (1990).\vspace
+{-0.1in}"
+1,2610.01582,Aubin:09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Aubin, J-P",Viability Theory,,[],"Aubin, J-P., \textit{Viability Theory}, Birkh\""{a}user
+Boston, 2009.\vspace{-0.1in}"
+1,2610.01582,Barbu/DaPrato:2002,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barbu, V.; Da Prato, G",The two phase stochastic Stefan problem,,[],"Barbu, V.; Da Prato, G., \textit{The two phase
+stochastic Stefan problem,} Probability theory and related fields, 124(4),
+544-560 (2002).\vspace{-0.1in}"
+1,2610.01582,Barbu/Ciotir/Danaila:21,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barbu, V.; Ciotir, I.; Dănăila, I",Existence and uniqueness of solution to the two-phase Stefan problem with convection,,[],"Barbu, V.; Ciotir, I.; D\u{a}n\u{a}ila, I.,
+\textit{Existence and uniqueness of solution to the two-phase Stefan problem
+with convection,} Applied Mathematics and Optimization, 84, 123-157
+(2021)\}\vspace{-0.1in}"
+1,2610.01582,Barbu/DaPrato:06,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barbu, V.; DaPrato, G",Ergodicity for Nonlinear Stochastic Equations in Variational Formulation,,[],"Barbu, V.; DaPrato, G., \textit{Ergodicity for
+Nonlinear Stochastic Equations in Variational Formulation}, Applied
+Mathematics \& Optimization 53, pp.121-139 (2006).\vspace{-0.1in}"
+1,2610.01582,Barbu/DaPrato/Rockner:09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barbu, V.; DaPrato, G.; Röckner, M",Stochastic Porous Media Equations and Self-Organized Criticality,,[],"Barbu, V.; DaPrato, G.; R\""{o}ckner, M.,
+\textit{Stochastic Porous Media Equations and Self-Organized Criticality},
+Communications in Mathematical Physics 285, 901--923 (2009).\vspace{-0.1in}"
+1,2610.01582,Barbu/Rockner:13,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barbu, V.; Röckner, M",Stochastic variational inequalities and applications to the total variation flow perturbed by linear multiplicative noise,,[],"Barbu, V.; R\""{o}ckner, M., \textit{Stochastic
+variational inequalities and applications to the total variation flow
+perturbed by linear multiplicative noise}, Archive for Rational Mechanics and
+Analysis, no. 3, pp.797-834 (2013).\vspace{-0.1in}"
+1,2610.01582,Buckdahn/Quincampoix/Rascanu:00,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Buckdahn, R.; Quincampoix, M.; Răşcanu, A",Viability property for a backward stochastic differential equation and applications to partial differential equations,,[],"Buckdahn, R.; Quincampoix, M.;
+R\u{a}\c{s}canu, A., \textit{Viability property for a backward stochastic
+differential equation and applications to partial differential equations},
+Probability Theory and Related Fields 116, no. 4, pp.485-504 (2000).\vspace
+{-0.1in}"
+1,2610.01582,Ciotir/Tolle:16,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Tölle, J. M",Nonlinear stochastic partial differential equations with singular diffusivity and gradient Stratonovich noise,,[],"Ciotir, I.; T\""{o}lle, J. M., \textit{Nonlinear
+stochastic partial differential equations with singular diffusivity and
+gradient Stratonovich noise}, Journal of Functional Analysis, 271(7),
+1764-1792 (2016).\vspace{-0.1in}"
+1,2610.01582,Ciotir:17,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I",Existence and uniqueness of the solution for stochastic super-fast diffusion equations with multiplicative noise,,[],"Ciotir, I. \textit{Existence and uniqueness of the
+solution for stochastic super-fast diffusion equations with multiplicative
+noise}, Journal of Mathematical Analysis and Applications, 452(1), 595-610
+(2017).\vspace{-0.1in}"
+1,2610.01582,Ciotir/Fukuizumi/Goreac:25,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Fukuizumi, R.; Goreac, D",The stochastic fast logarithmic equation in,,[],"Ciotir, I.; Fukuizumi, R.; Goreac, D.,
+\textit{The stochastic fast logarithmic equation in }$\mathbb{R}^{d}$\textit{
+with multiplicative Stratonovich noise}, Journal of Mathematical Analysis and
+Applications, 542(1), 128786 (2025).\vspace{-0.1in}"
+1,2610.01582,Ciotir/Goreac/Flandoli:26,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Flandoli, F.; Goreac, D",The Stefan problem with mushy region as a scaling limit of stochastic PDE with turbulent transport,,[],"Ciotir, I.; Flandoli, F.; Goreac, D.,
+\textit{The Stefan problem with mushy region as a scaling limit of stochastic
+PDE with turbulent transport,} Journal of Dynamics and Differential Equations,
+1-13 (2026).\vspace{-0.1in}"
+1,2610.01582,Ciotir/Rascanu:09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Răşcanu, A",Viability for differential equations driven by fractional Brownian motion,,[],"Ciotir, I.; R\u{a}\c{s}canu, A., \textit{Viability
+for differential equations driven by fractional Brownian motion}, J.
+Differential Equations 247, pp. 1505-1528 (2009).\vspace{-0.1in}"
+1,2610.01582,Ciotir/Goreac/Munteanu:23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Goreac, D.; Munteanu, I",State-constrained porous media control systems with application to stabilization,,[],"Ciotir, I.; Goreac, D.; Munteanu, I.,
+\textit{State-constrained porous media control systems with application to
+stabilization}, Journal of Evolution Equations. 23. 10.1007/s00028-023-00874-2
+(2023).\vspace{-0.1in}"
+1,2610.01582,Ciotir/Goreac/Munteanu:23Asia,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ciotir, I.; Goreac, D.; Munteanu, I",On state-constrained porous-media systems with gradient-type multiplicative noise,,[],"Ciotir, I.; Goreac, D.; Munteanu, I.,
+\textit{On state-constrained porous-media systems with gradient-type
+multiplicative noise}, Asian Journal of Control, 25(4), 2604-2616,
+(2023).\vspace{-0.1in}"
+1,2610.01582,Duvaut/Lions:76,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Duvaut, G; Lions, J.L",Inequalities in Mechanics and Physics,,[],"Duvaut, G; Lions, J.L., \textit{Inequalities in
+Mechanics and Physics}, Grundlehren der mathematischen Wissenschaften, GL,
+volume 219, Springer, 1976.\vspace{-0.1in}"
+1,2610.01582,Gassous/Rascanu/Rotenstein:12,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Gassous, A.; Răşcanu, A.; Rotenstein, E",Stochastic variational inequalities with oblique subgradients,,[],"Gassous, A.; R\u{a}\c{s}canu, A.;
+Rotenstein, E., \textit{Stochastic variational inequalities with oblique
+subgradients}, Stochastic Processes and their Applications, Volume 122, Issue
+7 (July), pp. 2668-2700 (2012).\vspace{-0.1in}"
+1,2610.01582,Gassous/Rascanu/Rotenstein:15,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Gassous, A.; Răşcanu, A.; Rotenstein, E",Multivalued BSDEs with oblique subgradients,,[],"Gassous, A.; R\u{a}\c{s}canu, A.;
+Rotenstein, E., \textit{Multivalued BSDEs with oblique subgradients},
+Stochastic Processes and their Applications, Volume 125, Issue 8 (August), pp.
+3170-3195 (2015).\vspace{-0.1in}"
+1,2610.01582,Krylov/Rosowskii:79,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Krylov N.V.; Rosovskii, B",Stochastic evolution equations,,[],"Krylov N.V.; Rosovskii, B., \textit{Stochastic
+evolution equations}, Current problems in mathematics, Vol 14, 1979.\vspace
+{-0.1in}"
+1,2610.01582,Liu/Rockner:15,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Liu, W; Röckner, M",Stochastic Partial Differential Equations: An Introduction,,[],"Liu, W; R\""{o}ckner, M., \textit{Stochastic Partial
+Differential Equations: An Introduction}, Springer, 2015.\vspace{-0.1in}"
+1,2610.01582,Prevot/Rockner:07,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Prévot, C.; Röckner, M",A Concise Course on Stochastic Partial Differential Equations,,[],"Pr\'{e}vot, C.; R\""{o}ckner, M., \textit{A Concise
+Course on Stochastic Partial Differential Equations}, Springer, 2007.\vspace
+{-0.1in}"
+1,2610.01582,Rascanu/Rotenstein:11,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Răşcanu, A.; Rotenstein, E., The",Fitzpatrick Function - A Bridge between Convex Analysis and Multivalued Stochastic Differential Equations,,[],"R\u{a}\c{s}canu, A.; Rotenstein, E., The
+\textit{Fitzpatrick Function - A Bridge between Convex Analysis and
+Multivalued Stochastic Differential Equations}, Journal of Convex Analysis,
+Volume 18, No. 1, pp. 105-138 (2011).\vspace{-0.1in}"
+1,2610.01582,Rascanu/Rotenstein:17,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Răşcanu, A.; Rotenstein, E",Obstacle problems for parabolic SDEs with Hölder continuous diffusion: From weak to strong solutions,,[],"R\u{a}\c{s}canu, A.; Rotenstein, E.,
+\textit{Obstacle problems for parabolic SDEs with H\""{o}lder continuous
+diffusion: From weak to strong solutions}, Journal of Mathematical Analysis
+and Applications, 450, pp.647-669 (2017).\vspace{-0.1in}"
+1,2610.01582,Ren:08,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ren, Y.-F",On the Burkholder Davis Gundy inequalities for continuous martingales,,[],"Ren, Y.-F., \textit{On the Burkholder Davis Gundy
+inequalities for continuous martingales}, Statistics and Probability Letters
+78 3034-3039 (2008).\vspace{-0.1in}"
+1,2610.01582,XuLuo,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Xu, L.; Luo, J",Viability for stochastic functional differential equations in Hilbert spaces driven by fractional Brownian motion,,[],"Xu, L.; Luo, J., \textit{Viability for stochastic functional
+differential equations in Hilbert spaces driven by fractional Brownian
+motion,} Applied Mathematics and Computation, 341, 93-110 (2019)\vspace
+{-0.1in}"
+1,2610.01596,MRST,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A. de Mesmay, Y. Rieck, E. Sedgwick and M. Tancer",The unbearable hardness of unknotting,,[],"A.~de~Mesmay, Y.~Rieck, E.~Sedgwick and M.~Tancer,
+\emph{The unbearable hardness of unknotting},
+Adv. Math. \textbf{381} (2021), 107648."
+1,2610.01642,Abramov,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Abramov L.M,Metric automorphisms with quasi-discrete spectrum,,[],"Abramov L.M.,
+  \emph{Metric automorphisms with quasi-discrete spectrum}, American Mathematical Society Translations: Series 2, {\bf 39}, 37--56 (1964)."
+1,2610.01642,Bowen,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Bowen R,Smooth partitions of Anosov diffeomorphisms are weak Bernoulli,,[],"Bowen R., \emph{Smooth partitions of Anosov diffeomorphisms are weak Bernoulli}, Israel Journal of Mathematics, {\bf 21}, 2-3 (1975)."
+1,2610.01642,Iozzi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Iozzi A,From Topological Groups to Lie Groups,,[],"Iozzi A., \emph{From Topological Groups to Lie Groups},
+  ETH Z�rich lecture notes
+  https://metaphor.ethz.ch/x/2025/hs/401-3225-00L/
+  (2024)"
+1,2610.01642,Katznelson,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Katznelson Y,Ergodic automorphisms of $\ttf^n$ are Bernoulli shifts,,[],"Katznelson Y. \emph{Ergodic automorphisms of $\ttf^n$ are Bernoulli shifts}, Israel Journal of Mathematics, 10, 186--195 (1971)."
+1,2610.01642,Krzyzewski,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Krzyżewski K,On Exact Toral Endomorphisms,,[],"Krzy\.{z}ewski K. \emph{On Exact Toral Endomorphisms},
+  Monatshefte f\""ur Mathematik {\bf 116}, 39--47 (1993)."
+1,2610.01642,Mihailescu 2012,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Mihailescu E,On some coding and mixing properties for a class of chaotic systems,,[],"Mihailescu E., 
+\emph{On some coding and mixing properties for a class of chaotic systems}, 
+Monatshefte f\""ur Mathematik {\bf 167}, 241--255 (2012).
+https://doi.org/10.1007/s00605-011-0347-8"
+1,2610.01642,Mihailescu 2013,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Mihailescu E,Higher dimensional expanding maps and toral extensions,,[],"Mihailescu E., 
+\emph{Higher dimensional expanding maps and toral extensions}, 
+Proceedings of the American Mathematical Society {\bf 141}-10,
+3467--3475 (2013)."
+1,2610.01653,DeLaHarpePache2004,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. de la Harpe and C. Pache,Spherical designs and finite group representations (some results of E. Bannai),,[],"P. de la Harpe and C. Pache, \emph{Spherical designs and finite group representations (some results of E. Bannai)}, European J. Combin. \textbf{25} (2004), no.~2, 213--227. \doi{10.1016/S0195-6698(03)00101-X}"
+1,2610.01653,Thomson1887,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,W. Thomson (Lord Kelvin),On the division of space with minimum partitional area,"Reprinted in Acta Math. 11 (1887–1888), 121–134. 10.1007/BF02612322",[],"W. Thomson (Lord Kelvin),
+\emph{On the division of space with minimum partitional area},
+Philos. Mag. (5) \textbf{24} (1887), no.~151, 503--514.
+Reprinted in Acta Math. \textbf{11} (1887--1888), 121--134.
+\doi{10.1007/BF02612322}"
+1,2610.01694,AlvarezGarciaPrada,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. Álvarez-Cónsul and O. García-Prada,"Hitchin--Kobayashi correspondence, quivers, and vortices",,[],"L.~\'Alvarez-C\'onsul and O.~Garc{\'\i}a-Prada,
+\emph{Hitchin--Kobayashi correspondence, quivers, and vortices},
+Communications in Mathematical Physics \textbf{238} (2003), 1--33.
+\href{https://arxiv.org/abs/math/0112161}{arXiv version};
+\href{https://doi.org/10.1007/s00220-003-0853-1}{published article}."
+1,2610.01761,atlas_tdr,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ATLAS Collaboration,Technical design report for the Phase-II upgrade of the ATLAS trigger and data acquisition system,,[],"ATLAS Collaboration, \emph{Technical design report for the Phase-II upgrade of the ATLAS trigger and data acquisition system}, CERN-LHCC-2017-020; ATLAS-TDR-029 (2017)."
+1,2610.01761,atlas_tla,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ATLAS Collaboration,Search for low-mass dijet resonances using trigger-level jets with the ATLAS detector in pp collisions at $\sqrt{s}=13$ TeV,,[],"ATLAS Collaboration, \emph{Search for low-mass dijet resonances using trigger-level jets with the ATLAS detector in pp collisions at $\sqrt{s}=13$ TeV}, Phys. Rev. Lett. 121 (2018) 081801."
+1,2610.01761,cms_scouting,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,Enriching the physics program of the CMS experiment via data scouting and data parking,,[],"CMS Collaboration, \emph{Enriching the physics program of the CMS experiment via data scouting and data parking}, Phys. Rept. 1115 (2025) 678--772."
+1,2610.01761,daqiri,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,NVIDIA Corporation,DAQIRI: Data acquisition for integrated real-time instruments,,[],"NVIDIA Corporation, \emph{DAQIRI: Data acquisition for integrated real-time instruments}, version 2026.7.0, \url{https://github.com/NVIDIA/daqiri}."
+1,2610.01761,nvidia_igx,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,NVIDIA Corporation,IGX enterprise-ready platform,,[],"NVIDIA Corporation, \emph{IGX enterprise-ready platform}, \url{https://developer.nvidia.com/igx}."
+1,2610.01761,nvidia_thor_overview,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,NVIDIA Corporation,IGX Thor Developer Kit system overview,,[],"NVIDIA Corporation, \emph{IGX Thor Developer Kit system overview}, NVIDIA IGX Developer Guide, \url{https://docs.nvidia.com/igx/user-guide/2.0/OV/thor/system-overview-t7000.html}."
+1,2610.01761,connectx7,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,NVIDIA Corporation,NVIDIA ConnectX-7 Adapter Cards User Manual: specifications and supported interfaces,,[],"NVIDIA Corporation, \emph{NVIDIA ConnectX-7 Adapter Cards User Manual: specifications and supported interfaces}, \url{https://networking-docs.nvidia.com/connectx7hw/}."
+1,2610.01761,delphes,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. de Favereau et al,"DELPHES 3, a modular framework for fast simulation of a generic collider experiment",,[],"J. de Favereau et al., \emph{DELPHES 3, a modular framework for fast simulation of a generic collider experiment}, JHEP 02 (2014) 057."
+1,2610.01761,Govorkova_2022,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,E. Govorkova et al,"Autoencoders on field-programmable gate arrays for real-time, unsupervised new physics detection at 40 MHz at the Large Hadron Collider",,[],"E. Govorkova et al., \emph{Autoencoders on field-programmable gate arrays for real-time, unsupervised new physics detection at 40 MHz at the Large Hadron Collider}, Nat. Mach. Intell. 4 (2022) 154--161."
+1,2610.01761,axol1tl,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,Anomaly detection with AXOL1TL at the CMS Level-1 Trigger in 2024 and 2025,,[],"CMS Collaboration, \emph{Anomaly detection with AXOL1TL at the CMS Level-1 Trigger in 2024 and 2025} (2025), \url{https://cds.cern.ch/record/2942560}."
+1,2610.01761,cicada,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,Model-independent real-time anomaly detection at the CMS Level-1 Calorimeter Trigger with CICADA,,[],"CMS Collaboration, \emph{Model-independent real-time anomaly detection at the CMS Level-1 Calorimeter Trigger with CICADA}, technical report (2024), \url{https://cds.cern.ch/record/2917884}."
+1,2610.01761,Vaselli_2026,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. Vaselli et al,It's not a FAD: First demonstration of flows for unsupervised anomaly detection at 40 MHz for use at the Large Hadron Collider,,[],"F. Vaselli et al., \emph{It's not a FAD: First demonstration of flows for unsupervised anomaly detection at 40~MHz for use at the Large Hadron Collider}, Mach. Learn.: Sci. Technol. 7 (2026) 025052."
+1,2610.01761,opentelemetry,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,OpenTelemetry Authors,OpenTelemetry documentation,,[],"OpenTelemetry Authors, \emph{OpenTelemetry documentation}, 
+\url{https://opentelemetry.io/docs/}."
+1,2610.01899,EK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. van Emde Boas and D. Kruyswijk,A combinatorial problem on finite abelian groups III,,[],"P.~van Emde Boas and D.~Kruyswijk,
+\emph{A combinatorial problem on finite abelian groups III},
+Report ZW~8/69, Mathematisch Centrum, Amsterdam, 1969.
+\href{https://ir.cwi.nl/pub/7217}{CWI repository}."
+1,2610.02009,BS47,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,N. G. de Bruijn and T. A. Springer,On the zeros of composition-polynomials,,[],"N.~G.~de Bruijn and T.~A.~Springer,
+\emph{On the zeros of composition-polynomials},
+Indag. Math. \textbf{9} (1947), 406--414."
+1,2610.02027,DGLM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"R. Downey, N. Greenberg, A. E. M. Lewis, and A. Montalbán",Extensions of embeddings below computably enumerable degrees,https://doi.org/10.1090/S0002-9947-2012-05660-1 doi:10.1090/S0002-9947-2012-05660-1,[],"R.~Downey, N.~Greenberg, A.~E.~M.~Lewis, and A.~Montalb\'an,
+\emph{Extensions of embeddings below computably enumerable degrees},
+Transactions of the American Mathematical Society \textbf{365} (2013),
+no.~6, 2977--3018.
+\newblock
+\href{https://doi.org/10.1090/S0002-9947-2012-05660-1}
+{doi:10.1090/S0002-9947-2012-05660-1}."
+1,2610.02027,Soare16,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. I. Soare,Turing Computability: Theory and Applications,https://doi.org/10.1007/978-3-642-31933-4 doi:10.1007/978-3-642-31933-4,[],"R.~I.~Soare,
+\emph{Turing Computability: Theory and Applications},
+Theory and Applications of Computability,
+Springer, Berlin, Heidelberg, 2016.
+\newblock
+\href{https://doi.org/10.1007/978-3-642-31933-4}
+{doi:10.1007/978-3-642-31933-4}."
+1,2610.02035,BS99,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. G. de Bruin and A. Sharma,On a Schoenberg-type conjecture,,[],"M.~G.~de Bruin and A.~Sharma,
+\emph{On a Schoenberg-type conjecture},
+J. Comput. Appl. Math. \textbf{105} (1999), no.~1--2, 221--228.
+\doi{10.1016/S0377-0427(99)00013-8}."
+1,2610.02134,araki,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H. Araki,Relative entropy of states of von Neumann algebras,10.2977/prims/1195191148,[],"H.~Araki,
+\emph{Relative entropy of states of von Neumann algebras},
+Publications of the Research Institute for Mathematical Sciences
+\textbf{11} (1976), 809--833.
+\newblock \doi{10.2977/prims/1195191148}."
+1,2610.02134,araki2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H. Araki,Relative entropy for states of von Neumann algebras II,10.2977/PRIMS/1195190105,[],"H.~Araki,
+\emph{Relative entropy for states of von Neumann algebras II},
+Publications of the Research Institute for Mathematical Sciences
+\textbf{13} (1977), 173--192.
+\newblock \doi{10.2977/PRIMS/1195190105}."
+1,2610.02134,HP,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. Hiai and D. Petz,The proper formula for relative entropy and its asymptotics in quantum probability,10.1007/BF02100287,[],"F.~Hiai and D.~Petz,
+\emph{The proper formula for relative entropy and its asymptotics in quantum probability},
+Communications in Mathematical Physics \textbf{143} (1991), 99--114.
+\newblock \doi{10.1007/BF02100287}."
+1,2610.02134,ON,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,T. Ogawa and H. Nagaoka,Strong converse and Stein's lemma in quantum hypothesis testing,quant-ph/9906090; 10.1109/18.887855,[],"T.~Ogawa and H.~Nagaoka,
+\emph{Strong converse and Stein's lemma in quantum hypothesis testing},
+IEEE Transactions on Information Theory \textbf{46} (2000), 2428--2433.
+\newblock \arxiv{quant-ph/9906090}; \doi{10.1109/18.887855}."
+1,2610.02134,BP,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. G. S. L. Brandão and M. B. Plenio,A generalization of quantum Stein's lemma,0904.0281; 10.1007/s00220-010-1005-z,[],"F.~G.~S.~L.~Brand\~ao and M.~B.~Plenio,
+\emph{A generalization of quantum Stein's lemma},
+Communications in Mathematical Physics \textbf{295} (2010), 791--828.
+\newblock \arxiv{0904.0281}; \doi{10.1007/s00220-010-1005-z}."
+1,2610.02134,Gap,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. Berta, F. G. S. L. Brandão, G. Gour, L. Lami, M. B. Plenio, B. Regula, and M. Tomamichel",On a gap in the proof of the generalised quantum Stein's lemma and its consequences for the reversibility of quantum resources,2205.02813; 10.22331/q-2023-09-07-1103,[],"M.~Berta, F.~G.~S.~L.~Brand\~ao, G.~Gour, L.~Lami, M.~B.~Plenio,
+B.~Regula, and M.~Tomamichel,
+\emph{On a gap in the proof of the generalised quantum Stein's lemma and its consequences for the reversibility of quantum resources},
+Quantum \textbf{7} (2023), 1103.
+\newblock \arxiv{2205.02813}; \doi{10.22331/q-2023-09-07-1103}."
+1,2610.02134,HY,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Hayashi and H. Yamasaki,The generalized quantum Stein's lemma and the second law of quantum resource theories,2408.02722v4; 10.1038/s41567-025-03047-9,[],"M.~Hayashi and H.~Yamasaki,
+\emph{The generalized quantum Stein's lemma and the second law of quantum resource theories},
+Nature Physics \textbf{21} (2025), 1988--1993.
+\newblock \arxiv{2408.02722v4}; \doi{10.1038/s41567-025-03047-9}."
+1,2610.02134,Lami,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. Lami,A solution of the generalized quantum Stein's lemma,2408.06410v3; 10.1109/TIT.2025.3543610,[],"L.~Lami,
+\emph{A solution of the generalized quantum Stein's lemma},
+IEEE Transactions on Information Theory \textbf{71} (2025), 4454--4484.
+\newblock \arxiv{2408.06410v3}; \doi{10.1109/TIT.2025.3543610}."
+1,2610.02134,JOPS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"V. Jakšić, Y. Ogata, C.-A. Pillet, and R. Seiringer",Quantum hypothesis testing and non-equilibrium statistical mechanics,1109.3804v2; 10.1142/S0129055X12300026,[],"V.~Jak\v{s}i\'c, Y.~Ogata, C.-A.~Pillet, and R.~Seiringer,
+\emph{Quantum hypothesis testing and non-equilibrium statistical mechanics},
+Reviews in Mathematical Physics \textbf{24} (2012), 1230002.
+\newblock \arxiv{1109.3804v2}; \doi{10.1142/S0129055X12300026}."
+1,2610.02134,PW,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Pautrat and S. Wang,Ke Li's lemma for quantum hypothesis testing in general von Neumann algebras,2010.02177; 10.1007/s00023-023-01269-2,[],"Y.~Pautrat and S.~Wang,
+\emph{Ke Li's lemma for quantum hypothesis testing in general von Neumann algebras},
+Annales Henri Poincar\'e \textbf{24} (2023), 2323--2339.
+\newblock \arxiv{2010.02177}; \doi{10.1007/s00023-023-01269-2}."
+1,2610.02134,FGR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"O. Fawzi, L. Gao, and M. Rahaman",Asymptotic equipartition theorems in von Neumann algebras,2212.14700; 10.1007/s00023-025-01545-3,[],"O.~Fawzi, L.~Gao, and M.~Rahaman,
+\emph{Asymptotic equipartition theorems in von Neumann algebras},
+Annales Henri Poincar\'e \textbf{27} (2026), 95--141.
+\newblock \arxiv{2212.14700}; \doi{10.1007/s00023-025-01545-3}."
+1,2610.02134,HM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. Hiai and M. Mosonyi,Quantum Rényi divergences and the strong converse exponent of state discrimination in operator algebras,2110.07320; 10.1007/s00023-022-01250-5,[],"F.~Hiai and M.~Mosonyi,
+\emph{Quantum R\'enyi divergences and the strong converse exponent of state discrimination in operator algebras},
+Annales Henri Poincar\'e \textbf{24} (2023), 1681--1724.
+\newblock \arxiv{2110.07320}; \doi{10.1007/s00023-022-01250-5}."
+1,2610.02134,Frenkel,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. E. Frenkel,Integral formula for quantum relative entropy implies data processing inequality,10.22331/q-2023-09-07-1102,[],"P.~E.~Frenkel,
+\emph{Integral formula for quantum relative entropy implies data processing inequality},
+Quantum \textbf{7} (2023), 1102.
+\newblock \doi{10.22331/q-2023-09-07-1102}."
+1,2610.02134,Jencova,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. Jenčová,Recoverability of quantum channels via hypothesis testing,2303.11707v2; 10.1007/s11005-024-01775-2,[],"A.~Jen\v{c}ov\'a,
+\emph{Recoverability of quantum channels via hypothesis testing},
+Letters in Mathematical Physics \textbf{114} (2024), article 31.
+\newblock \arxiv{2303.11707v2}; \doi{10.1007/s11005-024-01775-2}."
+1,2610.02134,CFLS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"R. Correa da Silva, M. B. Fröb, G. Lechner, and L. Sangaletti",Integral representations of $f$-divergences for general von Neumann algebras,,[],"R.~Correa da Silva, M.~B.~Fr\""ob, G.~Lechner, and L.~Sangaletti,
+\emph{Integral representations of $f$-divergences for general von Neumann algebras},
+\arxiv{2607.05195v1} (2026)."
+1,2610.02134,Fekete,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Fekete,Über die Verteilung der Wurzeln bei gewissen algebraischen Gleichungen mit ganzzahligen Koeffizienten,10.1007/BF01504345,[],"M.~Fekete,
+\emph{\""Uber die Verteilung der Wurzeln bei gewissen algebraischen
+Gleichungen mit ganzzahligen Koeffizienten},
+Mathematische Zeitschrift \textbf{17} (1923), 228--249.
+\newblock \doi{10.1007/BF01504345}."
+1,2610.02134,Sion,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Sion,On general minimax theorems,10.2140/pjm.1958.8.171,[],"M.~Sion,
+\emph{On general minimax theorems},
+Pacific Journal of Mathematics \textbf{8} (1958), 171--176.
+\newblock \doi{10.2140/pjm.1958.8.171}."
+1,2610.02134,HT24,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. Hirche and M. Tomamichel,Quantum Rényi and $f$-divergences from integral representations,2306.12343; 10.1007/s00220-024-05087-3,[],"C.~Hirche and M.~Tomamichel,
+\emph{Quantum R\'enyi and $f$-divergences from integral representations},
+Communications in Mathematical Physics \textbf{405} (2024), article 208.
+\newblock \arxiv{2306.12343};
+\doi{10.1007/s00220-024-05087-3}."
+1,2610.02134,Ogata,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y. Ogata,A generalization of Powers–Størmer inequality,10.1007/s11005-011-0504-y,[],"Y.~Ogata,
+\emph{A generalization of Powers--St\o rmer inequality},
+Letters in Mathematical Physics \textbf{97} (2011), 339--346.
+\newblock \doi{10.1007/s11005-011-0504-y}."
+1,2610.02216,Nathanson,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Melvyn B. Nathanson,"Problems in additive number theory, VI: Sizes of sumsets of finite sets",,[],"Melvyn B. Nathanson,
+\emph{Problems in additive number theory, VI: Sizes of sumsets of finite sets},
+Acta Mathematica Hungarica \textbf{176} (2025), no.~2, 498--521.
+\href{https://arxiv.org/abs/2411.02365}{arXiv:2411.02365}."
+1,2610.02216,NathansonCompression,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Melvyn B. Nathanson,Compression and complexity for sumset sizes in additive number theory,,[],"Melvyn B. Nathanson,
+\emph{Compression and complexity for sumset sizes in additive number theory},
+Journal of Number Theory \textbf{281} (2026), 321--343.
+\href{https://doi.org/10.1016/j.jnt.2025.09.025}{doi:10.1016/j.jnt.2025.09.025}."
+1,2610.02216,OBryant,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Kevin O'Bryant,On Nathanson's triangular number phenomenon,,[],"Kevin O'Bryant,
+\emph{On Nathanson's triangular number phenomenon},
+preprint, 2025.
+\href{https://arxiv.org/abs/2506.20836v2}{arXiv:2506.20836v2}."
+1,2610.02226,Lojasiewicz1963,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Łojasiewicz,Une propriété topologique des sous-ensembles analytiques réels,,[],"S.~{\L}ojasiewicz,
+\emph{Une propri\'et\'e topologique des sous-ensembles analytiques r\'eels},
+in \emph{Les \'Equations aux D\'eriv\'ees Partielles}, Colloques Internationaux du CNRS 117, Editions du CNRS, Paris, 1963, pp.~87--89."
+1,2610.02226,Lojasiewicz1983,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Łojasiewicz,Sur les trajectoires du gradient d'une fonction analytique,,[],"S.~{\L}ojasiewicz,
+\emph{Sur les trajectoires du gradient d'une fonction analytique},
+Seminari di Geometria, Bologna \textbf{15} (1983), 115--117."
+1,2610.02237,boyer:sasakian,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Charles P. Boyer and Krzysztof Galicki,"Sasakian Geometry, Hypersurface Singularities, and Einstein Metrics",,[],"Charles~P. Boyer and Krzysztof Galicki, \emph{{Sasakian Geometry, Hypersurface
+  Singularities, and Einstein Metrics}}, Supplemento ai Rendiconti del Circolo
+  Matematico di Palermo, Serie II \textbf{75} (2005), 57--87, download
+  \url{https://arxiv.org/abs/math/0405256}."
+1,2610.02237,robinson:book1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Ola Bratteli and Derek W. Robinson,Operator algebras and quantum statistical mechanics. 1,,[],"Ola Bratteli and Derek~W. Robinson, \emph{Operator algebras and quantum
+  statistical mechanics. 1}, second ed., Texts and Monographs in Physics,
+  Springer-Verlag, New York, 1987, $C{^*}$- and $W{^*}$-algebras, symmetry
+  groups, decomposition of states."
+1,2610.02237,page:information,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Don N. Page,Information in black hole radiation,,[],"Don~N. Page, \emph{Information in black hole radiation}, Phys. Rev. Lett.
+  \textbf{71} (1993), 3743--3746,
+  {\href{https://doi.org/10.1103/PhysRevLett.71.3743}{doi:10.1103/PhysRevLett.71.3743}}."
+1,2610.02237,page:information2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Don N Page,Time dependence of Hawking radiation entropy,,[],"Don~N Page, \emph{{Time dependence of Hawking radiation entropy}}, Journal of
+  Cosmology and Astroparticle Physics \textbf{2013} (2013), no.~09, 028--028,
+  {\href{https://doi.org/10.1088/1475-7516/2013/09/028}{doi:10.1088/1475-7516/2013/09/028}}."
+1,2610.02237,tanno-important,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Shûkichi Tanno,The topology of contact riemannian manifolds,,[],"Sh{\^u}kichi Tanno, \emph{The topology of contact riemannian manifolds},
+  Illinois Journal of Mathematics \textbf{12} (1968), no.~4, 700--717,
+  {\href{https://doi.org/10.1215/ijm/1256053971}{doi:10.1215/ijm/1256053971}}."
+1,2610.02250,PQ,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Peccei R.D., Quin, H.R",CP conservation in the presence of pseudoparticles,,[],"Peccei R.D., Quin, H.R., \emph{CP conservation in the presence of pseudoparticles}, Phys. Rev. Lett. 38, 1440 (1977)."
+1,2610.02250,SP1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Sikivie P,Invisible axion search methods,,[],"Sikivie P., \emph{Invisible axion search methods}, Rev. Mod. Phys., 93, 015004 (2021)."
+1,2610.02250,SW,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Svrcek P., Witten E",Axions in string theory,,[],"Svrcek P., Witten E., \emph{Axions in string theory} Journal of High Energy Physics 06, 051 (2006)."
+1,2610.02250,BZ,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Blandford R.D. & Znajek R.L,Electromagnetic extraction of energy from Kerr black holes,,[],"Blandford R.D. \& Znajek R.L., \emph{Electromagnetic extraction of energy from Kerr black holes}, MNRAS, 179, 433 (1977)."
+1,2610.02250,RP,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Penrose R., Floyd R.M",Extraction of Rotational Energy from a Black Hole,,[],"Penrose R., Floyd R.M., \emph{Extraction of Rotational Energy from a Black Hole}, Nature Physical Science, 229, 177 (1971)."
+1,2610.02250,LGA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Lasota J.-P., Gourgoulhon E., Abramovitz M",Extracting black-hole rotational energy: The generalized Penrose process,"D 89, 024041",[],"Lasota J.-P., Gourgoulhon E., Abramovitz M., \emph{Extracting black-hole rotational energy: The generalized Penrose process}, Phys. Rev. D 89, 024041 (2014)."
+1,2610.02250,GPar,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Pelletier G,Black Hole Induced Ejections,,[],"Pelletier G., \emph{Black Hole Induced Ejections}, arXiv:astro-ph/0405113"
+1,2610.02250,GPM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Pelletier G., Lemoine M., Plotnikov I",Relativistic outflows from compact objects and generation of Astroparticles,,[],"Pelletier G., Lemoine M., Plotnikov I., \emph{Relativistic outflows from compact objects and generation of Astroparticles}, Frontiers of Fundamental Physics FFP14, Proceedings of Science SISSA (2014)."
+1,2610.02250,TA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Timokhin A., Arons J",Current flow and pair creation at low altitude in rotation-powered pulsars' force-free magnetospheres: space charge limited flow,,[],"Timokhin A., Arons J., \emph{Current flow and pair creation at low altitude in rotation-powered pulsars' force-free magnetospheres: space charge limited flow}, MNRAS, 429, 20 (2013)."
+1,2610.02250,LC,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Levinson A., Cerutti B",Particle-in-cell simulations of pair discharges in a starved magnetosphere of a Kerr black hole,,[],"Levinson A., Cerutti B., \emph{Particle-in-cell simulations of pair discharges in a starved magnetosphere of a Kerr black hole}, A\&A 616, A184 (2018)."
+1,2610.02250,WK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Widrow L., Kaiser N",Using the Schroedinger Equation to Simulate Collisionless Matter,,[],"Widrow L., Kaiser N., \emph{Using the Schroedinger Equation to Simulate Collisionless Matter}, ApJ 416, L71 (1993)."
+1,2610.02250,AM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Messiah A,Mécanique Quantique,,[],"Messiah A., \emph{M\'ecanique Quantique} tome 1, Dunod, Paris (1965)."
+1,2610.02250,WM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Wang L., Ma B-Q",Axion-photon conversion of GRB221009A,"D, vol 108, 023002",[],"Wang L., Ma B-Q., \emph{Axion-photon conversion of GRB221009A}, Phys. Rev. D, vol 108, 023002 (2023)."
+1,2610.02250,GH,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Henri G., Pelletier G",Relativistic electron-positron beam formation in the framework of the two-flow model for active galactic nuclei,,[],"Henri G., Pelletier G., \emph{Relativistic electron-positron beam formation in the framework of the two-flow model for active galactic nuclei}, ApJ 383 L7 (1991)."
+1,2610.02250,ERK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Erken O., P. Sikivie P., Tam H., Yang Q",Cosmic axion thermalization,"D 85, 063520",[],"Erken O., P. Sikivie P., Tam H., Yang Q., \emph{Cosmic axion thermalization}, Phys. Rev. D 85, 063520 (2012)."
+1,2610.02250,ML,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Lemoine M,Nonlinear collisionless damping of Weibel turbulence in relativistic blast waves,,[],"Lemoine M., \emph{Nonlinear collisionless damping of Weibel turbulence in relativistic blast waves}, Journal of Plasma Physics 81, 455810101 (2015)."
+1,2610.02250,IA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Andernach H., Brüggen M",Properties of giant radio galaxies larger than 3 Mpc,,[],"Andernach H., Br\""uggen M., \emph{Properties of giant radio galaxies larger than 3 Mpc}, A\&A 699, A257 (2025)."
+1,2610.02250,DESI,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,DESI Collaboration,DESI DR2 Results II: Measurements of Baryon Acoustic Oscillations and Cosmological Constraints,"D 112, 083515",[],"DESI Collaboration \emph{DESI DR2 Results II: Measurements of Baryon Acoustic Oscillations and Cosmological Constraints} Phys. Rev. D 112, 083515 (2025)."
+1,2610.02250,BAO,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Eisenstein D. J., et al",Detection of the Baryon Acoustic Peak in the Large-Scale Correlation Function of SDSS Luminous Red Galaxies,,[],"Eisenstein D. J., et al., \emph{Detection of the Baryon Acoustic Peak in the Large-Scale Correlation Function of SDSS Luminous Red Galaxies}, ApJ 633, 560 (2005)."
+1,2610.02250,XRI,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Audard M. et al,Structured ionized winds shooting out from a quasar at relativistic speeds,,[],"Audard M. et al., \emph{Structured ionized winds shooting out from a quasar at relativistic speeds} Nature 641, 8065 (2025)."
+1,2610.02250,PM,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Aghanim N. et al,Planck 2018 results. VI. Cosmological parameters,VI,[],"Aghanim N. et al., \emph{Planck 2018 results. VI. Cosmological parameters}, A\&A 641, 67 (2018)."
+1,2610.02264,BezrukovEngel,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. L. Bezrukov and K. Engel,Properties of graded posets preserved by some operations,https://doi.org/10.1007/978-3-642-60406-5_8,[],"S. L. Bezrukov and K. Engel,
+\emph{Properties of graded posets preserved by some operations},
+in R. L. Graham and J. Ne\v{s}et\v{r}il (eds.),
+\emph{The Mathematics of Paul Erd\H{o}s II},
+Algorithms and Combinatorics 14, Springer, Berlin, Heidelberg, 1997, 79--85.
+\newblock \url{https://doi.org/10.1007/978-3-642-60406-5_8}."
+1,2610.02264,Engel1986,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,K. Engel,Optimal representations of partially ordered sets and a limit Sperner theorem,https://doi.org/10.1016/S0195-6698(86)80003-8,[],"K. Engel,
+\emph{Optimal representations of partially ordered sets and a limit Sperner theorem},
+European J. Combin. \textbf{7} (1986), 287--302.
+\newblock \url{https://doi.org/10.1016/S0195-6698(86)80003-8}."
+1,2610.02264,Haiman2024,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Haiman,The dimension of divisibility orders and multiset posets,https://doi.org/10.1007/s11083-023-09653-7,[],"M. Haiman,
+\emph{The dimension of divisibility orders and multiset posets},
+Order \textbf{41} (2024), 693--707.
+\newblock \url{https://doi.org/10.1007/s11083-023-09653-7}."
+1,2610.02264,LewisSouza,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D. Lewis and V. Souza,The order dimension of divisibility,https://doi.org/10.1016/j.jcta.2020.105391,[],"D. Lewis and V. Souza,
+\emph{The order dimension of divisibility},
+J. Combin. Theory Ser. A \textbf{179} (2021), 105391.
+\newblock \url{https://doi.org/10.1016/j.jcta.2020.105391}."
+1,2610.02264,Lichtman2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. D. Lichtman,A proof of the Erdős primitive set conjecture,https://doi.org/10.1017/fmp.2023.16,[],"J. D. Lichtman,
+\emph{A proof of the Erd\H{o}s primitive set conjecture},
+Forum Math. Pi \textbf{11} (2023), e18.
+\newblock \url{https://doi.org/10.1017/fmp.2023.16}."
+1,2610.02271,ST93,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David B. Shmoys and Éva Tardos,https://doi.org/10.1007/BF01585178An approximation algorithm for the generalized assignment problem,,[],"David B. Shmoys and \'Eva Tardos,
+\emph{\href{https://doi.org/10.1007/BF01585178}{An approximation
+algorithm for the generalized assignment problem}},
+Mathematical Programming \textbf{62} (1993), 461--474."
+1,2610.02356,hr_1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Hörmander, L",The analysis of linear partial differential operators I: Distribution theory and Fourier analysis,,[],"H\""ormander, L., \emph{The analysis of linear partial differential operators I: Distribution theory and Fourier analysis}, Reprint of the second (1990) edition, Springer-Verlag, Berlin, 2003."
+1,2610.02356,hr_3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Hörmander, L",The analysis of linear partial differential operators III: Pseudo-differential operators,,[],"H\""ormander, L., \emph{The analysis of linear partial differential operators III: Pseudo-differential operators}, Springer-Verlag, Berlin, 1985."
+1,2610.02356,treves,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Trèves, F",Introduction to Pseudodifferential and Fourier Integral Operators,,[],"Tr\`{e}ves, F.,  \emph{Introduction to Pseudodifferential and Fourier Integral Operators}, Plenum Press, New York, 1980."
+2,2604.15843,GladdinesVanMill1993,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H. Gladdines and J. van Mill,Hyperspaces of infinite-dimensional compacta,,[],"H.~Gladdines and J.~van Mill,
+\emph{Hyperspaces of infinite-dimensional compacta},
+Compositio Math. \textbf{88} (1993), 143--153.
+\url{https://www.numdam.org/item/CM_1993__88_2_143_0/}."
+2,2604.16077,Choi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Y-E. Choi,Positively oriented ideal triangulations on hyperbolic three-manifolds,,[],"Y-E. Choi, \emph{Positively oriented ideal triangulations on hyperbolic three-manifolds}, Topology 43 (2004) 1345--1371"
+2,2604.16125,Ma,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,John N. Mather,"Stability of $C^\infty$ mappings: V, transversality",,[],"John~N.~Mather,
+\emph{Stability of $C^\infty$ mappings: V, transversality},
+Advances in Mathematics,
+Vol.~4, Issue~3,
+pp. 301--336,
+1970."
+2,2604.16125,Mi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Peter W. Michor,Manifolds of Differentiable Mappings,,[],"{Peter W. Michor},
+\emph{Manifolds of Differentiable Mappings},
+  Shiva Publishing: Orpington, 1980."
+2,2604.16339,vanderaalst2016,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Van der Aalst, W.M.P",Process Mining: Data Science in Action,,[],"Van der Aalst, W.M.P. \textit{Process Mining: Data Science in Action}, 2nd ed.; Springer, 2016."
+2,2604.16531,de_Rham_2013,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"C. de Rham, G. Gabadadze, L. Heisenberg and D. Pirtskhalava",Nonrenormalization and naturalness in a class of scalar-tensor theories,,[],"C.~de~Rham, G.~Gabadadze, L.~Heisenberg and D.~Pirtskhalava,
+  \emph{Nonrenormalization and naturalness in a class of scalar-tensor
+  theories}, \href{https://doi.org/10.1103/physrevd.87.085017}{\emph{Physical
+  Review D} {\bfseries 87} (2013) }."
+2,2604.16531,Rachwa__2022,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L. Rachwa?,How to understand the structure of beta functions in six-derivative quantum gravity?,,[],"L.~Rachwa?, \emph{How to understand the structure of beta functions in
+  six-derivative quantum gravity?},
+  \href{https://doi.org/10.14311/ap.2022.62.0118}{\emph{Acta Polytechnica}
+  {\bfseries 62} (2022) 118?156}."
+2,2604.16531,deRham:2026dsd,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,C. de Rham and A.J. Tolley,Diffeomorphic Scalar Duality,,[],"C.~de~Rham and A.J.~Tolley, \emph{{Diffeomorphic Scalar Duality}},
+  \href{https://arxiv.org/abs/2606.25154}{{\ttfamily 2606.25154}}."
+2,2604.16805,40,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Martínez-Villa and J. A. de la Peña,Automorphisms of representation-finite algebras,,[],"R.~Martínez-Villa and J.~A.~de la Peña,
+\emph{Automorphisms of representation-finite algebras},
+Invent. Math. \textbf{72} (1983), 359--362."
+2,2604.16815,Google2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Google Quantum AI,et al,,[],"Google Quantum AI \textit{et al.}, Suppressing quantum errors by scaling a surface code logical qubit, Nature \textbf{614}, 676 (2023)."
+2,2604.16815,VanDenBerg2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,E. van den Berg,et al,,[],"E. van den Berg \textit{et al.}, Probabilistic error cancellation with sparse Pauli–Lindblad models on noisy quantum processors, Nat. Phys. \textbf{19}, 1116 (2023)."
+2,2604.16840,Fav22,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,A. de Faveri,Möbius disjointness for $C^{1+\varepsilon}$ skew products,"IMRN, 4 (2022), 2513-2531",[],"A. de Faveri,
+			\emph{M{\""o}bius disjointness for $C^{1+\varepsilon}$ skew products},
+			Int. Math. Res. Not. IMRN, {\bf 4} (2022), 2513-2531."
+2,2604.16891,12TB-PRL,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Andrew K. Yi,et al,,[],"Andrew K. Yi \emph{et al.}, \emph{Axion dark matter search around 4.55 $\mu$eV with Dine–Fischler–Srednicki–Zhitnitskii sensitivity}, \emph{Phys. Rev. Lett.} \textbf{130} (2023) 071002."
+2,2604.16951,qi1723,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"X. -B. Liang, B. Li, and S. -M. Fei",Phys. Rev. A,"A 100, 030304(R)",[],"X. -B. Liang, B. Li, and S. -M. Fei, \textit{Phys. Rev. A}
+\textbf{100}, 030304(R) (2019). Complete characterization of qubit masking"
+2,2604.16951,qbc205,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. -S. Li and Y. -L. Wang,Phys. Rev. A,"A 98 , 062306",[],"M. -S. Li and Y. -L. Wang, \textit{Phys. Rev. A} \textbf{98} 
+, 062306 (2018). Masking quantum information in multipartite scenario"
+2,2604.16951,qi2446,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Z. -F. Liu, et al",Commun. Phys,Experimental demonstration of complete quantum information masking and generalization of quantum secret sharing,[],"Z. -F. Liu, et al., \textit{Commun. Phys.} \textbf{8}, 30
+(2025). Experimental demonstration of complete quantum information masking
+and generalization of quantum secret sharing"
+2,2604.17084,Thesis,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H.H. Bauschke,Projection Algorithms and Monotone Operators,,[],"H.H.\ Bauschke:
+\emph{Projection Algorithms and Monotone Operators}, 
+PhD thesis, Simon Fraser University, 1996. 
+\url{https://summit.sfu.ca/item/7015}"
+2,2604.17084,BC2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H.H. Bauschke and P.L. Combettes,Convex Analysis and Monotone Operator Theory in Hilbert Spaces,,[],"H.H.\ Bauschke and P.L.\ Combettes: 
+\emph{Convex Analysis and Monotone Operator Theory in Hilbert Spaces},
+2nd edition, Springer, 2017."
+2,2604.17084,BB76,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,H. Brezis and F.E. Browder: Nonlinear Ergodic Theorems,Bulletin of the AMS,,[],"H.\ Brezis and F.E.\ Browder:
+Nonlinear Ergodic Theorems, 
+\emph{Bulletin of the AMS}~82 (1976), 959--961."
+2,2604.17084,Silverman,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,L.L. Silverman,On the Definition of the Sum of a Divergent Series,,[],"L.L.\ Silverman: 
+\emph{On the Definition of the Sum of a Divergent Series}, 
+PhD thesis, University of Michigan, 1913.
+\url{https://quod.lib.umich.edu/u/umhistmath/AHE6267.0001.001}"
+2,2604.17212,deBerg2008,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"M. de Berg, O. Cheong, M. van Kreveld, and M. Overmars",Computational Geometry: Algorithms and Applications,,[],"M.~de~Berg, O.~Cheong, M.~van Kreveld, and M.~Overmars, \emph{Computational Geometry: Algorithms and Applications}, 3rd~ed.\hskip 1em plus 0.5em minus 0.4em\relax Springer, 2008."
+2,2604.17269,Wald,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Robert M. Wald,General Relativity,,[],"Robert M. Wald, \textit{General Relativity} (University of Chicago Press, Chicago, 1984)."
+2,2604.17292,della,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Duncan, Della C. and Ihrig, Edwin C",Homogeneous spacetimes of zero curvature,,[],"Duncan, Della C. and  Ihrig, Edwin C., \emph{ Homogeneous spacetimes of
+		zero
+		curvature}, 
+	Proceedings of the American Mathematical Society {\bf 107} (1989)."
+2,2604.17372,Physics-Briefing-Book,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. de Blas,et al,,[],"J.~de Blas, 
+                                                                                                                       
+\textit{et al.}
+                                                                                                    
+doi:10.23731/CYRM-2025-008
+[arXiv:2511.03883 [hep-ex]]."
+2,2604.17443,Gallager:1975,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Gallager and D. van Voorhis,Optimal source codes for geometrically distributed integer alphabets (Corresp.),,[],"R.~Gallager and D.~van~Voorhis,
+		\emph{Optimal source codes for geometrically distributed integer alphabets (Corresp.),}
+		\emph{IEEE Transactions on Information Theory}, vol.~21, no.~2, pp.~228--230, Mar. 1975."
+2,2604.17521,DBD2014,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Das J., Bandyopadhyay A., and Das K.P",Stability of ion acoustic solitary waves in a magnetized plasma consisting of warm adiabatic ions and non-thermal electrons having vortex-like velocity distribution,,[],"Das J., Bandyopadhyay A., and  Das K.P., 
+\emph{Stability of ion acoustic solitary waves in a magnetized plasma consisting of warm adiabatic ions and non-thermal electrons having vortex-like velocity distribution}, J. Plasma Phys., 80(1) (2014), 89--112."
+2,2604.17534,Paris2017,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,I. Pâris et al,The Sloan Digital Sky Survey Quasar Catalog: twelfth data release,,[],"I. P\^aris et al., \emph{The Sloan Digital Sky Survey Quasar Catalog: twelfth data release}, \emph{Astron. Astrophys.} {\bf 597} (2017) A79 [arXiv:1608.06483]."
+2,2604.17601,[1],EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Einstein A,Die Grundlage der allgemeinen Relativitätstheorie,,[],"Einstein A, \textit{Die Grundlage der allgemeinen Relativit\""{a}tstheorie}, 
+ Annalen der Physik. {\bf 345} (1916) 769."
+2,2604.17601,[2],EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Kraichnan R,Special-Relativistic Derivation of Generally Covariant Gravitation Theory,,[],"Kraichnan R, \textit{Special-Relativistic Derivation of Generally Covariant Gravitation Theory}, 
+Phys. Rev. {\bf 98} (1955) 1118."
+2,2604.17601,[4],EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Deser S,Self-interaction and gauge invariance,,[],"Deser S, \textit{Self-interaction and gauge invariance}, 
+ Gen. Rel. and Grav. {\bf 1} (1970) 9."
+2,2604.17601,Nakajima,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Nakajima S,A note on the Feynman lectures on gravitation,,[],"Nakajima S, \textit{A note on the Feynman lectures on gravitation}, 
+Phys. Scr. \textbf{101} (2026) 071501."
+2,2604.17601,BCO,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ball J M, Currie J C, and Olver P J","Null Lagrangians, weak continuity, and variational problems of arbitrary order",,[],"Ball J M, Currie J C, and Olver P J, \textit{Null Lagrangians, weak continuity, and variational problems of arbitrary order}, 
+Journal of Functional Analysis \textbf{41} (1981) 135."
+2,2604.17601,[3a],EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Gupta S,Gravitation and Electromagnetism,,[],"Gupta S, \textit{Gravitation and Electromagnetism}, 
+Phys. Rev. {\bf 96} (1954) 1683."
+2,2604.17601,[3b],EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Gupta S,Einstein's and Other Theories of Gravitation,,[],"Gupta S, \textit{Einstein's and Other Theories of Gravitation},
+Rev. Mod. Phys. {\bf 29} (1957) 334."
+2,2604.17601,Pons,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Pons J M,"Noether symmetries, energy-momentum tensors, and conformal invariance in classical field theory",,[],"Pons J M, \textit{Noether symmetries, energy-momentum tensors, and conformal invariance in classical field theory}, 
+J. Math. Phys. \textbf{52} (2011) 012904."
+2,2604.17601,Belinfante,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Belinfante F J,"On the current and the density of the electric charge, the energy, the linear momentum and the angular momentum of arbitrary fields",,[],"Belinfante F J, \textit{On the current and the density of the electric charge, the energy, the linear momentum and the angular momentum of arbitrary fields}, 
+Physica \textbf{7 }(1940) 449."
+2,2604.17601,Rosenfeld,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Rosenfeld L,On the energy-momentum tensor,,[],"Rosenfeld L, \textit{On the energy-momentum tensor}, 
+In: Cohen R S, Stachel J J (eds.), \textit{Selected Papers of L\'{e}on Rosenfeld}, 
+Boston Studies in the Philosophy of Science, volume 21, pp. 711-735, Springer. (1979)."
+2,2604.17601,Tomboulis,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Tomboulis E T,On the `simple' form of the gravitational action and the self-interacting graviton,,[],"Tomboulis E T, \textit{On the `simple' form of the gravitational action and
+the self-interacting graviton}, 
+J. High Energ. Phys. \textbf{2017} (2017) 145."
+2,2604.17601,Feynman1995,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Feynman R,Lectures on Gravitation,,[],"Feynman R, \textit{Lectures on Gravitation}, Westview Press (1995)."
+2,2604.17601,Wentzel1949,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Wentzel G,Quantum Theory of Fields,,[],"Wentzel G, \textit{Quantum Theory of Fields},
+translated from the German by C. Houtermans and J. M. Jauch, with an Appendix by J. M. Jauch,
+Interscience Publishers, New York and London (1949)."
+2,2604.17605,vanTilborg2015,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. van Tilborg,et al,,[],"J. van Tilborg \textit{et al.},
+	Active plasma lensing for relativistic laser-plasma-accelerated electron beams,
+    \href{https://doi.org/10.1103/PhysRevLett.115.184802}
+    {Phys. Rev. Lett. \textbf{115}, 184802 (2015)}."
+2,2604.17657,CMS2020,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,Investigation into the event-activity dependence of $\Upsilon(n\mathrm{S})$ relative production in proton--proton collisions at $\sqrts=7$ TeV,,[],"CMS Collaboration,
+\emph{Investigation into the event-activity dependence of $\Upsilon(n\mathrm{S})$
+relative production in proton--proton collisions at $\sqrts=7$\,TeV},
+JHEP \textbf{11} (2020) 001 [arXiv:2007.04277]."
+2,2604.17657,LHCb2024,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,LHCb Collaboration,Multiplicity dependence of $\sigma_{\psi(2S)}/\sigma_{J/\psi}$ in $pp$ collisions at $\sqrts=13$ TeV,,[],"LHCb Collaboration,
+\emph{Multiplicity dependence of $\sigma_{\psi(2S)}/\sigma_{J/\psi}$
+in $pp$ collisions at $\sqrts=13$\,TeV},
+JHEP \textbf{05} (2024) 243 [arXiv:2312.15201]."
+2,2604.17657,LHCb2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,LHCb Collaboration,Measurement of multiplicity-dependent $\Upsilon(n\mathrm{S})$ production ratios in $pp$ collisions at $\sqrts=13$ TeV,,[],"LHCb Collaboration,
+\emph{Measurement of multiplicity-dependent $\Upsilon(n\mathrm{S})$
+production ratios in $pp$ collisions at $\sqrts=13$\,TeV},
+LHCb-PAPER-2025."
+2,2604.17657,ALICE_SE,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ALICE Collaboration,Enhanced production of multi-strange hadrons in high-multiplicity $pp$ collisions,,[],"ALICE Collaboration,
+\emph{Enhanced production of multi-strange hadrons in
+high-multiplicity $pp$ collisions},
+Nature Phys.\ \textbf{13} (2017) 535 [arXiv:1606.07424]."
+2,2604.17657,ALICE_SE5TeV,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ALICE Collaboration,Strangeness enhancement at its extremes: multiple (multi-)strange hadron production in $pp$ collisions at $\sqrts=5.02$ TeV,,[],"ALICE Collaboration,
+\emph{Strangeness enhancement at its extremes: multiple (multi-)strange
+hadron production in $pp$ collisions at $\sqrts=5.02$\,TeV},
+arXiv:2511.10413 (2025)."
+2,2604.17657,ALICE_v2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,ALICE Collaboration,Observation of partonic flow in proton--proton and proton--nucleus collisions,,[],"ALICE Collaboration,
+\emph{Observation of partonic flow in proton--proton and
+proton--nucleus collisions},
+Nature Commun.\ \textbf{17} (2026) 2585 [arXiv:2411.09323]."
+2,2604.17657,CMS_ridge,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,Observation of long-range near-side angular correlations in proton--proton collisions at the LHC,,[],"CMS Collaboration,
+\emph{Observation of long-range near-side angular correlations in
+proton--proton collisions at the LHC},
+JHEP \textbf{09} (2010) 091 [arXiv:1009.4122]."
+2,2604.17664,Semrl1995,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. Šemrl,Isomorphisms of standard operator algebras,,[],"P.~\v{S}emrl,
+		\emph{Isomorphisms of standard operator algebras},
+		Proc. Amer. Math. Soc. \textbf{123} (1995), no.~6, 1851--1855."
+2,2604.17664,Semrl2005,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. Šemrl,Non-linear commutativity preserving maps,,[],"P.~\v{S}emrl,
+		\emph{Non-linear commutativity preserving maps},
+		Acta Sci. Math. (Szeged) \textbf{71} (2005), 781--819."
+2,2604.17664,Semrl2008,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. Šemrl,Endomorphisms of matrix semigroups over division rings,,[],"P.~\v{S}emrl,
+		\emph{Endomorphisms of matrix semigroups over division rings},
+		Israel J. Math. \textbf{163} (2008), 125--138."
+2,2604.17687,BalmacedaB2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. M. P. Balmaceda and Dom V. A. Briones,Families of association schemes on triples from two-transitive groups,,[],"J.~M.~P. Balmaceda and Dom~V.~A. Briones, \emph{Families of association schemes
+		on triples from two-transitive groups}, Ars Math. Contemp. \textbf{25}
+	(2025), no.~3, Paper No. 5, 16."
+2,2604.17765,HRDK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Haag R., and Kastler D",An Algebraic Approach to Quantum Field Theory,,[],"Haag R., and Kastler D., \emph{An Algebraic Approach to Quantum Field Theory}, J. Math. Phys., 1964, 5(7): 848-861."
+2,2604.17765,FK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Fredenhagen K,On the Modular Structure of Local Algebras of Observables,,[],"Fredenhagen K. \emph{On the Modular Structure of Local Algebras of Observables}, Comm. Math. Phys., 1985, 97(1): 79-89."
+2,2604.17765,ASR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ahmad S. A., and Jefferson R",Crossed Product Algebras and Generalized Entropy for Subregions,,[],"Ahmad S. A., and Jefferson R. \emph{Crossed Product Algebras and Generalized Entropy for Subregions}, arXiv:2306.07323, 2023."
+2,2604.17765,STal,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Schwartzman T,Complexity of Entanglement Embezzlement,"A, 112.1 (2025): 012415",[],"Schwartzman T., \emph{Complexity of Entanglement Embezzlement}, Phys. Rev. A, 112.1 (2025): 012415."
+2,2604.17765,VLAS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"van Luijk L., Stottmeister A., and Wilming H",Critical Fermions Are Universal Embezzlers,,[],"van Luijk L., Stottmeister A., and Wilming H., \emph{Critical Fermions Are Universal Embezzlers}, Nature Phys., 2025, 21(7): 1141-1146."
+2,2604.17765,KR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Kadison R. V,Remarks on The Type of von Neumann Algebras of Local Observables in Quantum Field Theory,,[],"Kadison R. V., \emph{Remarks on The Type of von Neumann Algebras of Local Observables in Quantum Field Theory}, J. Math. Phys., 1963, 4(12): 1511-1516."
+2,2604.17765,SJ,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Sorce J,Notes on The Type Classification of von Neumann Algebras,,[],"Sorce J., \emph{Notes on The Type Classification of von Neumann Algebras}, Rev. Math. Phys., 2024, 36(02): 2430002."
+2,2604.17765,Yinzhi1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Chen Z., Xu Q., and Yin Z",Harmonic Analysis on Quantum Tori,,[],"Chen Z., Xu Q., and Yin Z., \emph{Harmonic Analysis on Quantum Tori}, Commun.  Math. Phys., 2013, 322(3): 755-805."
+2,2604.17765,KJD1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Kang M. J., and Kolchmeyer D. K",Entanglement Wedge Reconstruction of Infinite-dimensional von Neumann Algebras Using Tensor Networks,"D, 2021, 103(12): 126018",[],"Kang M. J., and Kolchmeyer D. K., \emph{Entanglement Wedge Reconstruction of Infinite-dimensional von Neumann Algebras Using Tensor Networks}, Phys. Rev. D, 2021, 103(12): 126018."
+2,2604.17765,MM1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Moudgalya S., and Motrunich O. I",Exhaustive Characterization of Quantum Many-body Scars Using Commutant Algebras,"X, 2024, 14(4): 041069",[],"Moudgalya S., and Motrunich O. I., \emph{Exhaustive Characterization of Quantum Many-body Scars Using Commutant Algebras}, Phys. Rev. X, 2024, 14(4): 041069."
+2,2604.17765,JL1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Jaffe A., and Liu Z","Planar Para Algebras, Reflection Positivity",,[],"Jaffe A., and Liu Z., \emph{Planar Para Algebras, Reflection Positivity}, Commun. Math. Phys., 2017, 352(1): 95-133."
+2,2604.17765,wujinsong2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Huang L., Liu Z., and Wu J",Quantum smooth uncertainty principles for von Neumann bi-algebras,,[],"Huang L., Liu Z., and Wu J., \emph{Quantum smooth uncertainty principles for von Neumann bi-algebras}, Quantum Topology, 2024, 15(3): 473-501."
+2,2604.17765,SCA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Scarani V,Bell Nonlocality,,[],"Scarani V.,  \emph{Bell Nonlocality,} Oxford Graduate Texts, 2019."
+2,2604.17765,JSB,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Bell J. S,On the Einstein Podolsky Rosen Paradox,,[],"Bell J. S., \emph{On the Einstein Podolsky Rosen Paradox,} Phys. Phys. Fiz., 1964, 1(3): 195."
+2,2604.17765,JS1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Bell J. S,Speakable and Unspeakable in Quantum Mechanics: Collected papers on quantum philosophy,,[],"Bell J. S., \emph{Speakable and Unspeakable in Quantum Mechanics: Collected papers on quantum philosophy}, Cambridge university press, 2004."
+2,2604.17765,ABN,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Einstein A., Podolsky B., and Rosen N",Can Quantum-Mechanical Description of Physical Reality be Considered Complete?,,[],"Einstein A., Podolsky B., and Rosen N., \emph{Can Quantum-Mechanical Description of Physical Reality be Considered Complete?} Phys. Rev., 1935, 47(10): 777."
+2,2604.17765,HSA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Wiseman H. M., Jones S. J. , and A. C. Doherty","Steering, Entanglement, Nonlocality, and the Einstein-Podolsky-Rosen Paradox",,[],"Wiseman H. M.,  Jones S. J. , and A. C. Doherty, \emph{Steering, Entanglement, Nonlocality, and the Einstein-Podolsky-Rosen Paradox}, Phys. Rev. Lett., 2007, 98, 140402."
+2,2604.17765,RH,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Cleve R., and Buhrman H",Substituting Quantum Entanglement for Communication,"A, 1997, 56(2): 1201",[],"Cleve R., and Buhrman H., \emph{Substituting Quantum Entanglement for Communication}, Phys. Rev. A, 1997, 56(2): 1201."
+2,2604.17765,JLA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Barrett J., Hardy L., and Kent A",No Signaling and Quantum Key Distribution,,[],"Barrett J., Hardy L., and Kent A., \emph{No Signaling and Quantum Key Distribution}, Phys. Rev. Lett., 2005, 95(1): 010503."
+2,2604.17765,LSA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Masanes L., Pironio S., and Acín A",Secure Device-Independent Quantum Key Distribution with Causally Independent Measurement Devices,,[],"Masanes  L.,
+Pironio S., and Ac\'{i}n A., \emph{Secure Device-Independent Quantum Key Distribution with Causally Independent Measurement Devices}, Nat. Commun., 2011, 2(1): 238."
+2,2604.17765,RH1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Raussendorf R., and Briegel H. J",A One-Way Quantum Computer,,[],"Raussendorf R., and Briegel H. J., \emph{A One-Way Quantum Computer}, Phys. Rev. Lett., 2001, 86(22): 5188."
+2,2604.17765,RDH,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Raussendorf R., Browne D. E., and Briegel H. J",Measurement-Based Quantum Computation on Cluster States,"A, 2003, 68(2): 022312",[],"Raussendorf R., Browne D. E., and Briegel H. J., \emph{Measurement-Based Quantum Computation on Cluster States}, Phys. Rev. A, 2003, 68(2): 022312."
+2,2604.17765,SR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Summers S. J., and Werner R",Maximal Violation of Bell's Inequalities Is Generic in Quantum Field Theory,,[],"Summers S. J., and Werner R., \emph{Maximal Violation of Bell's Inequalities Is Generic in Quantum Field Theory}, Comm. Math. Phys., 1987, 110(2): 247-259."
+2,2604.17765,FCR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Fewster C. J., and Verch R",Measurement in Quantum Field Theory,,[],"Fewster C. J., and Verch R., \emph{Measurement in Quantum Field Theory},  arXiv:2304.13356, 2023."
+2,2604.17765,NY,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Nomura Y,"Quantum Mechanics, Spacetime Locality, and Gravity",,[],"Nomura Y., \emph{Quantum Mechanics, Spacetime Locality, and Gravity}, Found. Phys., 2013, 43(8): 978-1007."
+2,2604.17765,KSA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Kauffman S. A,Quantum Gravity If Non-Locality Is Fundamental,,[],"Kauffman S. A., \emph{Quantum Gravity If Non-Locality Is Fundamental}, Entropy, 2022, 24(4): 554."
+2,2604.17765,MY,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Morales J., and Bonder Y",Quantum Correlations and Gravity: From the Emergence of a Cosmological Constant to the Gravitation of Particles in Superposition,,[],"Morales J., and Bonder Y., \emph{Quantum Correlations and Gravity: From the Emergence of a Cosmological Constant to the Gravitation of Particles in Superposition}, arXiv:2512.13531, 2025."
+2,2604.17765,nc2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Lee C. M., and Spekkens R. W",Causal Inference via Algebraic Geometry: Feasibility Tests For Functional Causal Structures With Two Binary Observed Variables,,[],"Lee C. M., and Spekkens R. W., \emph{Causal Inference via Algebraic Geometry: Feasibility Tests For Functional Causal Structures With Two Binary Observed Variables}, J. Causal Inference, 2017, 5(2): 20160013."
+2,2604.17765,nc3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Chaves R,Polynomial Bell Inequalities,,[],"Chaves R., \emph{Polynomial Bell Inequalities}, Phys. Rev. Lett., 2016, 116(1): 010402."
+2,2604.17765,5,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Branciard C., Gisin N., and Pironio S",Characterizing The Nonlocal Correlations Created Via Entanglement Swapping,,[],"Branciard C., Gisin N., and Pironio S., \emph{Characterizing The Nonlocal Correlations Created Via Entanglement Swapping}, Phys. Rev. Lett., 2010, 104(17): 170401."
+2,2604.17765,8,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Mukherjee K., Paul B., and Sarkar D",Correlations in n-local scenario,,[],"Mukherjee K., Paul B.,  and Sarkar D., \emph{Correlations in n-local scenario}, Quantum Inf. Process., 2015, 14(6): 2025-2042."
+2,2604.17765,14,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Yang L., Qi X., and Hou J",Nonlocal Correlations in The Tree-Tensor-Network Configuration,"A, 2021, 104(4): 042405",[],"Yang L., Qi X., and Hou J., \emph{Nonlocal Correlations in The Tree-Tensor-Network Configuration}, Phys. Rev. A, 2021, 104(4): 042405."
+2,2604.17765,15,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Yang L., Qi X., and Hou J",Quantum Nonlocality in Any Forked Tree-Shaped Network,,[],"Yang L., Qi X., and Hou J., \emph{Quantum Nonlocality in Any Forked Tree-Shaped Network}, Entropy, 2022, 24(5): 691."
+2,2604.17765,16,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Yang L., Qi X., and Hou J",Multi-Nonlocality And Detection of Multipartite Entanglements by Special Quantum Networks,,[],"Yang L., Qi X., and Hou J., \emph{Multi-Nonlocality And Detection of Multipartite Entanglements by Special Quantum Networks}, Quantum Inf. Process., 2022, 21(8): 305."
+2,2604.17765,any3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Tavakoli A,Bell-Type Inequalities For Arbitrary Noncyclic Networks,"A, 2016, 93(3): 030101",[],"Tavakoli A., \emph{Bell-Type Inequalities For Arbitrary Noncyclic Networks}, Phys. Rev. A, 2016, 93(3): 030101."
+2,2604.17765,12,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Luo M. X,Computationally Efficient Nonlinear Bell Inequalities For Quantum Networks,,[],"Luo M. X., \emph{Computationally Efficient Nonlinear Bell Inequalities For Quantum Networks}, Phys. Rev. Lett., 2018, 120(14): 140402."
+2,2604.17765,fnn,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Pozas-Kerstjens A., Gisin N., and Tavakoli A",Full Network Nonlocality,,[],"Pozas-Kerstjens A., Gisin N., and Tavakoli A., \emph{Full Network Nonlocality}, Phys. Rev. Lett., 2022, 128(1): 010403."
+2,2604.17765,LYK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Luo M. X., Yang X., and Pozas-Kerstjens A",Hierarchical Certification of Nonclassical Network Correlations,"A, 2024, 110(2): 022617",[],"Luo M. X., Yang X., and Pozas-Kerstjens A., \emph{Hierarchical Certification of Nonclassical Network Correlations}, Phys. Rev. A, 2024, 110(2): 022617."
+2,2604.17765,npj1,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Luo M. X,A Nonlocal Game For Witnessing Quantum Networks,,[],"Luo M. X., \emph{A Nonlocal Game For Witnessing Quantum Networks}, NPJ Quantum Inf., 2019, 5(1): 91."
+2,2604.17765,LLD,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Ligthart L. T., and Gross D",The Inflation Hierarchy And The Polarization Hierarchy Are Complete For The Quantum Bilocal Scenario,,[],"Ligthart L. T., and Gross D., \emph{The Inflation Hierarchy And The Polarization Hierarchy Are Complete For The Quantum Bilocal Scenario}, J. Math. Phys., 2023, 64(7)."
+2,2604.17765,XuXiang,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Xu X,Quantum Nonlocality in Bilocal Networks: An Operator Algebraic Perspective,,[],"Xu X., \emph{Quantum Nonlocality in Bilocal Networks: An Operator Algebraic Perspective}, 2023."
+2,2604.17783,GR,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Garcia-Cuerva and J. L. Rubio de Francia,Weighted Norm Inequalities and Related Topics,,[],"J.~Garcia-Cuerva and J.~L.~Rubio de Francia,
+\emph{{\it Weighted Norm Inequalities and Related Topics}},
+North-Holland, Math. Stud., \textbf{116}~(1985)."
+2,2604.17905,KusnerKusner23,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Rob Kusner and Wöden Kusner,A Gordian pair of links,,[],"Rob Kusner and W\""oden Kusner,
+\emph{A Gordian pair of links},
+Geometriae Dedicata \textbf{217} (2023), article no.~47."
+2,2604.17953,COMPASS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,P. Abbon et al,The COMPASS Experiment at CERN,,[],"P. Abbon et al.,
+\emph{The COMPASS Experiment at CERN},
+CERN–PH–EP/2007-001, 2007; available at: \url{https://wwwcompass.cern.ch/compass/publications/papers/cern-ph-ep_2007-001/compass_spec_070330.pdf}."
+2,2604.17953,ALICE_RICH,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,The ALICE Collaboration,ALICE Technical Design Report of the High Momentum Particle Identification Detector,,[],"The ALICE Collaboration,
+\emph{
+ALICE Technical Design Report of the High Momentum Particle Identification Detector},
+CERN-LHCC-98–19, ALICE-TDR-1, 1998; available at: \url{https://alice-collaboration.web.cern.ch/sites/default/files/Documents/PROJECTS/HMPID/HMPID_TDR.pdf}."
+2,2604.17953,CMS_MTD,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,CMS Collaboration,A MIP Timing Detector for the CMS Phase-2 Upgrade,,[],"CMS Collaboration,
+\emph{A MIP Timing Detector for the CMS Phase-2 Upgrade},
+CERN-LHCC-2019-003, CMS-TDR-020, 2019; available at: \url{https://cds.cern.ch/record/2667167}."
+2,2604.17973,GilbargTrudinger2001,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David Gilbarg and Neil S. Trudinger,Elliptic partial differential equations of second order,,[],"David Gilbarg and Neil~S. Trudinger, \emph{Elliptic partial differential equations of second order}, Classics in Mathematics, Springer, Berlin, 2001."
+2,2604.17973,KovacsLangPetersson2023,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Mihály Kovács, Annika Lang, and Andreas Petersson",Approximation of SPDE covariance operators by finite elements: a semigroup approach,,[],"Mih\'aly Kov\'acs, Annika Lang, and Andreas Petersson, \emph{Approximation of {SPDE} covariance operators by finite elements: a semigroup approach}, IMA Journal of Numerical Analysis \textbf{43} (2023), no.~3, 1324--1357."
+2,2604.17973,Krylov1994Dirichlet,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Nicolai V. Krylov,A $W^n_2$-theory of the Dirichlet problem for SPDEs in general smooth domains,,[],"Nicolai~V. Krylov, \emph{A {$W^n_2$}-theory of the {D}irichlet problem for {SPDE}s in general smooth domains}, Probability Theory and Related Fields \textbf{98} (1994), no.~3, 389--421."
+2,2604.17973,Lototsky2000,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Sergey V. Lototsky,Sobolev spaces with weights in domains and boundary value problems for degenerate elliptic equations,,[],"Sergey~V. Lototsky, \emph{Sobolev spaces with weights in domains and boundary value problems for degenerate elliptic equations}, Methods and Applications of Analysis \textbf{7} (2000), no.~1, 195--204."
+2,2604.17973,MikuleviciusPragarauskas2003,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Remigijus Mikulevičius and Henrikas Pragarauskas,On Cauchy–Dirichlet problem in half-space for parabolic SPDEs in weighted Hölder spaces,,[],"Remigijus Mikulevi\v{c}ius and Henrikas Pragarauskas, \emph{On {C}auchy--{D}irichlet problem in half-space for parabolic {SPDE}s in weighted {H}\""older spaces}, Stochastic Processes and their Applications \textbf{106} (2003), no.~2, 185--222."
+2,2604.17973,Mikulevicius2000,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Remigijus Mikulevičius,On the Cauchy problem for parabolic SPDEs in Hölder classes,,[],"Remigijus Mikulevi\v{c}ius, \emph{On the {C}auchy problem for parabolic {SPDE}s in {H}\""older classes}, The Annals of Probability \textbf{28} (2000), no.~1, 74--103."
+2,2604.17973,Pardoux1975,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Étienne Pardoux,Équations aux dérivées partielles stochastiques non linéaires monotones; étude de solutions fortes de type itô,,[],"{\'E}tienne Pardoux, \emph{\'{E}quations aux d{\'e}riv{\'e}es partielles stochastiques non lin{\'e}aires monotones; {\'e}tude de solutions fortes de type it\^o}, Ph.D. thesis, Universit{\'e} Paris-Sud, Orsay, 1975."
+2,2604.17973,vanNeervenVeraarWeis2012,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Jan van Neerven, Mark Veraar, and Lutz Weis",Stochastic maximal $L^p$-regularity,,[],"Jan van Neerven, Mark Veraar, and Lutz Weis, \emph{Stochastic maximal {$L^p$}-regularity}, The Annals of Probability \textbf{40} (2012), no.~2, 788--812."
+2,2604.18074,Deuring,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,M. Deuring,Die Typen der Multiplikatorenringe elliptischer Funktionenkörper,"Hamburg 14(1), 197–272",[],"\textsc{M.\,Deuring}: \textit{Die \hspace{-0.2mm}Typen der Multiplikatorenringe elliptischer Funktionenk\""{o}rper}, Abh.\hspace{0.8mm}Math.\hspace{0.8mm}Sem.\hspace{0.8mm}Univ. Hamburg\hspace{0.8mm}{\bf 14}(1), 197--272, 1941.\vspace{-1.5mm}"
+2,2604.18074,Ekedahl,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,T. Ekedahl,On supersingular curves and abelian varieties,,[],"\textsc{T\hspace{-0.2mm}.\,Ekedahl}: \textit{On supersingular curves and abelian varieties}, Math.\hspace{0.8mm}Scand.\,{\bf 60}, No.\,2, 151--178, 1987.\vspace{-1mm}"
+2,2604.18074,Igusa,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Igusa,Arithmetic variety of moduli for genus two,,[],"\textsc{J.\,Igusa}: \textit{Arithmetic variety of moduli for genus two}, Ann.\,Math.\,{\bf 72}(2), 612--649, 1960.\vspace{-1mm}"
+2,2604.18074,Ishii,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,N. Ishii,The automorphism group and invariants of a curve of genus 2,,[],"\textsc{N.\,Ishii}: \textit{The automorphism group and invariants of a curve of genus 2}, J.\hspace{0.8mm}Res.\hspace{0.8mm}Inst.\hspace{0.8mm}Sci.\hspace{0.8mm}Tech., Nihon Univ.\,{\bf 126}, 6--11, 2011.\vspace{-1mm}"
+2,2604.18074,Ohashi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,R. Ohashi,On the Rosenhain forms of superspecial curves of genus two,,[],"\textsc{R.\,Ohashi}: \textit{On the Rosenhain forms of superspecial curves of genus two}, Finite Fields Appl.\,{\bf 97}, 102445, 2024.\vspace{-1mm}"
+2,2604.18074,Oort,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,F. Oort,Hyperelliptic supersingular curves,,[],"\textsc{F\hspace{-0.2mm}.\,Oort}: \textit{Hyperelliptic supersingular curves}, Prog.\hspace{0.8mm}Math.\,{\bf 89}, 247--284, 1991.\vspace{-1mm}"
+2,2604.18074,Silverman,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. H. Silverman,The Arithmetic of Elliptic Curves,,[],"\textsc{J.\,H.\,Silverman}: \textit{The Arithmetic of Elliptic Curves}, GTM\,{\bf 106}, Springer--Verlag, 1986."
+2,2604.18149,bib:vanwaarde2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"H. J. van Waarde, M. K. Camlibel, and H. L. Trentelman",Data-Based Linear Systems and Control Theory,,[],"H.~J.~van~Waarde, M.~K.~Camlibel, and H.~L.~Trentelman, 
+\textit{Data-Based Linear Systems and Control Theory}, 
+Kindle Direct Publishing, 2025."
+2,2604.18259,TUNL,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,TUNL Nuclear Data Group,"Energy Levels of Light Nuclei, $A=2-20$",,[],"TUNL Nuclear Data Group, \textit{Energy Levels of Light Nuclei, 
+$A=2-20$}, https://nucldata.tunl.duke.edu/."
+2,2604.18399,McInnes2018UMAP,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"McInnes, L., Healy, J., Melville, J",UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction,,[],"McInnes, L., Healy, J., Melville, J.
+\textit{UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction}.
+arXiv preprint arXiv:1802.03426, 2018."
+2,2604.18436,Fulton,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Fulton, W",Intersection Theory,,[],"Fulton, W.
+\textit{Intersection Theory}. 2nd edition, Springer-Verlag, 1998."
+2,2604.18436,OvI,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Overkamp, O",Jumps and Motivic Invariants for semiabelian Jacobians,,[],"Overkamp, O.
+\textit{Jumps and Motivic Invariants for semiabelian Jacobians}. Int. Math. Res. Not., Vol. 2019, Issue 20, pp. 6437-6479, 2019."
+2,2604.18455,bp00,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,V M Buchstaber and T E Panov,"Torus actions, combinatorial topology, and homological algebra",,[],"V M Buchstaber and T E Panov \emph{Torus actions, combinatorial topology, and homological algebra} 2000 Russ. Math. Surv. 55 825."
+2,2604.18455,mitchell,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Stephen A. Mitchell,Notes on principal bundles,"University of Washington, 2011. https://sites.math.washington.edu/ mitchell/Notes/prin.pdf",[],"Stephen A. Mitchell, \emph{Notes on principal bundles} (2011), Lecture Notes. University of Washington, 2011.
+\url{https://sites.math.washington.edu/~mitchell/Notes/prin.pdf}"
+2,2604.18535,Bloom995,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Thomas F. Bloom,Erdős Problem #995,Available at https://www.erdosproblems.com/995,[],"Thomas F.~Bloom,
+\emph{Erd\H{o}s Problem \#995},
+Erd\H{o}s Problems website, accessed April 20, 2026.
+Available at \url{https://www.erdosproblems.com/995}."
+2,2604.18535,Bloom996,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Thomas F. Bloom,Erdős Problem #996,Available at https://www.erdosproblems.com/996,[],"Thomas F.~Bloom,
+\emph{Erd\H{o}s Problem \#996},
+Erd\H{o}s Problems website, accessed April 20, 2026.
+Available at \url{https://www.erdosproblems.com/996}."
+2,2604.18535,Rosenthal1970,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Haskell P. Rosenthal,On the subspaces of $L^p$ ($p>2$) spanned by sequences of independent random variables,,[],"Haskell P. Rosenthal,
+\emph{On the subspaces of $L^p$ \emph{($p>2$)} spanned by sequences of independent random variables},
+Israel J. Math. \textbf{8} (1970), 273--303. \href{https://doi.org/10.1007/BF02771562}{\nolinkurl{doi:10.1007/BF02771562}}."
+2,2604.18551,C,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Costello, K. and Bittleston, R",Bootstrapping two-loop QCD amplitudes,,[],"Costello, K. and Bittleston, R. 
+\textit{Bootstrapping two-loop QCD amplitudes}. 
+arXiv:2602.17538 (2026)"
+2,2604.18551,SK,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"DeSole, A., Kac, V",Freely Generated Vertex Algebras and Non–Linear Lie Conformal Algebras,,[],"DeSole, A., Kac, V.:
+\textit{Freely Generated Vertex Algebras and Non–Linear Lie Conformal Algebras}. 
+Commun. Math. Phys. \textbf{254}, 659–694 (2005)"
+2,2604.18577,Nathanson2018,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Melvyn B. Nathanson,Every finite subset of an abelian group is an asymptotic approximate group,,[],"Melvyn~B. Nathanson, \emph{Every finite subset of an abelian group is an asymptotic approximate group}, Journal of Number Theory \textbf{191} (2018), 175--193."
+2,2604.18625,BengtssonZyczkowski,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"I. Bengtsson and K. Życzkowski, “",GEOMETRY OF QUANTUM STATES; An Introduction to Quantum Entanglement,,[],"I. Bengtsson and K. \.{Z}yczkowski, ``\textit{GEOMETRY OF QUANTUM STATES; An Introduction to Quantum Entanglement}"" (Second edition), Cambridge University Press (2017), Cambridge."
+2,2604.18625,PhononDecoherence,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A, Serafini, M. G. A. Paris, F. Illuminati, and S. De Siena, ``",Quantifying decoherence in continuous variable systems,Opt,[],"A, Serafini, M. G. A. Paris, F. Illuminati, and S. De Siena, ``\textit{Quantifying decoherence in continuous variable systems}"", \href{https://doi.org/10.1088/1464-4266/7/4/R01}{J. Opt. B \textbf{7} (2005) R19}."
+2,2604.18643,vanKampen,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,N. G. van Kampen,Stochastic Processes in Physics and Chemistry,,[],"N. G. van Kampen,
+\textit{Stochastic Processes in Physics and Chemistry},
+3rd ed., North-Holland, 2007."
+2,2604.18664,multiobj_paper,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Deb, K., Pratap, A., Agarwal, S., and Meyarivan, T., A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II",IEEE Transactions on Evolutionary Computation,10.1109/4235.996017,[],"Deb, K., Pratap, A., Agarwal, S., and Meyarivan, T., \enquote{{A Fast and Elitist Multiobjective Genetic Algorithm: NSGA-II},} \emph{IEEE Transactions on Evolutionary Computation}, Vol.~6, No.~2, 2002, p. 182–197.
+\newblock \doi{10.1109/4235.996017}."
+2,2604.18855,Edw,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,D.A Edwards,Choquet boundary theory for certain spaces of lower semicontinuous functions,,[],"D.A Edwards, \emph{Choquet boundary theory for certain spaces of lower semicontinuous functions}, in \emph{Function Algebras} (Proc. Internat. Sympos. on Function
+Algebras, Tulane Univ., 1965) (Birtel, F., ed.), 300--309, Scott-Foresman,
+Chicago, Ill., 1966."
+2,2604.18869,Achim2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,T. Achim et al,Aristotle: IMO-level Automated Theorem Proving,,[],"T.~Achim et al.,
+\emph{Aristotle: IMO-level Automated Theorem Proving},
+preprint, 2025.
+\url{https://doi.org/10.48550/arXiv.2510.01346}"
+2,2604.18871,Lanford,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Oscar E. Lanford, III",Time evolution of large classical systems,,[],"Oscar~E. Lanford, III, \emph{Time evolution of large classical systems},
+  Dynamical systems, theory and applications ({R}encontres, {B}attelle {R}es.
+  {I}nst., {S}eattle, {W}ash., 1974), Lecture Notes in Phys., Vol. 38,
+  Springer, Berlin-New York, 1975, pp.~1--111,
+  \href{http://dx.doi.org/10.1007/3-540-07171-7_1}{\path{doi}}. \MR{479206}"
+2,2604.18871,RobinsonEtAl,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"James C. Robinson, José L. Rodrigo, and Witold Sadowski",The three-dimensional Navier-Stokes equations,,[],"James~C. Robinson, Jos\'{e}~L. Rodrigo, and Witold Sadowski, \emph{The
+  three-dimensional {N}avier-{S}tokes equations}, Classical theory, Cambridge
+  Studies in Advanced Mathematics, vol. 157, Cambridge University Press,
+  Cambridge, 2016,
+  \href{http://dx.doi.org/10.1017/CBO9781139095143}{\path{doi}}. \MR{3616490}"
+2,2604.18871,SchmeisserTriebel,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Hans-Jürgen Schmeisser and Hans Triebel,Topics in Fourier analysis and function spaces,,[],"Hans-J\""{u}rgen Schmeisser and Hans Triebel, \emph{Topics in {F}ourier analysis
+  and function spaces}, A Wiley-Interscience Publication, John Wiley \& Sons,
+  Ltd., Chichester, 1987. \MR{891189}"
+2,2604.19082,Castro-Alvaredo2024,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Olalla A. Castro-Alvaredo and Lucía Santamaría-Sanz,Symmetry Resolved Measures in Quantum Field Theory: a Short Review,,[],"Olalla A. Castro-Alvaredo and Lucía Santamaría-Sanz,
+\textit{Symmetry Resolved Measures in Quantum Field Theory: a Short Review},
+arXiv:2403.06652 [hep-th], 2024."
+2,2604.19094,davies25,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Ewan Davies and Ross J. Kang,The hard-core model in graph theory,,[],"Ewan Davies and Ross~J. Kang, \emph{The hard-core model in graph theory}, 2025,
+  preprint, 35 pp., \href{https://arxiv.org/abs/2501.03379}{arXiv:2501.03379}."
+2,2604.19094,linek89,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Václav Linek,Bipartite graphs can have any number of independent sets,,[],"Václav Linek, \emph{Bipartite graphs can have any number of independent sets},
+  Discrete Mathematics \textbf{76} (1989), no.~2, 131--136."
+2,2604.19094,Shk,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Ilya D. Shkredov,On some results of Korobov and Larcher and Zaremba's conjecture,,[],"Ilya~D. Shkredov, \emph{On some results of {K}orobov and {L}archer and
+  {Z}aremba's conjecture}, 2026, preprint, 36 pp.,
+  \href{https://arxiv.org/abs/2603.14116}{arXiv:2603.14116}."
+2,2604.19094,wagner09,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Stephan G. Wagner,Almost all trees have an even number of independent sets,,[],"Stephan~G. Wagner, \emph{Almost all trees have an even number of independent
+  sets}, The Electronic Journal of Combinatorics \textbf{16} (2009), no.~1,
+  R93, 10 pp."
+2,2604.19109,Bose,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,S. Bose et al,Spin Entanglement Witness for Quantum Gravity,Rev. Lett. 119 (2017) 240401,[],"S. Bose et al., \textit{Spin Entanglement Witness for Quantum Gravity}, \href{https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.119.240401}{Phys. Rev. Lett. 119 (2017) 240401.}"
+2,2604.19109,Igor,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Igor I. Smolyaninov, Vera N. Smolyaninova",Analogue Quantum Gravity in Hyperbolic Metamaterials,,[],"Igor I. Smolyaninov, Vera N. Smolyaninova, \textit{Analogue Quantum Gravity in Hyperbolic Metamaterials}, \href{https://www.mdpi.com/2218-1997/8/4/242}{Universe 8 (2022) 242.}"
+2,2604.19109,Kristian,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Kristian Tyn Kai Chung and Michel J. P. Gingras,2-Form U(1) Spin Liquids: Classical Model and Quantum Aspects,"B 111, 064417",[],"Kristian Tyn Kai Chung and Michel J. P. Gingras, \textit{2-Form U(1) Spin Liquids: Classical Model and Quantum Aspects}, \href{https://journals.aps.org/prb/abstract/10.1103/PhysRevB.111.064417}{Phys. Rev. B 111 (2025) 064417.}"
+2,2604.19109,Bergmann3,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,James L. Anderson and Peter G. Bergmann,Constraints in covariant field theories,Rev. 83 (1951) 1018–1025,[],"James L. Anderson and Peter G. Bergmann, \textit{Constraints in covariant field theories}, \href{https://journals.aps.org/pr/abstract/10.1103/PhysRev.83.1018}{Phys. Rev. 83 (1951) 1018--1025.}"
+2,2604.19109,TheModel,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Robert B. Mann and Eugeniu M. Popescu,Scalar and tensorial topological matter coupled to (2+1)-dimensional gravity: A Classical theory and global charges,Quant. Grav. 23 (2006) 3721–3746,[],"Robert B. Mann and Eugeniu M. Popescu, \textit{Scalar and tensorial topological matter coupled to (2+1)-dimensional gravity: A Classical theory and global charges}, \href{https://iopscience.iop.org/article/10.1088/0264-9381/23/11/004}{Class. Quant. Grav. 23 (2006) 3721--3746.}"
+2,2604.19109,Eugeniu,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Robert B. Mann and Eugeniu M. Popescu,Higher Gauge Theory and Gravity in (2+1) Dimensions,J. Mod. Phys,[],"Robert B. Mann and  Eugeniu M. Popescu, \textit{Higher Gauge Theory and Gravity in (2+1) Dimensions}, \href{https://www.worldscientific.com/doi/abs/10.1142/S0217751X07037330}{Int. J. Mod. Phys. A 22 (2007) 5155--5172.}"
+2,2604.19109,LQG,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,T. Thiemann,Introduction to Modern Canonical Quantum General Relativity,,[],"T. Thiemann, \textit{Introduction to Modern Canonical Quantum General Relativity}, Cambridge University Press, Cambridge 2007."
+2,2604.19109,Duque,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Erick I. Duque,Hamiltonian gravity in tetrad-connection variables,Rev,[],"Erick I. Duque, \textit{Hamiltonian gravity in tetrad-connection variables}, \href{https://journals.aps.org/prd/abstract/10.1103/3r98-k11x}{Phys. Rev. D 112 (2025) 124046}, \href{https://arxiv.org/abs/2509.06153}{arXiv:2509.06153 [gr-qc]}; \textit{Hamiltonian gravity with fermions}, \href{https://journals.aps.org/prd/abstract/10.1103/PhysRevD.113.024055}{Phys. Rev. D 113 (2026) 024055}, \href{https://arxiv.org/abs/2512.00932}{arXiv:2512.00932 [gr-qc].}"
+2,2604.19109,Salgado,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Patricio Salgado-Rebolledo and Jiannis K. Pachos,Emerging $(2+1)$D massive graviton in graphene-like systems,,[],"Patricio Salgado-Rebolledo and Jiannis K. Pachos, \textit{Emerging $(2+1)$D massive graviton in graphene-like systems}, \href{https://iopscience.iop.org/article/10.1088/1367-2630/acc124}{New J. Phys. 25 (2023) 033019}, \href{https://arxiv.org/abs/2109.07552}{arXiv:2109.07552 [cond-mat.mes-hall].}"
+2,2604.19109,Brizuela,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,David Brizuela and Iñaki Garay,Hamiltonian formalism and constraint analysis of three-form matter models coupled with general relativity,,[],"David Brizuela and I\~naki Garay, \textit{Hamiltonian formalism and constraint analysis of three-form matter models coupled with general relativity}, \href{https://arxiv.org/abs/1805.03026}{arXiv:1805.03026 [gr-qc].}"
+2,2604.19109,Escalante2014,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Alberto Escalante and Omar Rodríguez-Tzompantzi,Hamiltonian dynamics and gauge symmetry for three-dimensional Palatini theory with cosmological constant,,[],"Alberto Escalante and Omar Rodr\'iguez-Tzompantzi, \textit{Hamiltonian dynamics and gauge symmetry for three-dimensional Palatini theory with cosmological constant}, \href{https://link.springer.com/article/10.1007/JHEP05(2014)073}{JHEP 05 (2014) 073.}"
+2,2604.19109,BCEA,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Omar Rodríguez-Tzompantzi,Constrained Hamiltonian dynamics of 3D gravity-coupled topological matter,,[],"Omar Rodr\'iguez-Tzompantzi, \textit{Constrained Hamiltonian dynamics of 3D gravity-coupled topological matter}, \href{https://arxiv.org/abs/2505.04745}{arXiv:2505.04745 [hep-th, gr-qc] (2025).}"
+2,2604.19109,BanadosHenneaux,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Máximo Bañados and Marc Henneaux,Palatini Gauss-Bonnet theory,,[],"M\'aximo Ba\~nados and Marc Henneaux, \textit{Palatini Gauss-Bonnet theory}, \href{https://link.springer.com/article/10.1007/JHEP03(2026)064}{JHEP 03 (2026) 064}, \href{https://arxiv.org/abs/2511.20903}{arXiv:2511.20903 [hep-th].}"
+2,2604.19439,CEPCStudyGroup:2018ghi,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. B. Guimarães da Costa,et al,,[],"J.~B.~Guimar\~aes da Costa \textit{et al.} [CEPC Study Group],
+CEPC Conceptual Design Report: Volume 2 - Physics \& Detector,
+arXiv:1811.10545 [hep-ex]."
+2,2604.19582,IY,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Iyama, O. and Yoshino, Y",Mutation in triangulated categories and rigid Cohen–Macaulay modules,,[],"Iyama, O. and Yoshino, Y.:
+\emph{Mutation in triangulated categories and rigid {C}ohen--{M}acaulay modules},
+Invent.\ Math.\ \textbf{172} (2008), no.~1, 117--168."
+2,2604.19582,Ke2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Keller, B",The periodicity conjecture for pairs of Dynkin diagrams,,[],"Keller, B.: \emph{The periodicity conjecture for pairs of Dynkin diagrams}, Ann. of Math. (2) 177 (2013), no. 1, 111--170."
+2,2604.19582,Ye,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Yekutieli, A",Derived categories,"Cambridge University Press, Cambridge",[],"Yekutieli, A.: \emph{Derived categories}, Cambridge Studies in Advanced Mathematics, 183. Cambridge University Press, Cambridge, 2020."
+2,2604.19630,Hwang2,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J-F Hwang,Catenoid-like solutions for the minimal surface equation,,[],"J-F Hwang, \emph{ Catenoid-like solutions for the minimal surface equation}, Pacific
+Jour. Math. {\bf 183} (1998), 91-102."
+2,2604.19739,GCGa04,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,José García-Cuerva and A. Eduardo Gatto,Boundedness properties of fractional integral operators associated to non-doubling measures,,[],"Jos\'{e} Garc\'{\i}a-Cuerva and A.~Eduardo Gatto, \emph{Boundedness properties
+		of fractional integral operators associated to non-doubling measures}, Studia
+	Math. \textbf{162} (2004), no.~3, 245--261. \MR{2047654}"
+2,2604.19739,KeSte99,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Carlos E. Kenig and Elias M. Stein,Multilinear estimates and fractional integration,,[],"Carlos~E. Kenig and Elias~M. Stein, \emph{Multilinear estimates and fractional
+		integration}, Math. Res. Lett. \textbf{6} (1999), no.~1, 1--15. \MR{1682725}"
+2,2604.19739,Stein1970book,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,Elias M. Stein,Singular integrals and differentiability properties of functions,,[],"Elias~M. Stein, \emph{Singular integrals and differentiability properties of
+		functions}, Princeton Mathematical Series, No. 30, Princeton University
+	Press, Princeton, NJ, 1970. \MR{290095}"
+2,2604.19853,Luczak2022Sep,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"A. Łuczak, H. Podsędkowska, and R. Wieczorek",Relative and quasi-entropies in semifinite von Neumann algebras,,[],"A.~{\L}uczak, H.~Pods{\k{e}}dkowska, and R.~Wieczorek,
+\textit{Relative and quasi-entropies in semifinite von Neumann algebras},
+Rev. Math. Phys., vol.~35, no.~2, p.~2250040, Sep. 2022.
+doi:10.1142/S0129055X22500404."
+2,2604.20107,LINGO2025,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,LINDO Systems Inc,LINGO Optimization Modeling Software,Available at https://www.lindo.com,[],"LINDO Systems Inc., \emph{LINGO Optimization Modeling Software}, Version 20.0, Chicago, IL, 2025. Available at https://www.lindo.com."
+2,2604.20107,GAMSuserguide,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,GAMS Development Corporation,GAMS User Guide: Expressions and Operators,Available at https://www.gams.com/latest/docs/UG_Parameters.html#UG_Parameters_Expressions,[],"GAMS Development Corporation, \emph{GAMS User Guide: Expressions and Operators}, 2026. 
+Available at \url{https://www.gams.com/latest/docs/UG_Parameters.html#UG_Parameters_Expressions}."
+2,2604.20207,Wolf2007,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Wolf, E",Introduction to the Theory of Coherence and Polarization of Light,,[],"Wolf, E. \textit{Introduction to the Theory of Coherence and Polarization of Light} (Cambridge University Press, 2007)."
+2,2604.20402,RS,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,J. Sedro and H.H Rugh,Regularity of characteristic exponents and linear response for transfer operator cocycles,,[],"J. Sedro and H.H Rugh, \emph{Regularity of characteristic exponents and linear response for transfer operator cocycles}, Comm. Math. Phys. 383, 1243--1289 (2021)."
+2,2604.20433,van2020mdp,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"E. van der Pol, D. Worrall, H. van Hoof, F. Oliehoek, and M. Welling",MDP homomorphic networks: Group symmetries in reinforcement learning,,[],"E.~van~der~Pol, D.~Worrall, H.~van~Hoof, F.~Oliehoek, and M.~Welling,
+\emph{MDP homomorphic networks: Group symmetries in reinforcement learning},
+Advances in Neural Information Processing Systems \textbf{33} (2020), 4199--4210."
+2,2604.20496,bbd_arxiv,EXPLICIT_SOURCE_NAMES_BUT_EMPTY_AUTHORS,"Blain, D",Broken by Default: A Z3 Formal Verification Study of AI-Generated C/C++ Code,,[],"Blain, D. \textit{Broken by Default: A Z3 Formal Verification Study of
+AI-Generated C/C++ Code}. arXiv:2604.05292, April 2026."

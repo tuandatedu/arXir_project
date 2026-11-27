@@ -54,6 +54,10 @@ _BLOCK_MATH_ENVS = frozenset(
         "alignat",
         "alignat*",
         "mathdisplay",
+        "gathered",
+        "split",
+        "cases",
+        "matrix",
     }
 )
 
@@ -64,6 +68,8 @@ _FIGURE_ENVS = frozenset(
         "wrapfigure",
         "sidewaysfigure",
         "subfigure",
+        "tikzpicture",
+        "pspicture",
     }
 )
 
@@ -163,6 +169,18 @@ _SKIP_COMMANDS = frozenset(
         "nopagebreak",
     }
 )
+# Layout wrappers may contain an entire paragraph/section or minipage. Do not
+# treat every macro argument as a subtree (e.g. newcommand definitions are not
+# active prose); only known presentational wrappers can be unfolded safely.
+_TRANSPARENT_BODY_COMMANDS = frozenset({
+    "fbox", "framebox", "mbox", "makebox", "parbox",
+    "textbf", "textit", "emph", "underline", "centerline",
+    "hypertarget", "newtext", "textcolor", "colorbox",
+})
+_STRUCTURAL_BODY_RE = re.compile(
+    r"\\(?:begin\s*\{|part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
+)
+
 
 _ABBREVIATIONS = frozenset(
     {
@@ -404,6 +422,7 @@ def parse_tex_to_tree(tex: str) -> ParseNode:
     - Prose → paragraph → sentence leaves
     - Empty tex → root rỗng (version empty, vẫn record)
     """
+    tex = _m2_clean_unwrap(tex)
     title = _extract_title(tex) if tex else ""
     root = ParseNode(kind="document", content=title, source_hint="document")
     if not tex or not tex.strip():
@@ -412,6 +431,60 @@ def parse_tex_to_tree(tex: str) -> ParseNode:
     parser = _HierarchyParser(body, root)
     parser.parse()
     return root
+
+
+
+def audit_source_headings(tex: str, tree: ParseNode) -> tuple[int, list[str]]:
+    """Compare *counts* of balanced source headings with parsed headings.
+
+    The legacy regex missed headings containing nested commands and did not
+    detect a missing repeated heading. This audit remains a REVIEW signal:
+    conditionals, macro definitions and custom TeX may not be statically
+    decidable. It never silently certifies semantic correctness.
+    """
+    from collections import Counter
+    from .gather import active_tex
+    body, _ = _document_body(tex)
+    visible = active_tex(body)
+    pattern = re.compile(
+        r"\\(part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
+        r"(?![A-Za-z@])"
+    )
+    expected: list[str] = []
+    for match in pattern.finditer(visible):
+        if _escaped(visible, match.start()):
+            continue
+        i = match.end()
+        if i < len(visible) and visible[i] == '*':
+            i += 1
+        while i < len(visible) and visible[i].isspace():
+            i += 1
+        if i < len(visible) and visible[i] == '[':
+            _, end_option = _read_bracketed(visible, i)
+            if end_option <= i or end_option > len(visible) or visible[end_option-1] != ']':
+                continue
+            i = end_option
+            while i < len(visible) and visible[i].isspace():
+                i += 1
+        if i < len(visible) and visible[i] == '{':
+            title, end_title = _read_braced(visible, i)
+            if end_title >= len(visible) and not visible.endswith('}'):
+                continue
+            title = re.sub(r"\s+", " ", title).strip()
+            if title and not is_references_heading(title):
+                expected.append(title)
+    actual = Counter(
+        _plain_title(node.content) for node, _ in flatten_tree(tree)
+        if node.kind in {"heading", "appendix", "acknowledgement"}
+    )
+    missing: list[str] = []
+    for title in expected:
+        norm = _plain_title(title)
+        if actual[norm] > 0:
+            actual[norm] -= 1
+        elif title not in missing:
+            missing.append(title)
+    return len(expected), missing
 
 
 def flatten_tree(root: ParseNode) -> list[tuple[ParseNode, ParseNode | None]]:
@@ -468,7 +541,7 @@ def nodes_and_edges(
 def _plain_title(title: str) -> str:
     text = _LATEX_CMD_RE.sub(" ", title)
     text = _BRACE_RE.sub(" ", text)
-    text = re.sub(r"[^A-Za-z0-9\s-]", " ", text)
+    text = re.sub(r"[^\w\s-]", " ", text, flags=re.UNICODE)
     return re.sub(r"\s+", " ", text).strip().lower()
 
 
@@ -593,17 +666,22 @@ def _skip_command(text: str, i: int) -> int:
         while i < n and text[i] in " \t":
             i += 1
         if i < n and text[i] == "[":
-            depth = 1
-            i += 1
-            while i < n and depth:
-                if text[i] == "[" and not _escaped(text, i):
-                    depth += 1
-                elif text[i] == "]" and not _escaped(text, i):
-                    depth -= 1
-                i += 1
+            # Do not consume to EOF when this is not a balanced TeX option.
+            # In papers, math such as \in[0,1) and \to[0,\infty)
+            # is common. A generic scanner used to eat entire appendices.
+            _option, end = _read_bracketed(text, i)
+            if (end <= i or end > n or text[end-1] != "]" or
+                    end-i > 4096):
+                break
+            i = end
             continue
         if i < n and text[i] == "{":
-            _, i = _read_braced(text, i)
+            _, end = _read_braced(text, i)
+            # A malformed macro argument is not allowed to silently swallow
+            # the rest of the paper. Leave it for the main scanner instead.
+            if end == n and (not text or text[-1] != "}"):
+                break
+            i = end
             continue
         break
     return i
@@ -684,6 +762,26 @@ class _HierarchyParser:
             self._flush_prose()
             self._take_display_dollar()
             return
+        # Inline math is opaque prose: its commands must NOT be parsed as
+        # macros with arbitrary [...] options.  For example, \in[0,1)
+        # formerly skipped every subsequent section when no ] was present.
+        if ch == "$" and not _escaped(self.tex, self.i):
+            end = self.i + 1
+            while end < self.n:
+                if self.tex[end] == "$" and not _escaped(self.tex, end):
+                    self.prose.append(self.tex[self.i:end + 1])
+                    self.i = end + 1
+                    return
+                end += 1
+            self.prose.append(ch)
+            self.i += 1
+            return
+        if self.tex.startswith(r"\(", self.i) and not _escaped(self.tex, self.i):
+            end = self.tex.find(r"\)", self.i + 2)
+            if end >= 0:
+                self.prose.append(self.tex[self.i:end + 2])
+                self.i = end + 2
+                return
         if ch == "\\" and self.i + 1 < self.n:
             nxt = self.tex[self.i + 1]
             if nxt == "[":
@@ -721,6 +819,69 @@ class _HierarchyParser:
             self._flush_prose()
             self._handle_heading(cmd, after_name)
             return
+        if cmd == "twocolumn":
+            # A manuscript may put its entire full-width title + abstract in
+            # \twocolumn[{...}]. The generic bracket scanner can swallow
+            # the rest of the article if nested ] syntax is irregular.
+            # Parse the braced content separately and then continue at ] .
+            position = after_name
+            while position < self.n and self.tex[position] in " \t":
+                position += 1
+            if self.tex.startswith("[{", position):
+                content, end = _read_braced(self.tex, position + 1)
+                if end < self.n and self.tex[end] == "]":
+                    self._flush_prose()
+                    inner = _HierarchyParser(content, self._current())
+                    inner.stack = list(self.stack)
+                    inner.in_appendix = self.in_appendix
+                    inner.parse()
+                    self.i = end + 1
+                    return
+        if cmd in _TRANSPARENT_BODY_COMMANDS:
+            # A common real-world form is \fbox{\begin{minipage}...
+            # \paragraph{Result}...\end{minipage}}. Previously the generic
+            # macro scanner hid that heading (and any nested equations).
+            # Unwrap only a known PRESENTATIONAL macro containing real TeX
+            # structure.  Scan complete arguments across newlines/comments; a
+            # generic command scanner can stop after one argument on newline.
+            cursor = after_name
+            args = []
+            while cursor < self.n:
+                while cursor < self.n and self.tex[cursor].isspace():
+                    cursor += 1
+                if cursor < self.n and self.tex[cursor] == '%' and not _escaped(self.tex, cursor):
+                    cursor = self.tex.find('\n', cursor)
+                    if cursor < 0:
+                        cursor = self.n
+                    continue
+                if cursor < self.n and self.tex[cursor] == '[':
+                    _, end_option = _read_bracketed(self.tex, cursor)
+                    if end_option > cursor and self.tex[end_option-1] == ']':
+                        cursor = end_option
+                        continue
+                if cursor < self.n and self.tex[cursor] == '{':
+                    body, end_arg = _read_braced(self.tex, cursor)
+                    if end_arg == self.n and not self.tex.endswith('}'):
+                        break
+                    args.append(body)
+                    cursor = end_arg
+                    continue
+                break
+            # \hypertarget{anchor}{body}, \textcolor{color}{body}, etc.
+            required = 2 if cmd in {'hypertarget', 'textcolor', 'colorbox'} else 1
+            if len(args) >= required and _STRUCTURAL_BODY_RE.search(args[-1]):
+                self._flush_prose()
+                inner = _HierarchyParser(args[-1], self._current())
+                inner.stack = list(self.stack)
+                inner.in_appendix = self.in_appendix
+                inner.skip_until_level = self.skip_until_level
+                inner.parse()
+                # Continue outer prose under the last heading in the wrapper.
+                self.stack = inner.stack
+                self.in_appendix = inner.in_appendix
+                self.skip_until_level = inner.skip_until_level
+                self.i = cursor
+                return
         if cmd in _SKIP_COMMANDS:
             self._flush_prose()
             self.i = _skip_command(self.tex, self.i)
@@ -742,8 +903,10 @@ class _HierarchyParser:
             self.i += 1
         self._skip_ws()
         if self.i < self.n and self.tex[self.i] == "[":
-            _, self.i = _read_bracketed(self.tex, self.i)
-            self._skip_ws()
+            _, after_option = _read_bracketed(self.tex, self.i)
+            if after_option <= self.n and self.tex[after_option-1] == "]":
+                self.i = after_option
+                self._skip_ws()
         title = ""
         if self.i < self.n and self.tex[self.i] == "{":
             title, self.i = _read_braced(self.tex, self.i)
@@ -788,6 +951,11 @@ class _HierarchyParser:
         if env_norm in _VERBATIM_ENVS:
             body = self._consume_environment_body(env_norm)
             self._add_leaf("sentence", body.strip(), hint=f"verbatim:{env_norm}")
+            return
+        if env_norm == "math":
+            body = self._consume_environment_body(env_norm)
+            if self.skip_until_level is None:
+                self.prose.append("$" + body + "$")
             return
         if env_norm in _BLOCK_MATH_ENVS:
             body = self._consume_environment_body(env_norm)
@@ -840,11 +1008,12 @@ class _HierarchyParser:
         self.i += 2
         end = self.tex.find("$$", self.i)
         if end < 0:
-            body = self.tex[start:]
-            self.i = self.n
-        else:
-            body = self.tex[start : end + 2]
-            self.i = end + 2
+            # A stray $$ in malformed source must not erase all later
+            # sections by treating the remainder as a formula.
+            self.prose.append("$$")
+            return
+        body = self.tex[start : end + 2]
+        self.i = end + 2
         self._add_leaf("formula", body.strip(), hint="math:$$")
 
     def _take_display_bracket(self) -> None:
@@ -857,11 +1026,10 @@ class _HierarchyParser:
         self.i += 2
         end = self.tex.find("\\]", self.i)
         if end < 0:
-            body = self.tex[start:]
-            self.i = self.n
-        else:
-            body = self.tex[start : end + 2]
-            self.i = end + 2
+            self.prose.append(r"\[")
+            return
+        body = self.tex[start : end + 2]
+        self.i = end + 2
         self._add_leaf("formula", body.strip(), hint="math:[")
 
     def _add_leaf(self, kind: str, content: str, hint: str = "") -> None:
@@ -917,10 +1085,12 @@ class _HierarchyParser:
             self.i += 1
         self._skip_ws()
         if self.i < self.n and self.tex[self.i] == "[":
-            _, self.i = _read_bracketed(self.tex, self.i)
+            _, end_option = _read_bracketed(self.tex, self.i)
+            if end_option <= self.n and self.tex[end_option - 1] == "]":
+                self.i = end_option
 
     def _skip_ws(self) -> None:
-        while self.i < self.n and self.tex[self.i] in " \t":
+        while self.i < self.n and self.tex[self.i].isspace():
             self.i += 1
 
     def _consume_environment_body(self, env: str) -> str:
@@ -992,10 +1162,89 @@ def _split_list_items(body: str) -> list[str]:
             while i < n and body[i] in " \t":
                 i += 1
             if i < n and body[i] == "[":
-                _, i = _read_bracketed(body, i)
+                _, end_option = _read_bracketed(body, i)
+                if end_option <= n and body[end_option - 1] == "]":
+                    i = end_option
             continue
         buf.append(body[i])
         i += 1
     if buf and any(part.strip() for part in buf):
         items.append("".join(buf).strip())
     return items
+
+
+# M2_CLEAN_LIVE_HEADING_OVERLAY_20261116
+# Unwrap only provably active structural heading commands inside common text wrappers.
+# Code listings/definitions and #1 parameters are protected by the original parser.
+import re as _m2_clean_re
+_m2_clean_wrapper = _m2_clean_re.compile(
+    r"\\(hypertarget|newtext|textcolor|colorbox|mbox|hbox)(?![A-Za-z@])"
+)
+_m2_clean_heading = _m2_clean_re.compile(
+    r"\\(?:part|chapter|section|subsection|subsubsection|paragraph|subparagraph)"
+    r"\*?\s*(?:\[[^\]\n]*\]\s*)?\{"
+)
+
+
+def _m2_clean_group(src, pos, opener="{", closer="}"):
+    while pos < len(src) and src[pos].isspace():
+        pos += 1
+    if pos >= len(src) or src[pos] != opener:
+        return None
+    depth = 0
+    for j in range(pos, len(src)):
+        if src[j] not in (opener, closer):
+            continue
+        slashes, k = 0, j-1
+        while k >= 0 and src[k] == "\\":
+            slashes += 1
+            k -= 1
+        if slashes % 2:
+            continue
+        if src[j] == opener:
+            depth += 1
+        else:
+            depth -= 1
+            if depth == 0:
+                return src[pos+1:j], j+1
+    return None
+
+
+def _m2_clean_unwrap(tex):
+    marker = r"\begin{document}"
+    idx = tex.find(marker)
+    start = idx + len(marker) if idx >= 0 else 0
+    prefix, body = tex[:start], tex[start:]
+    # Bounds prevent pathologically recursive transformations.
+    for _ in range(4):
+        pieces, cursor, changed = [], 0, False
+        for match in _m2_clean_wrapper.finditer(body):
+            if match.start() < cursor:
+                continue
+            kind, pos = match.group(1), match.end()
+            if body[pos:].lstrip().startswith("["):
+                at = pos + len(body[pos:]) - len(body[pos:].lstrip())
+                optional = _m2_clean_group(body, at, "[", "]")
+                if optional is None:
+                    continue
+                pos = optional[1]
+            arity = 2 if kind in {"hypertarget", "textcolor", "colorbox"} else 1
+            groups = []
+            for _j in range(arity):
+                item = _m2_clean_group(body, pos)
+                if item is None:
+                    break
+                groups.append(item[0])
+                pos = item[1]
+            if len(groups) != arity:
+                continue
+            inner = groups[-1]
+            if not _m2_clean_heading.search(inner) or _m2_clean_re.search(r"#[1-9]", inner):
+                continue
+            pieces.extend((body[cursor:match.start()], inner))
+            cursor, changed = pos, True
+        if not changed:
+            break
+        pieces.append(body[cursor:])
+        body = "".join(pieces)
+    return prefix + body

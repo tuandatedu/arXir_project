@@ -247,7 +247,7 @@ M3_matching/range_{RANGE_ID}/prepared_dataset/
 
 ## Notebook Workflow (từng Cell)
 
-File notebook: `src/m3_matching/M3_matching.ipynb` (24 cells)
+File notebook: `notebooks/m3/M3_matching.ipynb` (24 cells)
 
 | Cell | Nội dung | Input | Output |
 |------|---------|-------|--------|
@@ -494,5 +494,5 @@ A: Xem bảng ở mục 4. Mỗi feature có ý tưởng lý thuyết phục v�
 
 - **README tổng quan:** `src/m3_matching/README.md` (toàn bộ chi tiết nằm trong file này)
 - **Tests:** `tests/test_m3_matching.py`
-- **Notebook:** `src/m3_matching/M3_matching.ipynb`
+- **Notebook:** `notebooks/m3/M3_matching.ipynb`
 - **Code modules:** `src/m3_matching/*.py`
