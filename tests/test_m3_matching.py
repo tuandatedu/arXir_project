@@ -191,6 +191,30 @@ def test_auto_match_doi_with_prefix():
     assert auto_match_one(bib, refs) == "ref.9"
 
 
+@pytest.mark.parametrize(
+    ("bib", "refs", "expected"),
+    [
+        (
+            {"url": "https://arxiv.org/abs/2608.27422"},
+            [{"ref_arxiv_id": "2608.27422", "ref_title": "Candidate metadata title"}],
+            "2608.27422",
+        ),
+        (
+            {"title": "Some citation (arXiv:2604.03394)"},
+            [{"ref_arxiv_id": "2604.03394", "ref_title": "Different title"}],
+            "2604.03394",
+        ),
+        (
+            {"eprint": "2604.03394v2"},
+            [{"externalIds": {"ArXiv": "2604.03394"}, "ref_title": "Candidate"}],
+            "2604.03394",
+        ),
+    ],
+)
+def test_auto_match_uses_arxiv_ids_from_bib_and_reference_metadata(bib, refs, expected):
+    assert auto_match_one(bib, refs) == expected
+
+
 def test_auto_label_null_records_heuristic_no_match_and_reason():
     ambiguous = auto_label_publication(
         "paper.1",

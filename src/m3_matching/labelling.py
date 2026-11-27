@@ -112,6 +112,19 @@ def _match_one_prepared(
     doi_bib = bib_clean.get("doi_norm")
     title_bib = bib_clean.get("title_norm") or ""
 
+    # Explicit arXiv identifiers in BibTeX metadata are the strongest signal.
+    # Compare them to the normalized ID stored in each candidate reference's
+    # metadata before relying on title/author heuristics.
+    bib_arxiv_ids = set(bib_clean.get("cited_arxiv_ids_norm") or [])
+    if bib_arxiv_ids:
+        id_matches = [
+            ref_id
+            for ref_clean in prepared_refs
+            if (ref_id := _get_ref_id(ref_clean)) and ref_id in bib_arxiv_ids
+        ]
+        if id_matches:
+            return _unique_match(id_matches)
+
     # --------------------------------------------------------
     # Rule 1: Exact DOI
     # --------------------------------------------------------
