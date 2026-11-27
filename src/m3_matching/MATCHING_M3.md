@@ -124,7 +124,7 @@ The importer uses three review states: `match`, `no_match`, and `unknown`. `matc
 
 **Phân biệt `unknown` và `no_match`:** `unknown` = chưa xác định được ground truth (heuristic không đủ tin cậy hoặc reviewer chưa kết luận); nó **không** chứng minh rằng không có candidate đúng. `no_match` = reviewer đã xác nhận không candidate nào trong pool là đúng. Vì vậy không được tự động đổi `unknown` thành `no_match` để tránh tạo negative labels sai.
 
-Automatic vẫn gán một label record cho **mọi** BibTeX entry của publication được chọn; `unknown` nằm trong label records để kiểm toán nhưng không sinh pairs. Do đó tập pairs/evaluation là một tập con của toàn bộ query. `dataset_report.json` ghi riêng `queries_total`, `queries_with_known_gt`, `queries_unknown`, `queries_with_pairs`, `queries_without_pairs`, `gt_outside_candidate_pool` và `candidate_coverage` theo cả Manual/Automatic lẫn train/valid/test.
+Automatic matcher chạy trên **mọi** BibTeX entry của publication được chọn và lưu một record cho từng entry. Record `unknown` cho biết matcher chưa kết luận được ground truth; nó không sinh pairs và không được tính là nhãn đã hoàn tất. Các `unknown` trong nhóm automatic cần matching bổ sung hoặc review trước khi tuyên bố hoàn tất labeling; không tự đổi chúng thành `no_match`. `dataset_report.json` ghi riêng số query tổng, đã gán nhãn, còn `unknown`, cùng trạng thái hoàn tất automatic theo source/split.
 
 ### Cách nhóm tổng hợp:
 Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng
@@ -377,7 +377,7 @@ data/hf_dataset/data/predictions/*.parquet
 **Phạm vi đánh giá (bắt buộc ghi rõ khi báo cáo):**
 
 - `MRR@5 (evaluated)`: \(|Q|\) = số query có **GT đã xác nhận và nằm trong candidate pool**. Chỉ nhóm này mới rank được.
-- `MRR@5 (strict)`: \(|Q|\) = toàn bộ query đã label trên test; `unknown`, `no_match` và GT ngoài pool đều tính 0 điểm. Cách này khớp nghĩa đen "mọi entry đã label" nhưng bị pha loãng bởi query không có GT.
+- `MRR@5 (strict)`: \(|Q|\) = các query đã có nhãn kết luận trên test; `no_match` và GT ngoài pool tính 0 điểm. `unknown` chưa có ground truth nên bị loại khỏi mẫu số và phải được báo riêng.
 - Luôn báo kèm `n_evaluated`, `n_labeled` và `candidate_coverage = n_evaluated / n_labeled_with_known_gt`.
 - **Không** báo MRR@5 như thể đã đánh giá toàn bộ 144k query khi `unknown` bị loại khỏi pairs. `dataset_report.json` cung cấp sẵn các mẫu số trong `evaluation_scope`.
 

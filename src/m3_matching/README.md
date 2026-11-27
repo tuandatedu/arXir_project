@@ -91,7 +91,7 @@ File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đ�
 - `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu chưa xác định được GT
 - `label_status`: `match` (GT đã xác nhận), `no_match` (đã xác nhận không candidate nào đúng), `unknown` (chưa xác định GT)
 - `null_reason`: lý do auto heuristic trả về null để kiểm toán; không làm null thành negative
-- Automatic gán record cho **mọi** BibTeX entry; `unknown` được giữ để kiểm toán nhưng không sinh pairs. `no_match` và GT ngoài pool sinh hàng toàn `0`.
+- Automatic matcher chạy và lưu record cho **mọi** BibTeX entry trong publication được chọn. `unknown` nghĩa là matcher chưa kết luận được ground truth; entry này không sinh pairs, không tính là nhãn hoàn tất và cần matching bổ sung/review. Không tự đổi `unknown` thành `no_match`. `no_match` và GT ngoài pool sinh hàng toàn `0`.
 
 ---
 
@@ -116,7 +116,7 @@ Chỉ paper nằm trong 3 tập này mới có hàng ở bảng `predictions`. P
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
 - GT không nằm top-5 → điểm entry đó = **0**
 - `MRR@5 (evaluated)`: \(|Q|\) = query có GT đã xác nhận **và nằm trong candidate pool**
-- `MRR@5 (strict)`: \(|Q|\) = mọi query đã label trên test; `unknown`, `no_match`, GT ngoài pool đều 0 điểm
+- `MRR@5 (strict)`: \(|Q|\) = query đã có nhãn kết luận trên test; `no_match` và GT ngoài pool tính 0, còn `unknown` bị loại khỏi mẫu số và báo riêng
 - Luôn báo kèm `n_evaluated`, `n_labeled`, `candidate_coverage`; không báo MRR như thể đã đánh giá toàn bộ query nếu `unknown` bị loại khỏi pairs
 
 Được phép post-process (lọc trùng candidate, boost DOI exact, …).

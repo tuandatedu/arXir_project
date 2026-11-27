@@ -972,5 +972,21 @@ def validate_label_quota(
     print(f"Automatic publications:     {n_auto}")
     print(f"Remaining publications:     {remaining_pool}")
     print(f"Required automatic:         {required_auto}")
+    auto_entries_total = sum(len(rows) for rows in labels.values() if rows and rows[0].get("source") == "auto")
+    auto_entries_unresolved = sum(
+        1
+        for rows in labels.values()
+        if rows and rows[0].get("source") == "auto"
+        for row in rows
+        if str(row.get("label_status") or "").strip().lower() == "unknown"
+    )
+    print(f"Automatic entries covered:  {auto_entries_total}")
+    print(f"Automatic entries unknown:  {auto_entries_unresolved}")
     print("--------------------------------")
-    print("All labeling requirements are satisfied.")
+    if auto_entries_unresolved:
+        print(
+            "WARNING: Automatic matcher covered every listed entry, but unresolved "
+            "unknown labels remain. Resolve them before claiming automatic labeling is complete."
+        )
+    else:
+        print("All labeling requirements are satisfied.")

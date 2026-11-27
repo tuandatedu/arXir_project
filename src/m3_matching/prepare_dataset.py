@@ -443,16 +443,22 @@ def run_preparation_pipeline(
     confirmed_no_match = query_totals["no_match"]
     known_gt = query_totals["match"] + query_totals["gt_outside_candidate_pool"]
     inside_gt = query_totals["match"]
+    labeled_queries = query_totals["total"] - unresolved
+    automatic_stats = query_breakdown.get("automatic", {})
+    automatic_queries_total = sum(bucket["total"] for bucket in automatic_stats.values())
+    automatic_queries_unknown = sum(bucket["unknown"] for bucket in automatic_stats.values())
     evaluation_scope_by_partition = {
         partition: {
             **counts,
+            "queries_labeled": counts["total"] - counts["unknown"],
             "mrr_at_5_evaluated_denominator": counts["match"],
-            "mrr_at_5_strict_denominator": counts["total"],
+            "mrr_at_5_strict_denominator": counts["total"] - counts["unknown"],
         }
         for partition, counts in query_stats_by_partition.items()
     }
     evaluation_scope = {
         "queries_total": query_totals["total"],
+        "queries_labeled": labeled_queries,
         "queries_with_known_gt": known_gt,
         "queries_with_gt_inside_candidate_pool": inside_gt,
         "queries_with_gt_outside_candidate_pool": query_totals["gt_outside_candidate_pool"],
@@ -462,13 +468,14 @@ def run_preparation_pipeline(
         "queries_without_pairs": query_totals["queries_without_pairs"],
         "candidate_coverage": (inside_gt / known_gt) if known_gt else None,
         "mrr_at_5_evaluated_denominator": inside_gt,
-        "mrr_at_5_strict_denominator": query_totals["total"],
+        "mrr_at_5_strict_denominator": labeled_queries,
         "by_partition": evaluation_scope_by_partition,
         "note": (
             "Evaluated MRR uses only confirmed GTs inside the candidate pool. Strict "
-            "MRR uses every labeled query on the evaluated partition; unknown, "
-            "no_match, and GT-outside queries contribute RR=0. Unknown is still "
-            "excluded from training pairs and is never relabeled as no_match."
+            "MRR uses every resolved labeled query on the evaluated partition; "
+            "no_match and GT-outside queries contribute RR=0. Unknown queries are "
+            "unresolved, excluded from both MRR denominators and training pairs, "
+            "and are never relabeled as no_match."
         ),
     }
 
@@ -479,6 +486,9 @@ def run_preparation_pipeline(
         "gt_null_queries": unresolved + confirmed_no_match,
         "gt_null_unresolved_queries": unresolved,
         "confirmed_no_match_queries": confirmed_no_match,
+        "automatic_queries_total": automatic_queries_total,
+        "automatic_queries_unresolved": automatic_queries_unknown,
+        "automatic_labeling_complete": automatic_queries_unknown == 0,
         "gt_outside_candidate_pool": gt_outside,
         "gt_outside_candidate_pool_count": len(gt_outside),
         "query_breakdown_by_source_and_split": query_breakdown,
