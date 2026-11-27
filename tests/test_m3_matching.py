@@ -12,7 +12,8 @@ Kiểm tra các nhiệm vụ 1 đến 6:
 import csv
 
 import pytest
-from src.common.io import read_json, read_jsonl, write_jsonl
+import src.m3_matching.dataset as dataset_module
+from src.common.io import read_json, read_jsonl, write_json, write_jsonl
 from src.m3_matching.cleaning import (
     normalize_authors,
     normalize_doi,
@@ -37,6 +38,7 @@ from src.m3_matching.labelling import (
     validate_label_quota,
 )
 from src.m3_matching.manual_tool import export_manual_template, import_manual_csv
+from src.m3_matching.prepare_dataset import run_preparation_pipeline
 from src.m3_matching.split import split_publications
 
 
@@ -146,6 +148,16 @@ def test_normalize_doi():
     assert normalize_doi("doi:10.1145/abc") == "10.1145/abc"
     assert normalize_doi("   ") is None
     assert normalize_doi(None) is None
+    assert normalize_doi("HTTPS://DOI.ORG/10.1145/ABC?ref=123#section") == "10.1145/abc"
+    assert normalize_doi("<https://dx.doi.org/10.1145/ABC?source=x>") == "10.1145/abc"
+
+
+def test_normalize_year_avoids_ambiguous_metadata_years():
+    from src.m3_matching.cleaning import normalize_year
+
+    assert normalize_year("2024-03-17") == 2024
+    assert normalize_year("Volume 2020, published 2022") is None
+    assert normalize_year("published in 2022") == 2022
 
 
 def test_reference_doi_from_external_ids():
@@ -246,6 +258,14 @@ def test_feature_doi_match_normalizes_prefixes():
     assert vec[names.index("doi_match")] == 1.0
 
 
+def test_author_first_match_compares_surname_across_name_formats():
+    bib = {"title_norm": "same title", "authors_norm": ["Smith, J"]}
+    ref = {"title_norm": "same title", "authors_norm": ["Jane Smith"]}
+    names = feature_names()
+    vec = pair_feature_vector(bib, ref)
+    assert vec[names.index("author_first_match")] == 1.0
+
+
 def test_feature_year_missing_sentinel():
     bib = {"title_norm": "a paper", "year_norm": None}
     ref = {"title_norm": "a paper", "year_norm": 2020}
@@ -289,14 +309,170 @@ def test_build_paper_pairs():
 
 def test_gt_null_review_states_and_gt_outside_pool():
     bibs = [{"citation_key": key, "title": "Different title"} for key in ("known_none", "unknown", "outside")]
-    refs = [{"ref_arxiv_id": "ref.1", "ref_title": "Candidate"}]
+    refs = [
+        {"ref_arxiv_id": "ref.1", "ref_title": "Candidate One"},
+        {"ref_arxiv_id": "ref.3", "ref_title": "Candidate Two"},
+    ]
     labels = [
         {"citation_key": "known_none", "groundtruth_arxiv_id": None, "label_status": "no_match", "source": "manual"},
         {"citation_key": "unknown", "groundtruth_arxiv_id": None, "label_status": "unknown", "source": "manual"},
-        {"citation_key": "outside", "groundtruth_arxiv_id": "ref.2", "source": "manual"},
+        {"citation_key": "outside", "groundtruth_arxiv_id": "ref.2", "label_status": "no_match", "source": "manual"},
     ]
     pairs = build_paper_pairs("test.001", bibs, refs, labels, partition="train")
-    assert [(p["citation_key"], p["label"]) for p in pairs] == [("known_none", 0)]
+
+    # unknown không sinh pair; no_match và GT ngoài pool sinh hàng toàn 0.
+    assert sorted({p["citation_key"] for p in pairs}) == ["known_none", "outside"]
+    assert all(p["label"] == 0 for p in pairs)
+    assert len([p for p in pairs if p["citation_key"] == "known_none"]) == 2
+
+    outside = [p for p in pairs if p["citation_key"] == "outside"]
+    assert len(outside) == 2
+    assert {p["ref_arxiv_id"] for p in outside} == {"ref.1", "ref.3"}
+    assert all(p["groundtruth_arxiv_id"] == "ref.2" for p in outside)
+    with pytest.raises(ValueError, match="no_match.*candidate pool"):
+        build_paper_pairs(
+            "test.001", [{"citation_key": "bad", "title": "x"}], refs,
+            [{"citation_key": "bad", "groundtruth_arxiv_id": "ref.1", "label_status": "no_match", "source": "manual"}],
+            partition="train",
+        )
+
+    with pytest.raises(ValueError, match="unknown.*groundtruth_arxiv_id"):
+        build_paper_pairs(
+            "test.001", [{"citation_key": "bad", "title": "x"}], refs,
+            [{"citation_key": "bad", "groundtruth_arxiv_id": "ref.1", "label_status": "unknown"}],
+            partition="train",
+        )
+
+
+def test_build_paper_pairs_rejects_feature_dimension_mismatch(monkeypatch):
+    monkeypatch.setattr(dataset_module, "pair_feature_vector", lambda *args, **kwargs: [0.0])
+    with pytest.raises(ValueError, match="Feature dimension mismatch"):
+        build_paper_pairs(
+            "test.001",
+            [{"citation_key": "k1", "title": "x"}],
+            [{"ref_arxiv_id": "ref.1", "ref_title": "candidate"}],
+            [{"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "label_status": "match"}],
+            partition="train",
+        )
+
+
+def _write_pipeline_fixture(tmp_path):
+    """Dataset nhỏ đủ quota: 5 manual × 20 + 2 auto × 10."""
+    tables = tmp_path / "tables"
+    labels_dir = tmp_path / "labels"
+    tables.mkdir()
+
+    bib_rows = []
+    ref_rows = []
+    manual_labels = {}
+    for i in range(1, 6):
+        pid = f"man.{i:03d}"
+        keys = [f"k{j}" for j in range(20)]
+        for key in keys:
+            bib_rows.append({
+                "arxiv_id": pid, "citation_key": key, "title": f"Title {key}",
+                "authors": ["A, B"], "year": 2020,
+            })
+        for ref_id in ("ref.1", "ref.2", "ref.3"):
+            ref_rows.append({
+                "arxiv_id": pid, "ref_arxiv_id": ref_id,
+                "ref_title": f"Ref {ref_id}", "ref_authors": ["A, B"],
+                "ref_submission_date": "2020-01-01",
+            })
+        rows = []
+        for j, key in enumerate(keys):
+            if i == 1 and j < 2:
+                rows.append({"citation_key": key, "groundtruth_arxiv_id": None, "label_status": "no_match", "source": "manual"})
+            elif i == 2 and j == 0:
+                rows.append({"citation_key": key, "groundtruth_arxiv_id": "ref.outside", "label_status": "match", "source": "manual"})
+            else:
+                rows.append({"citation_key": key, "groundtruth_arxiv_id": "ref.1", "label_status": "match", "source": "manual"})
+        manual_labels[pid] = rows
+
+    auto_labels = {}
+    for i in range(1, 3):
+        pid = f"auto.{i:03d}"
+        keys = [f"ak{j}" for j in range(10)]
+        for key in keys:
+            bib_rows.append({
+                "arxiv_id": pid, "citation_key": key, "title": f"Auto {key}",
+                "authors": ["C, D"], "year": 2021,
+            })
+        for ref_id in ("ref.1", "ref.2", "ref.3"):
+            ref_rows.append({
+                "arxiv_id": pid, "ref_arxiv_id": ref_id,
+                "ref_title": f"Ref {ref_id}", "ref_authors": ["C, D"],
+                "ref_submission_date": "2021-01-01",
+            })
+        rows = []
+        for j, key in enumerate(keys):
+            if j < 5:
+                rows.append({"citation_key": key, "groundtruth_arxiv_id": "ref.1", "label_status": "match", "source": "auto"})
+            else:
+                rows.append({
+                    "citation_key": key, "groundtruth_arxiv_id": None,
+                    "label_status": "unknown",
+                    "null_reason": "no_match_meets_heuristic_threshold",
+                    "source": "auto",
+                })
+        auto_labels[pid] = rows
+
+    write_json(tables / "bibtex.json", bib_rows)
+    write_json(tables / "references.json", ref_rows)
+    for pid, rows in manual_labels.items():
+        save_labels(pid, rows, labels_dir)
+    for pid, rows in auto_labels.items():
+        save_labels(pid, rows, labels_dir)
+    return tables, labels_dir
+
+
+def test_pipeline_query_stats_match_parquet(tmp_path):
+    import pandas as pd
+
+    tables, labels_dir = _write_pipeline_fixture(tmp_path)
+    out_dir = tmp_path / "prepared"
+    summary = run_preparation_pipeline(
+        tables_dir=tables,
+        labels_dir=labels_dir,
+        k=1,
+        seed=42,
+        prepared_dataset_dir=out_dir,
+    )
+    report = summary["audit"]
+    assert report["query_totals"] == {
+        "total": 120,
+        "match": 107,
+        "no_match": 2,
+        "unknown": 10,
+        "gt_outside_candidate_pool": 1,
+        "queries_with_pairs": 110,
+        "queries_without_pairs": 10,
+    }
+    assert report["evaluation_scope"]["candidate_coverage"] == pytest.approx(107 / 108)
+    assert report["evaluation_scope"]["mrr_at_5_evaluated_denominator"] == 107
+    assert report["evaluation_scope"]["mrr_at_5_strict_denominator"] == 120
+    assert report["evaluation_scope"]["by_partition"]["test"]["mrr_at_5_strict_denominator"] == report["query_stats_by_partition"]["test"]["total"]
+
+    frame = pd.read_parquet(out_dir / "dataset_pairs.parquet")
+    pair_keys = set(zip(frame["arxiv_id"], frame["citation_key"]))
+    assert len(pair_keys) == report["queries_with_candidate_pairs"] == 110
+    assert int(frame["label"].sum()) == 107
+
+    # unknown queries (auto ak5..ak9) không được xuất hiện trong Parquet.
+    unknown_keys = {(f"auto.{i:03d}", f"ak{j}") for i in (1, 2) for j in range(5, 10)}
+    assert unknown_keys.isdisjoint(pair_keys)
+
+    # no_match và GT ngoài pool đều là hàng toàn 0, giữ GT thật.
+    no_match = frame[(frame["arxiv_id"] == "man.001") & frame["citation_key"].isin(["k0", "k1"])]
+    assert len(no_match) == 6 and (no_match["label"] == 0).all()
+    outside = frame[(frame["arxiv_id"] == "man.002") & (frame["citation_key"] == "k0")]
+    assert len(outside) == 3 and (outside["label"] == 0).all()
+    assert set(outside["groundtruth_arxiv_id"]) == {"ref.outside"}
+
+    # Thống kê theo split cộng lại phải khớp tổng.
+    by_partition = report["query_stats_by_partition"]
+    assert sum(v["total"] for v in by_partition.values()) == 120
+    assert sum(v["queries_with_pairs"] for v in by_partition.values()) == 110
 
 
 def test_manual_import_preserves_unknown_and_no_match(tmp_path):
@@ -411,6 +587,7 @@ def test_manual_import_review_status(tmp_path):
         )
         writer.writeheader()
         writer.writerow({"citation_key": "match", "groundtruth_arxiv_id": "ref.1", "suggested_ref_arxiv_id": "ref.9", "review_status": "match"})
+        writer.writerow({"citation_key": "outside", "groundtruth_arxiv_id": "ref.8", "suggested_ref_arxiv_id": "ref.9", "review_status": "no_match"})
         writer.writerow({"citation_key": "none", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.2", "review_status": "no_match"})
         writer.writerow({"citation_key": "uncertain", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.3", "review_status": "unknown"})
         writer.writerow({"citation_key": "pending", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.4", "review_status": "unknown"})
@@ -418,6 +595,7 @@ def test_manual_import_review_status(tmp_path):
     rows = read_json(import_manual_csv(csv_path, "test.008", labels_dir=tmp_path / "labels"))
     assert [(r["label_status"], r["groundtruth_arxiv_id"]) for r in rows] == [
         ("match", "ref.1"),
+        ("no_match", "ref.8"),
         ("no_match", None),
         ("unknown", None),
         ("unknown", None),

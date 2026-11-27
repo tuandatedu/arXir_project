@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 from src.common.ids import normalize_arxiv_id
 
@@ -219,9 +220,22 @@ def normalize_year(value: object) -> int | None:
         return value if 1800 <= value <= 2100 else None
     
     str_val = str(value).strip()
-    match = _YEAR_REGEX.search(str_val)
-    if match:
-        year = int(match.group(1))
+    exact = re.fullmatch(r"(19\d{2}|20\d{2})", str_val)
+    if exact:
+        return int(exact.group(1))
+
+    # Parse common ISO-style dates from the leading year before using fallback.
+    iso_date = re.match(
+        r"^(19\d{2}|20\d{2})[-/](?:0[1-9]|1[0-2])(?:[-/](?:0[1-9]|[12]\d|3[01]))?(?:[Tt\s].*)?$",
+        str_val,
+    )
+    if iso_date:
+        return int(iso_date.group(1))
+
+    # A metadata string with multiple years is ambiguous; don't pick the first one.
+    matches = list(_YEAR_REGEX.finditer(str_val))
+    if len(matches) == 1:
+        year = int(matches[0].group(1))
         return year if 1800 <= year <= 2100 else None
     return None
 
@@ -244,13 +258,21 @@ def normalize_doi(value: object) -> str | None:
     """
     if value is None:
         return None
-    doi = str(value).strip().lower()
+    doi = str(value).strip().strip('<>"\'').strip()
     if not doi:
         return None
+    parsed = urlsplit(doi)
+    if parsed.scheme.lower() in {"http", "https"} and (parsed.hostname or "").lower() in {
+        "doi.org", "dx.doi.org"
+    }:
+        # Query and fragment belong to the resolver URL, not to the DOI path.
+        doi = unquote(parsed.path).strip("/").lower()
+    else:
+        doi = doi.lower()
     for prefix in _DOI_PREFIXES:
         if doi.startswith(prefix):
             doi = doi[len(prefix):].strip()
-    doi = doi.strip(" .,;")
+    doi = doi.strip(" .,;<>\"'")
     return doi or None
 
 

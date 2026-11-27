@@ -106,20 +106,25 @@ Export a CSV with BibTeX fields and suggested reference candidates. Suggestions 
 
 **Step 2: Review and fill ground truth**
 
-Compare each BibTeX entry with its candidates. Put the confirmed reference ID in `groundtruth_arxiv_id` and set `review_status=match`. For blank GT, set `review_status=no_match` only after confirming no candidate is correct; otherwise use `review_status=unknown`.
+Compare each BibTeX entry with its candidates. If the correct candidate is in the pool, enter its ID in `groundtruth_arxiv_id` and set `review_status=match`. If no candidate is correct, set `review_status=no_match`; leave GT blank when it is unknown, but retain the true ID when it is known and outside the pool. Use `unknown` when review has not established either outcome.
 
 | Case | `groundtruth_arxiv_id` | Import behavior |
 |---|---|---|
 | Candidate confirmed as the cited work | Enter its `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
 | Suggested candidate is wrong, another reference is found | Enter the correct `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
 | Not reviewed or unresolved | Leave GT blank; set `review_status=unknown` | Retained in labels for audit; omitted from training pairs |
-| Reviewed; no matching reference in the candidate pool | Leave GT blank; set `review_status=no_match` | Kept as an all-zero query |
+| Reviewed; no matching reference in the candidate pool, GT unknown | Leave GT blank; set `review_status=no_match` | Kept as an all-zero query |
+| GT known but absent from candidate pool | Keep true GT; set `review_status=no_match` | Available candidates are all 0; GT retained for coverage |
 
 ### Step 3: Import CSV to JSON
 
 Run `python -m src.m3_matching.manual_tool --import-csv labels/manual/<paper_id>.csv`.
 
-The importer uses three review states: `match`, `no_match`, and `unknown`. A non-empty GT requires `match`; blank GT with `no_match` yields an all-zero query; `unknown` is retained in labels but omitted from training pairs. Suggested IDs are never accepted automatically. A GT outside the candidate pool is excluded from pairs and recorded as a candidate-coverage issue in `dataset_report.json`. Legacy CSVs without `review_status` remain accepted; non-empty GT is treated as explicitly supplied and blank GT as `unknown`.
+The importer uses three review states: `match`, `no_match`, and `unknown`. `match` means the correct candidate is in the pool. `no_match` means none of the available candidates is correct; its GT may be blank or may retain the known true ID when that ID is outside the pool. A `no_match` GT that is present in the pool is invalid. `unknown` is retained in labels but omitted from training pairs. Suggested IDs are never accepted automatically. A GT outside the candidate pool yields all-zero labels for available candidates and is recorded as a candidate-coverage issue in `dataset_report.json`. Legacy CSVs without `review_status` remain accepted; non-empty GT is treated as explicitly supplied and blank GT as `unknown`.
+
+**Phân biệt `unknown` và `no_match`:** `unknown` = chưa xác định được ground truth (heuristic không đủ tin cậy hoặc reviewer chưa kết luận); nó **không** chứng minh rằng không có candidate đúng. `no_match` = reviewer đã xác nhận không candidate nào trong pool là đúng. Vì vậy không được tự động đổi `unknown` thành `no_match` để tránh tạo negative labels sai.
+
+Automatic vẫn gán một label record cho **mọi** BibTeX entry của publication được chọn; `unknown` nằm trong label records để kiểm toán nhưng không sinh pairs. Do đó tập pairs/evaluation là một tập con của toàn bộ query. `dataset_report.json` ghi riêng `queries_total`, `queries_with_known_gt`, `queries_unknown`, `queries_with_pairs`, `queries_without_pairs`, `gt_outside_candidate_pool` và `candidate_coverage` theo cả Manual/Automatic lẫn train/valid/test.
 
 ### Cách nhóm tổng hợp:
 Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng
@@ -173,6 +178,9 @@ Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
 4. Gán nhãn:
    - `label=1` nếu ref_arxiv_id == groundtruth_arxiv_id (positive)
    - `label=0` if the ground truth ID is known but this candidate has a different ID.
+   - GT đã xác nhận nhưng **ngoài candidate pool**: sinh hàng toàn `0`, vẫn giữ `groundtruth_arxiv_id` thật để tính Candidate Coverage.
+   - `no_match` (GT trống, reviewer xác nhận): sinh hàng toàn `0`.
+   - `unknown` (GT trống, chưa xác định): **không** sinh pairs, để tránh negative labels sai.
 
 **Output:** DataFrame Parquet với 14 + 6 cột = 20 cột:
 ```
@@ -363,9 +371,15 @@ data/hf_dataset/data/predictions/*.parquet
 \mathrm{MRR@5} = \frac{1}{|Q|} \sum_i \frac{1}{\mathrm{rank}_i}
 \]
 
-- \(|Q|\) = số BibTeX **đã label** trên test
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
-- GT ngoài top-5 hoặc GT = `null` → entry đó 0 điểm
+- GT ngoài top-5 → entry đó 0 điểm.
+
+**Phạm vi đánh giá (bắt buộc ghi rõ khi báo cáo):**
+
+- `MRR@5 (evaluated)`: \(|Q|\) = số query có **GT đã xác nhận và nằm trong candidate pool**. Chỉ nhóm này mới rank được.
+- `MRR@5 (strict)`: \(|Q|\) = toàn bộ query đã label trên test; `unknown`, `no_match` và GT ngoài pool đều tính 0 điểm. Cách này khớp nghĩa đen "mọi entry đã label" nhưng bị pha loãng bởi query không có GT.
+- Luôn báo kèm `n_evaluated`, `n_labeled` và `candidate_coverage = n_evaluated / n_labeled_with_known_gt`.
+- **Không** báo MRR@5 như thể đã đánh giá toàn bộ 144k query khi `unknown` bị loại khỏi pairs. `dataset_report.json` cung cấp sẵn các mẫu số trong `evaluation_scope`.
 
 Được phép post-process (lọc trùng candidate, boost DOI exact...). Nhóm dùng LLM/pretrained model bị chấm tách nhóm — ghi rõ trên poster.
 
@@ -386,7 +400,7 @@ data/hf_dataset/data/predictions/*.parquet
 ```powershell
 python -m pytest tests/test_m3_matching.py -v
 ```
-✅ 28/28 tests pass
+✅ 33/33 tests pass
 
 | Nhóm | Test | Nội dung kiểm tra |
 |------|------|-------------------|
@@ -410,9 +424,11 @@ python -m pytest tests/test_m3_matching.py -v
 | Features (3) | `test_features_dimensions` | Đủ 14 đặc trưng |
 | | `test_feature_doi_match_normalizes_prefixes` | `doi_match` chuẩn hóa prefix |
 | | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |
-| Dataset (3) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
+| Dataset (5) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
 | | `test_build_paper_pairs_dedups_reference_arxiv_ids` | Dedup reference theo `ref_arxiv_id` |
 | | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.jsonl` |
+| | `test_gt_null_review_states_and_gt_outside_pool` | `unknown` không sinh pair; `no_match` và GT ngoài pool sinh hàng toàn 0, giữ GT |
+| | `test_pipeline_query_stats_match_parquet` | Thống kê query khớp Parquet thực tế sau pipeline |
 | Manual tool (2) | `test_manual_template_does_not_autofill_groundtruth` | Template không tự điền groundtruth |
 | `test_import_manual_csv_uses_only_nonempty_groundtruth` | Ch? import d?ng c? ground truth |
 | Split (2) | `test_split_publications` | Chia train/valid/test theo publication |

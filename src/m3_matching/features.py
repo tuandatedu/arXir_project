@@ -104,7 +104,7 @@ def feature_names() -> list[str]:
     Bắt buộc đồng bộ để đưa vào DataFrame / model training và báo cáo poster.
     """
     return [
-        "title_levenshtein",      # Levenshtein distance tương đối (0..1)
+        "title_levenshtein",      # Levenshtein normalized similarity (0..1)
         "title_token_sort",       # Token sort ratio (xử lý đảo từ) (0..1)
         "title_token_set",        # Token set ratio (xử lý substring/phần mở rộng) (0..1)
         "title_jaccard",          # Jaccard từ vựng giữa 2 tiêu đề (0..1)
@@ -165,14 +165,14 @@ def pair_feature_vector(
     # 3. Đặc trưng tác giả
     lasts1 = _extract_last_names(a1)
     lasts2 = _extract_last_names(a2)
-    # Tác giả đầu tiên từ list gốc (không phải random từ set)
-    first1 = a1[0].split(",")[0] if a1 else ""  # Lấy phần trước "," hoặc toàn bộ
-    first2 = a2[0].split(",")[0] if a2 else ""
+    # So sánh họ tác giả đầu tiên bằng cùng quy tắc xử lý như author_jaccard.
+    first_last1 = _extract_last_names(a1[:1])
+    first_last2 = _extract_last_names(a2[:1])
     
     if lasts1 and lasts2:
         f_author_jaccard = float(len(lasts1 & lasts2) / len(lasts1 | lasts2))
         f_author_any = 1.0 if bool(lasts1 & lasts2) else 0.0
-        f_author_first = 1.0 if (first1 and first1 == first2) else 0.0
+        f_author_first = 1.0 if first_last1 & first_last2 else 0.0
     else:
         f_author_jaccard = f_author_any = f_author_first = 0.0
 

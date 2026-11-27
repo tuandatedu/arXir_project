@@ -41,7 +41,7 @@ python -m src.m3_matching.manual_tool --import-csv data/labels/manual/<arxiv_id>
 python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
 ```
 
-Use three `review_status` values: `match`, `no_match`, and `unknown`. For a confirmed match, enter its ID in `groundtruth_arxiv_id` and set `match`. For blank GT, use `no_match` only when a reviewer confirms no candidate is correct; otherwise use `unknown`. Suggested IDs are never copied automatically.
+Use three `review_status` values: `match`, `no_match`, and `unknown`. Set `match` when the true candidate is in the pool. Set `no_match` when none of the candidates is correct; keep the true ID in `groundtruth_arxiv_id` if it is known but outside the pool, otherwise leave GT blank. Use `unknown` when unresolved. Suggested IDs are never copied automatically. `unknown` is not evidence of a negative match and must not be converted to `no_match`.
 
 ## Thứ tự nên code
 
@@ -81,15 +81,17 @@ File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đ�
 
 ```json
 [
-  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
-  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "label_status": "unresolved", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "label_status": "match", "source": "manual"},
+  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "label_status": "no_match", "source": "manual"},
+  {"citation_key": "other", "groundtruth_arxiv_id": null, "label_status": "unknown", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
 ]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
 - `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu chưa xác định được GT
-- `label_status`: phân biệt `confirmed_match`, `confirmed_no_match`, `unreviewed` / `unresolved`, và `matched_by_heuristic`
+- `label_status`: `match` (GT đã xác nhận), `no_match` (đã xác nhận không candidate nào đúng), `unknown` (chưa xác định GT)
 - `null_reason`: lý do auto heuristic trả về null để kiểm toán; không làm null thành negative
+- Automatic gán record cho **mọi** BibTeX entry; `unknown` được giữ để kiểm toán nhưng không sinh pairs. `no_match` và GT ngoài pool sinh hàng toàn `0`.
 
 ---
 
@@ -111,9 +113,11 @@ Chỉ paper nằm trong 3 tập này mới có hàng ở bảng `predictions`. P
 \mathrm{MRR@5} = \frac{1}{|Q|} \sum_i \frac{1}{\mathrm{rank}_i}
 \]
 
-- \(|Q|\) = số BibTeX **đã label** trên test
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
-- GT không nằm top-5, hoặc GT = `null` → điểm entry đó = **0**
+- GT không nằm top-5 → điểm entry đó = **0**
+- `MRR@5 (evaluated)`: \(|Q|\) = query có GT đã xác nhận **và nằm trong candidate pool**
+- `MRR@5 (strict)`: \(|Q|\) = mọi query đã label trên test; `unknown`, `no_match`, GT ngoài pool đều 0 điểm
+- Luôn báo kèm `n_evaluated`, `n_labeled`, `candidate_coverage`; không báo MRR như thể đã đánh giá toàn bộ query nếu `unknown` bị loại khỏi pairs
 
 Được phép post-process (lọc trùng candidate, boost DOI exact, …).
 

@@ -41,6 +41,105 @@ from src.common.ids import normalize_arxiv_id
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 LOG = logging.getLogger(__name__)
 
+# Chỉ các trạng thái này mới chứng minh query không có candidate đúng.
+_NO_MATCH_STATUSES = {"no_match", "confirmed_no_match", "negative"}
+
+
+def _normalize_optional_id(value: Any) -> str | None:
+    """Chuẩn hóa arXiv ID tùy chọn để so khớp GT với candidate pool."""
+    if value is None or not str(value).strip():
+        return None
+    try:
+        return normalize_arxiv_id(str(value))
+    except ValueError:
+        return str(value).strip()
+
+
+def _empty_query_bucket() -> dict[str, int]:
+    """Một nhóm thống kê query, các nhóm con loại trừ nhau."""
+    return {
+        "total": 0,
+        "match": 0,
+        "no_match": 0,
+        "unknown": 0,
+        "gt_outside_candidate_pool": 0,
+        "queries_with_pairs": 0,
+        "queries_without_pairs": 0,
+    }
+
+
+def _sum_query_buckets(buckets: list[dict[str, int]]) -> dict[str, int]:
+    total = _empty_query_bucket()
+    for bucket in buckets:
+        for name in total:
+            total[name] += int(bucket.get(name, 0))
+    return total
+
+
+def build_query_stats(
+    labels: dict[str, list[dict[str, Any]]],
+    partition_map: dict[str, str],
+    refs_by_paper: dict[str, list[dict[str, Any]]],
+    pair_query_keys: set[tuple[str, str]],
+) -> tuple[dict[str, dict[str, dict[str, int]]], list[dict[str, Any]]]:
+    """
+    Thống kê query theo source (manual/automatic) và partition.
+
+    ``match``, ``no_match``, ``unknown``, ``gt_outside_candidate_pool`` là bốn
+    nhóm loại trừ nhau. ``gt_outside_candidate_pool`` KHÔNG cộng vào ``match``
+    để Candidate Coverage có thể tính riêng.
+    """
+    breakdown: dict[str, dict[str, dict[str, int]]] = {}
+    gt_outside: list[dict[str, Any]] = []
+
+    for pid, rows in labels.items():
+        available_ids = {
+            _normalize_optional_id(r.get("ref_arxiv_id"))
+            for r in refs_by_paper.get(pid, [])
+        }
+        available_ids.discard(None)
+        source = (
+            "manual"
+            if any(str(r.get("source", "")).lower() == "manual" for r in rows)
+            else "automatic"
+        )
+        partition = partition_map.get(pid, "unassigned")
+        bucket = breakdown.setdefault(source, {}).setdefault(
+            partition, _empty_query_bucket()
+        )
+
+        for row in rows:
+            gt = _normalize_optional_id(row.get("groundtruth_arxiv_id"))
+            status = str(
+                row.get("label_status")
+                or row.get("review_status")
+                or ("match" if gt else "unknown")
+            ).lower()
+            key = (str(pid), str(row.get("citation_key") or "").strip())
+            has_pairs = key in pair_query_keys
+
+            bucket["total"] += 1
+            bucket["queries_with_pairs" if has_pairs else "queries_without_pairs"] += 1
+
+            if gt and gt not in available_ids:
+                bucket["gt_outside_candidate_pool"] += 1
+                gt_outside.append({
+                    "arxiv_id": pid,
+                    "citation_key": row.get("citation_key"),
+                    "groundtruth_arxiv_id": gt,
+                    "source": source,
+                    "partition": partition,
+                })
+            elif gt:
+                bucket["match"] += 1
+            elif status in _NO_MATCH_STATUSES:
+                bucket["no_match"] += 1
+            else:
+                # Auto null và Manual blank chưa xác nhận đều là unknown.
+                bucket["unknown"] += 1
+
+    return breakdown, gt_outside
+
 
 def _configure_utf8_stdout() -> None:
     """Windows console mặc định cp1258 không in được tiếng Việt; ép UTF-8 khi có thể."""
@@ -124,6 +223,8 @@ def create_demo_data_if_missing(tables_dir: Path, labels_dir: Path, k: int = 1) 
                 manual_labels.append({
                     "citation_key": ckey,
                     "groundtruth_arxiv_id": gt,
+                    "label_status": "match" if gt else "no_match",
+                    "review_status": "match" if gt else "no_match",
                     "source": "manual",
                 })
             save_labels(pid, manual_labels, labels_dir)
@@ -222,6 +323,7 @@ def run_preparation_pipeline(
     # 2. Đọc nhãn đã có, bỏ các bài không đủ dữ liệu để ghép cặp
     labels = load_labels(labels_dir)
     orphan_labels = sorted(set(labels) - available_set)
+    orphan_query_count = sum(len(labels[pid]) for pid in orphan_labels)
     if orphan_labels:
         LOG.warning(
             "Bỏ qua %d bài có nhãn nhưng thiếu BibTeX hoặc references arXiv: %s",
@@ -314,40 +416,80 @@ def run_preparation_pipeline(
     )
 
     # Auditable query and candidate-coverage counts for this snapshot.
-    def norm_id(value: Any) -> str | None:
-        if value is None or not str(value).strip():
-            return None
-        try:
-            return normalize_arxiv_id(str(value))
-        except ValueError:
-            return str(value).strip()
+    pair_query_keys = {
+        (str(row["arxiv_id"]), str(row["citation_key"]))
+        for split_rows in datasets.values()
+        for row in split_rows
+    }
+    query_breakdown, gt_outside = build_query_stats(
+        labels, partition_map, refs_by_paper, pair_query_keys
+    )
+    query_totals = _sum_query_buckets([
+        counts
+        for splits in query_breakdown.values()
+        for counts in splits.values()
+    ])
+    query_stats_by_partition: dict[str, dict[str, int]] = {}
+    for partition in ("train", "valid", "test", "unassigned"):
+        buckets = [
+            splits[partition]
+            for splits in query_breakdown.values()
+            if partition in splits
+        ]
+        if buckets:
+            query_stats_by_partition[partition] = _sum_query_buckets(buckets)
 
-    gt_outside = []
-    unresolved = confirmed_no_match = 0
-    for pid, rows in labels.items():
-        available_ids = {norm_id(r.get("ref_arxiv_id")) for r in refs_by_paper.get(pid, [])}
-        available_ids.discard(None)
-        for row in rows:
-            gt = norm_id(row.get("groundtruth_arxiv_id"))
-            status = str(row.get("label_status") or ("match" if gt else "unknown")).lower()
-            if gt and gt not in available_ids:
-                gt_outside.append({"arxiv_id": pid, "citation_key": row.get("citation_key"), "groundtruth_arxiv_id": gt})
-            elif not gt and status in {"unknown", "unreviewed", "unresolved"}:
-                unresolved += 1
-            elif not gt and status in {"no_match", "confirmed_no_match", "negative"}:
-                confirmed_no_match += 1
+    unresolved = query_totals["unknown"]
+    confirmed_no_match = query_totals["no_match"]
+    known_gt = query_totals["match"] + query_totals["gt_outside_candidate_pool"]
+    inside_gt = query_totals["match"]
+    evaluation_scope_by_partition = {
+        partition: {
+            **counts,
+            "mrr_at_5_evaluated_denominator": counts["match"],
+            "mrr_at_5_strict_denominator": counts["total"],
+        }
+        for partition, counts in query_stats_by_partition.items()
+    }
+    evaluation_scope = {
+        "queries_total": query_totals["total"],
+        "queries_with_known_gt": known_gt,
+        "queries_with_gt_inside_candidate_pool": inside_gt,
+        "queries_with_gt_outside_candidate_pool": query_totals["gt_outside_candidate_pool"],
+        "queries_unknown": unresolved,
+        "queries_confirmed_no_match": confirmed_no_match,
+        "queries_with_pairs": query_totals["queries_with_pairs"],
+        "queries_without_pairs": query_totals["queries_without_pairs"],
+        "candidate_coverage": (inside_gt / known_gt) if known_gt else None,
+        "mrr_at_5_evaluated_denominator": inside_gt,
+        "mrr_at_5_strict_denominator": query_totals["total"],
+        "by_partition": evaluation_scope_by_partition,
+        "note": (
+            "Evaluated MRR uses only confirmed GTs inside the candidate pool. Strict "
+            "MRR uses every labeled query on the evaluated partition; unknown, "
+            "no_match, and GT-outside queries contribute RR=0. Unknown is still "
+            "excluded from training pairs and is never relabeled as no_match."
+        ),
+    }
 
     report = {
         "publications_with_labels": len(labels),
-        "queries_total": sum(len(rows) for rows in labels.values()),
-        "queries_with_candidate_pairs": len({(r["arxiv_id"], r["citation_key"]) for rows in datasets.values() for r in rows}),
+        "queries_total": query_totals["total"],
+        "queries_with_candidate_pairs": len(pair_query_keys),
         "gt_null_queries": unresolved + confirmed_no_match,
         "gt_null_unresolved_queries": unresolved,
         "confirmed_no_match_queries": confirmed_no_match,
         "gt_outside_candidate_pool": gt_outside,
+        "gt_outside_candidate_pool_count": len(gt_outside),
+        "query_breakdown_by_source_and_split": query_breakdown,
+        "query_stats_by_source_and_split": query_breakdown,
+        "query_stats_by_partition": query_stats_by_partition,
+        "query_totals": query_totals,
+        "evaluation_scope": evaluation_scope,
         "pairs": {name: {"positive": sum(r["label"] == 1 for r in rows), "negative": sum(r["label"] == 0 for r in rows), "total": len(rows)} for name, rows in datasets.items()},
         "publications_missing_bibtex_or_arxiv_references": len(orphan_labels),
-        "queries_omitted_from_pairs": unresolved + len(gt_outside),
+        "orphan_label_queries_excluded": orphan_query_count,
+        "queries_omitted_from_pairs": query_totals["queries_without_pairs"] + orphan_query_count,
     }
     report_path = prepared_dataset_dir / "dataset_report.json"
     write_json(report_path, report)
@@ -403,6 +545,12 @@ def main() -> None:
     parser.add_argument("--max-auto", type=int, default=0, help="Tổng số bài auto tối đa (0 = gán tất cả)")
     parser.add_argument("--elements-path", type=Path, default=None, help="elements.jsonl (mặc định <tables-dir>/elements.jsonl)")
     parser.add_argument("--elements-zip", type=Path, default=None, help="ZIP M2 chứa elements.jsonl (đọc trực tiếp, không giải nén)")
+    parser.add_argument(
+        "--prepared-dataset-dir",
+        type=Path,
+        default=None,
+        help="Thư mục output riêng cho snapshot dataset; phải rỗng hoặc chưa tồn tại",
+    )
     args = parser.parse_args()
 
     print("=================================================================")
@@ -418,6 +566,7 @@ def main() -> None:
         max_auto=args.max_auto,
         elements_path=args.elements_path,
         elements_zip=args.elements_zip,
+        prepared_dataset_dir=args.prepared_dataset_dir,
     )
 
     print("\n>>> BÁO CÁO BÀN GIAO DỮ LIỆU:")

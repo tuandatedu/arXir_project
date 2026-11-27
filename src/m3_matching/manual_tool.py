@@ -424,7 +424,6 @@ def export_manual_template(
         "suggested_score",
         "groundtruth_arxiv_id",
         "review_status",
-        "note",
     ]
 
     exported_count = 0
@@ -575,7 +574,6 @@ def export_manual_template(
                 "suggested_score": suggested_score,
                 "groundtruth_arxiv_id": "",
                 "review_status": "unknown",
-                "note": "",
             })
 
             exported_count += 1
@@ -702,11 +700,13 @@ def import_manual_csv(
                 )
 
             if gt_id:
-                if review_status != "match" and "review_status" in reader.fieldnames:
+                if review_status not in {"match", "no_match"} and "review_status" in reader.fieldnames:
                     raise ValueError(
                         f"Dong {line_number} co ground truth nhung review_status={review_status!r}."
                     )
-                status = "match"
+                # A known true GT can still be outside the candidate pool;
+                # then the pool outcome is no_match while preserving that GT.
+                status = review_status if "review_status" in reader.fieldnames else "match"
             elif review_status == "match":
                 raise ValueError(
                     f"Dong {line_number} co review_status=match nhung khong co groundtruth_arxiv_id."
