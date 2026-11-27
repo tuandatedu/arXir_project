@@ -191,7 +191,7 @@ def test_auto_match_doi_with_prefix():
     assert auto_match_one(bib, refs) == "ref.9"
 
 
-def test_auto_label_null_records_reason_without_changing_heuristic():
+def test_auto_label_null_records_heuristic_no_match_and_reason():
     ambiguous = auto_label_publication(
         "paper.1",
         [{"citation_key": "k1", "title": "Same Candidate Title"}],
@@ -201,12 +201,13 @@ def test_auto_label_null_records_reason_without_changing_heuristic():
         ],
     )[0]
     assert ambiguous["groundtruth_arxiv_id"] is None
-    assert ambiguous["label_status"] == "unknown"
+    assert ambiguous["label_status"] == "auto_no_match"
     assert ambiguous["null_reason"] == "ambiguous_exact_title_candidates"
 
     no_candidates = auto_label_publication(
         "paper.2", [{"citation_key": "k1", "title": "Some title"}], []
     )[0]
+    assert no_candidates["label_status"] == "auto_no_match"
     assert no_candidates["null_reason"] == "no_candidate_with_arxiv_id"
 
 
@@ -393,9 +394,10 @@ def _write_pipeline_fixture(tmp_path):
     for i in range(1, 3):
         pid = f"auto.{i:03d}"
         keys = [f"ak{j}" for j in range(10)]
-        for key in keys:
+        for j, key in enumerate(keys):
             bib_rows.append({
-                "arxiv_id": pid, "citation_key": key, "title": f"Auto {key}",
+                "arxiv_id": pid, "citation_key": key,
+                "title": "Ref ref.1" if j < 5 else f"Auto {key}",
                 "authors": ["C, D"], "year": 2021,
             })
         for ref_id in ("ref.1", "ref.2", "ref.3"):
@@ -443,24 +445,32 @@ def test_pipeline_query_stats_match_parquet(tmp_path):
         "total": 120,
         "match": 107,
         "no_match": 2,
-        "unknown": 10,
+        "auto_no_match": 10,
+        "unknown": 0,
         "gt_outside_candidate_pool": 1,
-        "queries_with_pairs": 110,
-        "queries_without_pairs": 10,
+        "queries_with_pairs": 120,
+        "queries_without_pairs": 0,
     }
     assert report["evaluation_scope"]["candidate_coverage"] == pytest.approx(107 / 108)
     assert report["evaluation_scope"]["mrr_at_5_evaluated_denominator"] == 107
     assert report["evaluation_scope"]["mrr_at_5_strict_denominator"] == 120
+    assert report["automatic_no_match_queries"] == 10
+    assert report["automatic_queries_unresolved"] == 0
+    assert report["automatic_labeling_complete"] is True
     assert report["evaluation_scope"]["by_partition"]["test"]["mrr_at_5_strict_denominator"] == report["query_stats_by_partition"]["test"]["total"]
 
     frame = pd.read_parquet(out_dir / "dataset_pairs.parquet")
     pair_keys = set(zip(frame["arxiv_id"], frame["citation_key"]))
-    assert len(pair_keys) == report["queries_with_candidate_pairs"] == 110
+    assert len(pair_keys) == report["queries_with_candidate_pairs"] == 120
     assert int(frame["label"].sum()) == 107
 
-    # unknown queries (auto ak5..ak9) không được xuất hiện trong Parquet.
-    unknown_keys = {(f"auto.{i:03d}", f"ak{j}") for i in (1, 2) for j in range(5, 10)}
-    assert unknown_keys.isdisjoint(pair_keys)
+    # Automatic abstentions become auditable all-zero heuristic labels.
+    auto_no_match_keys = {(f"auto.{i:03d}", f"ak{j}") for i in (1, 2) for j in range(5, 10)}
+    assert auto_no_match_keys.issubset(pair_keys)
+    auto_negatives = frame[
+        frame.apply(lambda row: (row["arxiv_id"], row["citation_key"]) in auto_no_match_keys, axis=1)
+    ]
+    assert len(auto_negatives) == 30 and (auto_negatives["label"] == 0).all()
 
     # no_match và GT ngoài pool đều là hàng toàn 0, giữ GT thật.
     no_match = frame[(frame["arxiv_id"] == "man.001") & frame["citation_key"].isin(["k0", "k1"])]
@@ -472,7 +482,7 @@ def test_pipeline_query_stats_match_parquet(tmp_path):
     # Thống kê theo split cộng lại phải khớp tổng.
     by_partition = report["query_stats_by_partition"]
     assert sum(v["total"] for v in by_partition.values()) == 120
-    assert sum(v["queries_with_pairs"] for v in by_partition.values()) == 110
+    assert sum(v["queries_with_pairs"] for v in by_partition.values()) == 120
 
 
 def test_manual_import_preserves_unknown_and_no_match(tmp_path):

@@ -43,6 +43,7 @@ LOG = logging.getLogger(__name__)
 
 # Chỉ các trạng thái này mới chứng minh query không có candidate đúng.
 _NO_MATCH_STATUSES = {"no_match", "confirmed_no_match", "negative"}
+_AUTO_NO_MATCH_STATUSES = {"auto_no_match"}
 
 
 def _normalize_optional_id(value: Any) -> str | None:
@@ -61,6 +62,7 @@ def _empty_query_bucket() -> dict[str, int]:
         "total": 0,
         "match": 0,
         "no_match": 0,
+        "auto_no_match": 0,
         "unknown": 0,
         "gt_outside_candidate_pool": 0,
         "queries_with_pairs": 0,
@@ -85,9 +87,10 @@ def build_query_stats(
     """
     Thống kê query theo source (manual/automatic) và partition.
 
-    ``match``, ``no_match``, ``unknown``, ``gt_outside_candidate_pool`` là bốn
-    nhóm loại trừ nhau. ``gt_outside_candidate_pool`` KHÔNG cộng vào ``match``
-    để Candidate Coverage có thể tính riêng.
+    ``match``, ``no_match``, ``auto_no_match``, ``unknown``,
+    ``gt_outside_candidate_pool`` là năm nhóm loại trừ nhau.
+    ``gt_outside_candidate_pool`` KHÔNG cộng vào ``match`` để Candidate Coverage
+    có thể tính riêng.
     """
     breakdown: dict[str, dict[str, dict[str, int]]] = {}
     gt_outside: list[dict[str, Any]] = []
@@ -132,6 +135,8 @@ def build_query_stats(
                 })
             elif gt:
                 bucket["match"] += 1
+            elif status in _AUTO_NO_MATCH_STATUSES:
+                bucket["auto_no_match"] += 1
             elif status in _NO_MATCH_STATUSES:
                 bucket["no_match"] += 1
             else:
@@ -332,6 +337,14 @@ def run_preparation_pipeline(
         )
         labels = {pid: rows for pid, rows in labels.items() if pid in available_set}
 
+    # Refresh persisted automatic records with the current binary auto-label
+    # policy. Legacy automatic nulls become auditable ``auto_no_match`` labels.
+    for pid, entries in list(labels.items()):
+        if entries and entries[0].get("source") == "auto":
+            auto_rows = auto_label_publication(pid, bibs_by_paper[pid], refs_by_paper[pid])
+            save_labels(pid, auto_rows, labels_dir)
+            labels[pid] = auto_rows
+
     manual_papers = [
         pid for pid, entries in labels.items()
         if any(e.get("source") == "manual" for e in entries)
@@ -441,6 +454,7 @@ def run_preparation_pipeline(
 
     unresolved = query_totals["unknown"]
     confirmed_no_match = query_totals["no_match"]
+    automatic_no_match = query_totals["auto_no_match"]
     known_gt = query_totals["match"] + query_totals["gt_outside_candidate_pool"]
     inside_gt = query_totals["match"]
     labeled_queries = query_totals["total"] - unresolved
@@ -473,7 +487,7 @@ def run_preparation_pipeline(
         "note": (
             "Evaluated MRR uses only confirmed GTs inside the candidate pool. Strict "
             "MRR uses every resolved labeled query on the evaluated partition; "
-            "no_match and GT-outside queries contribute RR=0. Unknown queries are "
+            "manual no_match, automatic no-match decisions, and GT-outside queries contribute RR=0. Unknown queries are "
             "unresolved, excluded from both MRR denominators and training pairs, "
             "and are never relabeled as no_match."
         ),
@@ -483,9 +497,10 @@ def run_preparation_pipeline(
         "publications_with_labels": len(labels),
         "queries_total": query_totals["total"],
         "queries_with_candidate_pairs": len(pair_query_keys),
-        "gt_null_queries": unresolved + confirmed_no_match,
+        "gt_null_queries": unresolved + confirmed_no_match + automatic_no_match,
         "gt_null_unresolved_queries": unresolved,
         "confirmed_no_match_queries": confirmed_no_match,
+        "automatic_no_match_queries": automatic_no_match,
         "automatic_queries_total": automatic_queries_total,
         "automatic_queries_unresolved": automatic_queries_unknown,
         "automatic_labeling_complete": automatic_queries_unknown == 0,

@@ -386,7 +386,10 @@ def auto_label_publication(
         labeled_rows.append({
             "citation_key": citation_key,
             "groundtruth_arxiv_id": groundtruth_id,
-            "label_status": "match" if groundtruth_id else "unknown",
+            # The automatic matcher must emit a binary outcome for every entry.
+            # Keep the heuristic abstention reason for audit, but represent the
+            # no-candidate decision separately from unresolved manual labels.
+            "label_status": "match" if groundtruth_id else "auto_no_match",
             "null_reason": _auto_null_reason(bib_clean, prepared_refs) if groundtruth_id is None else None,
             "source": "auto",
         })

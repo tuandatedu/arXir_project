@@ -83,15 +83,15 @@ File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đ�
 [
   {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "label_status": "match", "source": "manual"},
   {"citation_key": "someBook", "groundtruth_arxiv_id": null, "label_status": "no_match", "source": "manual"},
-  {"citation_key": "other", "groundtruth_arxiv_id": null, "label_status": "unknown", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
+  {"citation_key": "other", "groundtruth_arxiv_id": null, "label_status": "auto_no_match", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
 ]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
 - `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu chưa xác định được GT
-- `label_status`: `match` (GT đã xác nhận), `no_match` (đã xác nhận không candidate nào đúng), `unknown` (chưa xác định GT)
-- `null_reason`: lý do auto heuristic trả về null để kiểm toán; không làm null thành negative
-- Automatic matcher chạy và lưu record cho **mọi** BibTeX entry trong publication được chọn. `unknown` nghĩa là matcher chưa kết luận được ground truth; entry này không sinh pairs, không tính là nhãn hoàn tất và cần matching bổ sung/review. Không tự đổi `unknown` thành `no_match`. `no_match` và GT ngoài pool sinh hàng toàn `0`.
+- `label_status`: manual dùng `match`, `no_match`, `unknown`; automatic dùng `match` hoặc `auto_no_match`.
+- `auto_no_match` là quyết định heuristic rằng không candidate nào vượt tiêu chí matching; nó tạo hàng toàn `0` và có thể chứa false negative. `null_reason` giữ lý do matcher không chọn candidate để kiểm toán.
+- Automatic matcher chạy và lưu kết quả cho **mọi** BibTeX entry trong publication được chọn. Nhãn automatic là nhãn heuristic, không phải xác nhận thủ công. Nhóm manual vẫn dùng `unknown` cho entry chưa kết luận; `unknown` không sinh pairs.
 
 ---
 
@@ -116,7 +116,7 @@ Chỉ paper nằm trong 3 tập này mới có hàng ở bảng `predictions`. P
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
 - GT không nằm top-5 → điểm entry đó = **0**
 - `MRR@5 (evaluated)`: \(|Q|\) = query có GT đã xác nhận **và nằm trong candidate pool**
-- `MRR@5 (strict)`: \(|Q|\) = query đã có nhãn kết luận trên test; `no_match` và GT ngoài pool tính 0, còn `unknown` bị loại khỏi mẫu số và báo riêng
+- `MRR@5 (strict)`: \(|Q|\) = query đã có nhãn kết luận trên test; manual `no_match`, automatic `auto_no_match`, và GT ngoài pool tính 0, còn manual `unknown` bị loại khỏi mẫu số và báo riêng
 - Luôn báo kèm `n_evaluated`, `n_labeled`, `candidate_coverage`; không báo MRR như thể đã đánh giá toàn bộ query nếu `unknown` bị loại khỏi pairs
 
 Được phép post-process (lọc trùng candidate, boost DOI exact, …).

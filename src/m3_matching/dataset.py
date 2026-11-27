@@ -29,7 +29,7 @@ from src.m3_matching.split import Partition, split_publications
 _CITE_RE = re.compile(r"\\([a-zA-Z]*cite[a-zA-Z]*\*?)\s*(?:\[[^\]]*\])*\s*\{([^{}]+)\}", re.I)
 
 # Chỉ các trạng thái này mới chứng minh query không có candidate đúng.
-_NO_MATCH_STATUSES = {"no_match", "confirmed_no_match", "negative"}
+_NO_MATCH_STATUSES = {"no_match", "confirmed_no_match", "negative", "auto_no_match"}
 
 
 def build_citation_context_map(
@@ -90,7 +90,7 @@ def build_paper_pairs(
     - Mỗi ``ref_arxiv_id`` chỉ xuất hiện một lần (dedup reference trùng trong M1).
     - Cặp đúng (positive): ref_arxiv_id == groundtruth_arxiv_id -> label = 1
     - Cặp sai (negative): ref_arxiv_id != groundtruth_arxiv_id -> label = 0
-    - GT-null ``no_match`` (reviewer xác nhận không có candidate đúng) sinh hàng toàn 0.
+    - GT-null ``no_match`` (manual) hoặc ``auto_no_match`` (heuristic) sinh hàng toàn 0.
     - GT-null ``unknown`` (chưa xác định được GT) không sinh pairs.
     - GT ngoài candidate pool sinh hàng toàn 0 và giữ nguyên GT để theo dõi coverage.
     - ``citation_context`` (tùy chọn) cung cấp ``cite_count`` cho từng citation_key.
