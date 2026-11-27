@@ -23,34 +23,25 @@ python -m src.m3_matching.run_m3
 
 ## Phần việc tasks 1–6 (Người 1) — đã hoàn thiện
 
-| Task | File | Lệnh / kiểm chứng |
+| Task | File | Command / output |
 | --- | --- | --- |
-| 1. Làm sạch dữ liệu | `cleaning.py` | `pytest tests/test_m3_matching.py` |
-| 2. Mẫu gán nhãn thủ công | `manual_tool.py` | `python -m src.m3_matching.manual_tool --find-candidates` |
-| 3. Gán nhãn tự động | `labelling.py` | `auto_label_publication`, `validate_label_quota` |
-| 4. 14 đặc trưng | `features.py` | `pair_feature_vector`, `feature_names` |
-| 5. Bảng cặp huấn luyện | `dataset.py` | `python -m src.m3_matching.prepare_dataset --demo` |
-| 6. Chia train/valid/test | `split.py` | `split_publications(labels, k=...)` |
+| 1. Clean data | `cleaning.py` | Normalize BibTeX and references |
+| 2. Manual labels | `manual_tool.py` | Export CSV, enter confirmed ground truth, import |
+| 3. Automatic labels | `labelling.py` | `auto_label_publication`, `validate_label_quota` |
+| 4. Pair features | `features.py` | `pair_feature_vector`, `feature_names` |
+| 5. Training pairs | `dataset.py` | `python -m src.m3_matching.prepare_dataset --demo` |
+| 6. Train/valid/test split | `split.py` | `split_publications(labels, k=...)` |
 
-Bàn giao cho Người 2: `data/tables/{train,valid,test,dataset}_pairs.parquet`
-(gồm `label` 0/1 và đủ 14 cột đặc trưng).
-
-Chạy trên dữ liệu thật (sau khi có `data/tables/bibtex.json` + `references.json`):
+Deliver to Person 2: `data/tables/{train,valid,test,dataset}_pairs.parquet`.
 
 ```bash
 python -m src.m3_matching.manual_tool --find-candidates
 python -m src.m3_matching.manual_tool --export-template <arxiv_id>
-# Mở CSV, kiểm tra gợi ý bằng mắt, điền groundtruth_arxiv_id và đổi is_verified=YES
 python -m src.m3_matching.manual_tool --import-csv data/labels/manual/<arxiv_id>.csv
 python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
 ```
 
-`--export-template` chỉ điền các cột `suggested_*`; `groundtruth_arxiv_id` để trống
-cho tới khi con người xác nhận. `--import-csv` chỉ nhận dòng `is_verified=YES`.
-
-Chi tiết cách ghép `references.jsonl` từ output M1: xem `MATCHING_M3.md` mục 6.
-
----
+Use three `review_status` values: `match`, `no_match`, and `unknown`. Set `match` when the true candidate is in the pool. Set `no_match` when none of the candidates is correct; keep the true ID in `groundtruth_arxiv_id` if it is known but outside the pool, otherwise leave GT blank. Use `unknown` when unresolved. Suggested IDs are never copied automatically. `unknown` is not evidence of a negative match and must not be converted to `no_match`.
 
 ## Thứ tự nên code
 
@@ -90,13 +81,17 @@ File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đ�
 
 ```json
 [
-  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
-  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+  {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "label_status": "match", "source": "manual"},
+  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "label_status": "no_match", "source": "manual"},
+  {"citation_key": "other", "groundtruth_arxiv_id": null, "label_status": "auto_no_match", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
 ]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
-- `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu không có trong crawled refs
+- `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu chưa xác định được GT
+- `label_status`: manual dùng `match`, `no_match`, `unknown`; automatic dùng `match` hoặc `auto_no_match`.
+- `auto_no_match` là quyết định heuristic rằng không candidate nào vượt tiêu chí matching; nó tạo hàng toàn `0` và có thể chứa false negative. `null_reason` giữ lý do matcher không chọn candidate để kiểm toán.
+- Automatic matcher chạy và lưu kết quả cho **mọi** BibTeX entry trong publication được chọn. Nhãn automatic là nhãn heuristic, không phải xác nhận thủ công. Nhóm manual vẫn dùng `unknown` cho entry chưa kết luận; `unknown` không sinh pairs.
 
 ---
 
@@ -118,9 +113,11 @@ Chỉ paper nằm trong 3 tập này mới có hàng ở bảng `predictions`. P
 \mathrm{MRR@5} = \frac{1}{|Q|} \sum_i \frac{1}{\mathrm{rank}_i}
 \]
 
-- \(|Q|\) = số BibTeX **đã label** trên test
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
-- GT không nằm top-5, hoặc GT = `null` → điểm entry đó = **0**
+- GT không nằm top-5 → điểm entry đó = **0**
+- `MRR@5 (evaluated)`: \(|Q|\) = query có GT đã xác nhận **và nằm trong candidate pool**
+- `MRR@5 (strict)`: \(|Q|\) = query đã có nhãn kết luận trên test; manual `no_match`, automatic `auto_no_match`, và GT ngoài pool tính 0, còn manual `unknown` bị loại khỏi mẫu số và báo riêng
+- Luôn báo kèm `n_evaluated`, `n_labeled`, `candidate_coverage`; không báo MRR như thể đã đánh giá toàn bộ query nếu `unknown` bị loại khỏi pairs
 
 Được phép post-process (lọc trùng candidate, boost DOI exact, …).
 

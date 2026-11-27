@@ -423,8 +423,7 @@ def export_manual_template(
         "suggested_ref_title",
         "suggested_score",
         "groundtruth_arxiv_id",
-        "is_verified",
-        "note",
+        "review_status",
     ]
 
     exported_count = 0
@@ -574,8 +573,7 @@ def export_manual_template(
                 "suggested_ref_title": suggested_title,
                 "suggested_score": suggested_score,
                 "groundtruth_arxiv_id": "",
-                "is_verified": "NO",
-                "note": "",
+                "review_status": "unknown",
             })
 
             exported_count += 1
@@ -596,21 +594,12 @@ def import_manual_csv(
     csv_path: Path,
     arxiv_id: str,
     labels_dir: Path | None = None,
-    *,
-    require_verified: bool = True,
 ) -> Path:
     """
     Import manual CSV -> JSON.
 
-    Quy tắc:
-    1. Nếu người dùng tự điền groundtruth_arxiv_id:
-       chấp nhận trực tiếp, không cần is_verified=YES.
-
-    2. Nếu groundtruth trống:
-       chỉ lấy suggested_ref_arxiv_id khi is_verified=YES.
-
-    3. Nếu không xác định được groundtruth:
-       bỏ qua dòng, không lưu groundtruth=None.
+    Preserve one of three review states: match, no_match, or unknown.
+    Suggested IDs are never promoted to ground truth.
     """
 
     csv_path = Path(csv_path)
@@ -627,8 +616,7 @@ def import_manual_csv(
     )
 
     rows = []
-    skipped_unverified = 0
-    skipped_missing_gt = 0
+    unresolved_missing_gt = 0
     seen_keys: set[str] = set()
 
     with csv_path.open(
@@ -658,11 +646,7 @@ def import_manual_csv(
                 + ", ".join(sorted(missing_columns))
             )
 
-        has_verified = (
-            "is_verified" in reader.fieldnames
-        )
-
-        for record in reader:
+        for line_number, record in enumerate(reader, start=2):
 
             key = (
                 record.get("citation_key") or ""
@@ -675,14 +659,6 @@ def import_manual_csv(
             if key in seen_keys:
                 continue
 
-            verified = (
-                record.get("is_verified") or ""
-            ).strip().upper()
-
-            # Chỉ import dòng đã xác nhận nếu require_verified=True
-            if require_verified and has_verified and verified != "YES":
-                skipped_unverified += 1
-                continue
             # --------------------------------------------
             # Ưu tiên 1: groundtruth do người dùng nhập
             # --------------------------------------------
@@ -705,46 +681,48 @@ def import_manual_csv(
                 else None
             )
 
-            # --------------------------------------------
-            # Ưu tiên 2: dùng suggested nếu đã xác nhận
-            # --------------------------------------------
+            review_status = (record.get("review_status") or "").strip().lower()
+            aliases = {
+                "confirmed_match": "match",
+                "confirmed_no_match": "no_match",
+                "negative": "no_match",
+                "verified_no_match": "no_match",
+                "unresolved": "unknown",
+                "uncertain": "unknown",
+                "verified_unresolved": "unknown",
+                "unreviewed": "unknown",
+                "not_reviewed": "unknown",
+            }
+            review_status = aliases.get(review_status, review_status or "unknown")
+            if review_status not in {"match", "no_match", "unknown"}:
+                raise ValueError(
+                    f"review_status khong hop le tai dong {line_number}: {review_status!r}."
+                )
 
-            if not gt_id:
+            if gt_id:
+                if review_status not in {"match", "no_match"} and "review_status" in reader.fieldnames:
+                    raise ValueError(
+                        f"Dong {line_number} co ground truth nhung review_status={review_status!r}."
+                    )
+                # A known true GT can still be outside the candidate pool;
+                # then the pool outcome is no_match while preserving that GT.
+                status = review_status if "review_status" in reader.fieldnames else "match"
+            elif review_status == "match":
+                raise ValueError(
+                    f"Dong {line_number} co review_status=match nhung khong co groundtruth_arxiv_id."
+                )
+            elif review_status == "no_match":
+                status = "no_match"
+            else:
+                status = "unknown"
 
-                if (
-                    require_verified
-                    and has_verified
-                    and verified != "YES"
-                ):
-                    skipped_unverified += 1
-                    continue
-
-                if verified == "YES" or not require_verified:
-
-                    suggested = (
-                        record.get(
-                            "suggested_ref_arxiv_id"
-                        ) or ""
-                    ).strip()
-
-                    if (
-                        suggested
-                        and suggested.lower()
-                        not in invalid_values
-                    ):
-                        gt_id = suggested
-
-            # --------------------------------------------
-            # Không có groundtruth -> không import
-            # --------------------------------------------
-
-            if not gt_id:
-                skipped_missing_gt += 1
-                continue
-
+            if not gt_id and status == "unknown":
+                unresolved_missing_gt += 1
             rows.append({
                 "citation_key": key,
                 "groundtruth_arxiv_id": gt_id,
+                "label_status": status,
+                "review_status": status,
                 "source": "manual",
             })
 
@@ -753,8 +731,7 @@ def import_manual_csv(
     if not rows:
         raise ValueError(
             f"Không có nhãn hợp lệ trong {csv_path.name}. "
-            "Hãy điền groundtruth_arxiv_id hoặc xác nhận "
-            "suggested_ref_arxiv_id bằng is_verified=YES."
+            "Hãy điền groundtruth_arxiv_id cho các dòng đã xác định được tài liệu đúng."
         )
 
     # --------------------------------------------
@@ -769,16 +746,10 @@ def import_manual_csv(
 
     print(f"[INFO] Imported labels: {len(rows)}")
 
-    if skipped_unverified:
+    if unresolved_missing_gt:
         print(
-            f"[WARN] Bỏ qua {skipped_unverified} dòng "
-            "chưa xác nhận."
-        )
-
-    if skipped_missing_gt:
-        print(
-            f"[WARN] Bỏ qua {skipped_missing_gt} dòng "
-            "không có groundtruth."
+            f"[INFO] Giữ {unresolved_missing_gt} dòng GT trống với trạng thái "
+            "chưa có GT xác định trong label JSON; các dòng này không vào training pairs."
         )
 
     # --------------------------------------------
@@ -905,11 +876,6 @@ def main() -> None:
     )
 
     parser.add_argument(
-        "--allow-unverified",
-        action="store_true",
-    )
-
-    parser.add_argument(
         "--summary",
         action="store_true",
     )
@@ -1019,7 +985,6 @@ def main() -> None:
         output = import_manual_csv(
             csv_path,
             pid,
-            require_verified=not args.allow_unverified,
         )
 
         print(f"Đã import labels: {output}")

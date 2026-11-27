@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from typing import Any
+from urllib.parse import unquote, urlsplit
 
 from src.common.ids import normalize_arxiv_id
 
@@ -21,6 +22,11 @@ TITLE_STOPWORDS = {
 }
 
 _YEAR_REGEX = re.compile(r"\b(19\d\d|20\d\d)\b")
+_ARXIV_ID_IN_METADATA_RE = re.compile(
+    r"(?:arxiv(?:\.org/(?:abs|pdf)/|\s*:\s*)|(?:https?://)?(?:export\.)?arxiv\.org/(?:abs|pdf)/)"
+    r"((?:\d{4}\.\d{4,5}|[a-z][a-z.-]*(?:/[a-z][a-z.-]*)?/\d{7})(?:v\d+)?)",
+    re.I,
+)
 
 # Đuôi metadata bị dính vào title khi trích BibTeX (không thuộc tiêu đề)
 _HTML_TAG_RE = re.compile(r"<[^>]+>")
@@ -219,9 +225,22 @@ def normalize_year(value: object) -> int | None:
         return value if 1800 <= value <= 2100 else None
     
     str_val = str(value).strip()
-    match = _YEAR_REGEX.search(str_val)
-    if match:
-        year = int(match.group(1))
+    exact = re.fullmatch(r"(19\d{2}|20\d{2})", str_val)
+    if exact:
+        return int(exact.group(1))
+
+    # Parse common ISO-style dates from the leading year before using fallback.
+    iso_date = re.match(
+        r"^(19\d{2}|20\d{2})[-/](?:0[1-9]|1[0-2])(?:[-/](?:0[1-9]|[12]\d|3[01]))?(?:[Tt\s].*)?$",
+        str_val,
+    )
+    if iso_date:
+        return int(iso_date.group(1))
+
+    # A metadata string with multiple years is ambiguous; don't pick the first one.
+    matches = list(_YEAR_REGEX.finditer(str_val))
+    if len(matches) == 1:
+        year = int(matches[0].group(1))
         return year if 1800 <= year <= 2100 else None
     return None
 
@@ -244,13 +263,21 @@ def normalize_doi(value: object) -> str | None:
     """
     if value is None:
         return None
-    doi = str(value).strip().lower()
+    doi = str(value).strip().strip('<>"\'').strip()
     if not doi:
         return None
+    parsed = urlsplit(doi)
+    if parsed.scheme.lower() in {"http", "https"} and (parsed.hostname or "").lower() in {
+        "doi.org", "dx.doi.org"
+    }:
+        # Query and fragment belong to the resolver URL, not to the DOI path.
+        doi = unquote(parsed.path).strip("/").lower()
+    else:
+        doi = doi.lower()
     for prefix in _DOI_PREFIXES:
         if doi.startswith(prefix):
             doi = doi[len(prefix):].strip()
-    doi = doi.strip(" .,;")
+    doi = doi.strip(" .,;<>\"'")
     return doi or None
 
 
@@ -434,7 +461,42 @@ def prepare_bibtex_record(row: dict[str, Any]) -> dict[str, Any]:
         _first_present(record, ("doi", "bib_doi"))
     )
 
+    # BibTeX arXiv ID is the cited work's identifier, unlike `arxiv_id`,
+    # which identifies the publication containing this BibTeX entry.
+    record["cited_arxiv_ids_norm"] = extract_arxiv_ids_from_metadata(
+        row, ("url", "bib_url", "eprint", "arxiv", "archiveprefix", "note", "howpublished", "title", "bib_title", "bib_raw", "raw", "entry")
+    )
+
     return record
+
+
+def extract_arxiv_ids_from_metadata(
+    row: dict[str, Any], fields: tuple[str, ...],
+) -> list[str]:
+    """Extract normalized cited arXiv IDs from explicit metadata fields."""
+    found: list[str] = []
+    for field in fields:
+        value = row.get(field)
+        values = value if isinstance(value, (list, tuple)) else [value]
+        for item in values:
+            if not isinstance(item, str):
+                continue
+            if field.lower() in {"eprint", "arxiv"}:
+                try:
+                    normalized = normalize_arxiv_id(item.strip())
+                except ValueError:
+                    pass
+                else:
+                    if normalized not in found:
+                        found.append(normalized)
+            for match in _ARXIV_ID_IN_METADATA_RE.finditer(item):
+                try:
+                    normalized = normalize_arxiv_id(match.group(1))
+                except ValueError:
+                    continue
+                if normalized not in found:
+                    found.append(normalized)
+    return found
 
 
 def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
@@ -468,7 +530,16 @@ def prepare_reference_record(row: dict[str, Any]) -> dict[str, Any]:
                 break
     record["doi_norm"] = normalize_doi(raw_doi)
 
-    raw_ref_id = str(row.get("ref_arxiv_id") or "").strip()
+    raw_ref_id = str(row.get("ref_arxiv_id") or row.get("arxiv_id") or "").strip()
+    if not raw_ref_id:
+        external_ids = row.get("externalIds") or row.get("external_ids") or {}
+        if isinstance(external_ids, dict):
+            raw_ref_id = str(external_ids.get("ArXiv") or external_ids.get("arXiv") or "").strip()
+    if not raw_ref_id:
+        metadata_ids = extract_arxiv_ids_from_metadata(
+            row, ("ref_url", "url", "ref_title", "title")
+        )
+        raw_ref_id = metadata_ids[0] if len(metadata_ids) == 1 else ""
     if raw_ref_id:
         try:
             # Bỏ prefix arXiv: / URL và hậu tố version vN để so khớp ổn định.

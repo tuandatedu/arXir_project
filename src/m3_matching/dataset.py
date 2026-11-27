@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.config import DATA_DIR, TABLES_DIR
+from src.common.ids import normalize_arxiv_id
 from src.common.io import read_json, read_jsonl, write_parquet_shard
 from src.m3_matching.cleaning import (
     prepare_bibtex_record,
@@ -26,6 +27,9 @@ from src.m3_matching.split import Partition, split_publications
 
 # Bắt các lệnh cite của LaTeX: \cite{a,b}, \citep[trang]{c}, \citet*{d}, ...
 _CITE_RE = re.compile(r"\\([a-zA-Z]*cite[a-zA-Z]*\*?)\s*(?:\[[^\]]*\])*\s*\{([^{}]+)\}", re.I)
+
+# Chỉ các trạng thái này mới chứng minh query không có candidate đúng.
+_NO_MATCH_STATUSES = {"no_match", "confirmed_no_match", "negative", "auto_no_match"}
 
 
 def build_citation_context_map(
@@ -59,6 +63,19 @@ def build_citation_context_map(
     return contexts
 
 
+def _normalize_gt_id(gt_id: str | None) -> str | None:
+    """Chuẩn hóa groundtruth_arxiv_id (bỏ prefix arXiv: / version vN) để khớp với ref_arxiv_id_norm."""
+    if gt_id is None:
+        return None
+    text = str(gt_id).strip()
+    if not text:
+        return None
+    try:
+        return normalize_arxiv_id(text)
+    except ValueError:
+        return text
+
+
 def build_paper_pairs(
     arxiv_id: str,
     bib_entries: list[dict[str, Any]],
@@ -73,19 +90,69 @@ def build_paper_pairs(
     - Mỗi ``ref_arxiv_id`` chỉ xuất hiện một lần (dedup reference trùng trong M1).
     - Cặp đúng (positive): ref_arxiv_id == groundtruth_arxiv_id -> label = 1
     - Cặp sai (negative): ref_arxiv_id != groundtruth_arxiv_id -> label = 0
-    - Nếu groundtruth_arxiv_id is None -> toàn bộ các cặp của entry đó đều có label = 0.
+    - GT-null ``no_match`` (manual) hoặc ``auto_no_match`` (heuristic) sinh hàng toàn 0.
+    - GT-null ``unknown`` (chưa xác định được GT) không sinh pairs.
+    - GT ngoài candidate pool sinh hàng toàn 0 và giữ nguyên GT để theo dõi coverage.
     - ``citation_context`` (tùy chọn) cung cấp ``cite_count`` cho từng citation_key.
     """
-    label_map: dict[str, str | None] = {
-        row["citation_key"]: row.get("groundtruth_arxiv_id")
-        for row in labels_for_paper
-        if "citation_key" in row
-    }
+    label_map: dict[str, str | None] = {}
+    status_map: dict[str, str] = {}
+    for row in labels_for_paper:
+        key = row.get("citation_key")
+        if key is None or not str(key).strip():
+            raise ValueError(
+                f"Label thiếu citation_key trong publication {arxiv_id}."
+            )
+        key = str(key).strip()
+        if key in label_map:
+            raise ValueError(
+                f"citation_key bị gán nhãn trùng trong publication "
+                f"{arxiv_id}: {key}."
+            )
+        label_map[key] = row.get("groundtruth_arxiv_id")
+        status_map[key] = str(
+            row.get("label_status") or row.get("review_status") or ""
+        ).strip().lower()
 
-    # Lọc bib entries đã có nhãn
-    labeled_bibs = [b for b in bib_entries if b.get("citation_key") in label_map]
+    # Accept only confirmed matches or confirmed no-match outcomes. Legacy
+    # records without an explicit status infer match from a GT, otherwise unknown.
+    labeled_bibs = []
+    for bib in bib_entries:
+        key = str(bib.get("citation_key") or "").strip()
+        if key not in label_map:
+            continue
+        gt_id = _normalize_gt_id(label_map[key])
+        status = status_map.get(key, "")
+        if not status:
+            status = "match" if gt_id is not None else "unknown"
+
+        if status == "unknown":
+            if gt_id is not None:
+                raise ValueError(
+                    f"Label unknown nhưng có groundtruth_arxiv_id: {arxiv_id}/{key}."
+                )
+            continue
+        if status in {"match", "confirmed_match"}:
+            if gt_id is None:
+                raise ValueError(
+                    f"Label match nhưng thiếu groundtruth_arxiv_id: {arxiv_id}/{key}."
+                )
+            labeled_bibs.append(bib)
+            continue
+        if status in _NO_MATCH_STATUSES:
+            labeled_bibs.append(bib)
+            continue
+        raise ValueError(
+            f"label_status không hợp lệ: {status!r}, publication={arxiv_id}, citation_key={key}."
+        )
     if not labeled_bibs or not references:
         return []
+
+    bib_keys = [str(b["citation_key"]).strip() for b in labeled_bibs]
+    if len(bib_keys) != len(set(bib_keys)):
+        raise ValueError(
+            f"BibTeX có citation_key trùng trong publication {arxiv_id}."
+        )
 
     # Chuẩn hóa + dedup reference theo ref_arxiv_id trong cùng paper
     clean_bibs = [prepare_bibtex_record(b) for b in labeled_bibs]
@@ -105,8 +172,14 @@ def build_paper_pairs(
     pairs: list[dict[str, Any]] = []
 
     for bib in clean_bibs:
-        key = bib["citation_key"]
-        gt_id = label_map.get(key)
+        key = str(bib["citation_key"]).strip()
+        gt_id = _normalize_gt_id(label_map.get(key))
+        confirmed_no_match = status_map.get(key, "") in _NO_MATCH_STATUSES
+        if confirmed_no_match and gt_id is not None and gt_id in seen_ref_ids:
+            raise ValueError(
+                f"Citation {key} trong publication {arxiv_id} được gán no_match "
+                f"nhưng GT {gt_id} lại có trong candidate pool."
+            )
         extra = citation_context.get(key) if citation_context else None
 
         for ref in clean_refs:
@@ -114,11 +187,17 @@ def build_paper_pairs(
             if not ref_id:
                 continue
 
-            # Nhãn nhị phân: 1 nếu trùng khớp ground truth, ngược lại 0
-            is_match = 1 if (gt_id is not None and ref_id == gt_id) else 0
+            # Nhãn nhị phân: 1 nếu trùng khớp ground truth, ngược lại 0.
+            # GT ngoài pool hoặc no_match cũng đi qua đây -> hàng toàn 0.
+            is_match = 1 if (not confirmed_no_match and gt_id is not None and ref_id == gt_id) else 0
 
             # Tính vector đặc trưng (truyền extra để cite_count không bị 0 vô ích)
             feats = pair_feature_vector(bib, ref, extra=extra)
+            if len(feats) != len(feat_names):
+                raise ValueError(
+                    f"Feature dimension mismatch: {len(feats)} values but "
+                    f"{len(feat_names)} names for {arxiv_id}/{key}/{ref_id}."
+                )
             row_dict: dict[str, Any] = {
                 "arxiv_id": arxiv_id,
                 "partition": partition,
@@ -216,10 +295,9 @@ def generate_training_dataset(
         all_pairs.extend(pairs)
 
     # Ghi ra các file Parquet để Người 2 sử dụng trực tiếp
-    if all_pairs:
-        write_parquet_shard(output_dir / "dataset_pairs.parquet", all_pairs)
+    # Always write all four shards, including valid empty partitions.
+    write_parquet_shard(output_dir / "dataset_pairs.parquet", all_pairs)
     for part_name, part_rows in dataset_by_split.items():
-        if part_rows:
-            write_parquet_shard(output_dir / f"{part_name}_pairs.parquet", part_rows)
+        write_parquet_shard(output_dir / f"{part_name}_pairs.parquet", part_rows)
 
     return dataset_by_split

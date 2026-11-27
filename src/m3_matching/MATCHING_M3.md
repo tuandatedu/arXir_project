@@ -20,7 +20,7 @@
 | 6 | Chia train/valid/test split | ✅ DONE | `split.py` |
 | **Output** | **Parquet files + visualization** | ✅ READY | `prepare_dataset.py` |
 
-**🔴 Chỉ có Task 2 cần bạn làm:** Mở CSV → Tick checkbox `is_verified=YES` → Code auto-fill → Done
+**Manual labeling:** Dùng đúng ba giá trị `review_status`: `match`, `no_match`, `unknown`. GT xác nhận phải có ID và `match`; xác nhận không có candidate đúng dùng GT trống và `no_match`; chưa xác định dùng `unknown`.
 
 ---
 
@@ -44,9 +44,7 @@ MyDrive/
         │   └── references.json
         ├── labels/
         │   ├── manual/        # *.csv (mẫu) + *.json (sau import)
-        │   └── automatic/
-        │       └── automatic.zip     # gộp nhãn auto
-        │           └── *.json
+        │   └── automatic/     # một JSON cho mỗi publication được gán nhãn
         └── prepared_dataset/
             ├── dataset_pairs.parquet
             ├── train_pairs.parquet
@@ -56,7 +54,7 @@ MyDrive/
 ```
 
 - `elements.jsonl` **không nằm trong M3**: pipeline đọc trực tiếp bên trong ZIP `M2_range_*_tables.zip` để tính `cite_count` (notebook truyền `elements_zip=M2_ZIP`).
-- `labels/automatic/automatic.zip`: gộp toàn bộ `labels/automatic/*.json`; pipeline tự tạo khi chạy (`zip_auto_labels=True` trong notebook, CLI `--zip-auto`). `load_labels` đọc cả file `.json` lẫn zip, file `.json` được ưu tiên.
+- Auto labels được lưu riêng tại `labels/automatic/{arxiv_id}.json`. Pipeline đọc được ZIP cũ để tương thích, nhưng không tạo ZIP mới.
 - Chạy local: dùng cùng cấu trúc dưới `data/` (`data/tables/`, `data/labels/`, `data/prepared_dataset/`).
 
 ---
@@ -103,53 +101,30 @@ Chuẩn hóa dữ liệu BibTeX + References để tiền xử lý cho phần so
 ### Workflow (3 bước):
 
 **Step 1: Export CSV templates**
-```powershell
-# Chạy notebook (mục Gán nhãn thủ công → Export template) hoặc command:
-python -m src.m3_matching.manual_tool --export-template 2310.12345
-```
-→ File: `labels/manual/2310.12345.csv` có cột:
-- `citation_key`, `bib_title`, `bib_authors`, ... (read-only)
-- `suggested_ref_arxiv_id` ← gợi ý tự động
-- `suggested_score` ← độ tin cậy gợi ý
-- **`is_verified`** ← **BẠN TÁC CÁC DÒNG HỢP LỆ** (YES/NO)
-- `groundtruth_arxiv_id` ← để trống (code auto-fill)
 
-**Step 2: Kiểm tra bằng mắt và tick `is_verified`**
+Export a CSV with BibTeX fields and suggested reference candidates. Suggestions are for review only.
 
-Mở CSV, so **`bib_title`** (entry lấy từ PDF) với **`suggested_ref_title`** (reference ứng viên từ M1). `suggested_score` chỉ là gợi ý, **không dùng score để quyết định thay cho việc so tiêu đề**.
+**Step 2: Review and fill ground truth**
 
-| Trường hợp | `is_verified` | `groundtruth_arxiv_id` | Kết quả khi import |
-|-----------|---------------|------------------------|--------------------|
-| `bib_title` và `suggested_ref_title` là **cùng một bài** | `YES` | để trống | Tự lấy `suggested_ref_arxiv_id` |
-| Cùng bài nhưng muốn chỉ định reference khác | `YES` | điền `ref_arxiv_id` đúng | Dùng ID đã điền |
-| Gợi ý sai, nhưng tìm được reference đúng trong `references.json` | `YES` | điền `ref_arxiv_id` đúng | Dùng ID đã điền |
-| Entry **không có reference arXiv nào khớp** | `YES` | để trống | `groundtruth = null` (hàng all-negative) |
-| Gợi ý sai / không chắc / chưa kiểm tra | `NO` | để trống | Bị bỏ qua, không vào dataset |
+Compare each BibTeX entry with its candidates. If the correct candidate is in the pool, enter its ID in `groundtruth_arxiv_id` and set `review_status=match`. If no candidate is correct, set `review_status=no_match`; leave GT blank when it is unknown, but retain the true ID when it is known and outside the pool. Use `unknown` when review has not established either outcome.
 
-Quy tắc nhanh:
-1. Tiêu đề trùng → `YES`; tiêu đề khác → `NO` (trừ khi tự tìm được ref đúng).
-2. **Ưu tiên tick các dòng `suggested_score` ≥ 0.8 trước** cho nhanh đủ 20 entry; thiếu mới xét các dòng thấp hơn. Dù score cao vẫn phải kiểm tra tiêu đề; score ≤0.6 thường là gợi ý sai.
-3. Mỗi entry tối đa **1** groundtruth. Hai entry khác nhau chỉ cùng groundtruth nếu cả hai thực sự cite cùng một bài.
-4. Dòng `NO` là "chưa xác nhận", **không phải nhãn âm**; muốn có nhãn âm cho entry không khớp thì dùng `YES` + groundtruth trống.
-5. Chỉ cần tick `YES` cho ≥20 entry/paper; các dòng còn lại để `NO` cũng được.
+| Case | `groundtruth_arxiv_id` | Import behavior |
+|---|---|---|
+| Candidate confirmed as the cited work | Enter its `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
+| Suggested candidate is wrong, another reference is found | Enter the correct `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
+| Not reviewed or unresolved | Leave GT blank; set `review_status=unknown` | Retained in labels for audit; omitted from training pairs |
+| Reviewed; no matching reference in the candidate pool, GT unknown | Leave GT blank; set `review_status=no_match` | Kept as an all-zero query |
+| GT known but absent from candidate pool | Keep true GT; set `review_status=no_match` | Available candidates are all 0; GT retained for coverage |
 
-Ví dụ:
-- `thebelt2022maximizing` — title trùng, score 0.80 → `YES`.
-- `dobbelaere2021machine` — bib là "Machine learning in chemical engineering..." nhưng gợi ý `2201.10035` là "Maximizing information..." → `NO`.
+### Step 3: Import CSV to JSON
 
-⏱ **Thời gian:** ~1 giờ cho ~100 entries
+Run `python -m src.m3_matching.manual_tool --import-csv labels/manual/<paper_id>.csv`.
 
-### Step 3: Import CSV → JSON
-```powershell
-# Chạy notebook (mục Import CSV) hoặc command:
-python -m src.m3_matching.manual_tool --import-csv labels/manual/2310.12345.csv
-```
-→ Code tự động:
-- Đọc CSV
-- Lọc dòng `is_verified=YES`
-- **Auto-fill `groundtruth_arxiv_id = suggested_ref_arxiv_id`** ← nhãn thực
-- Nếu cả `groundtruth_arxiv_id` lẫn `suggested_ref_arxiv_id` đều trống → lưu `null` (hàng all-negative)
-- Lưu JSON: `labels/manual/2310.12345.json`
+The importer uses three review states: `match`, `no_match`, and `unknown`. `match` means the correct candidate is in the pool. `no_match` means none of the available candidates is correct; its GT may be blank or may retain the known true ID when that ID is outside the pool. A `no_match` GT that is present in the pool is invalid. `unknown` is retained in labels but omitted from training pairs. Suggested IDs are never accepted automatically. A GT outside the candidate pool yields all-zero labels for available candidates and is recorded as a candidate-coverage issue in `dataset_report.json`. Legacy CSVs without `review_status` remain accepted; non-empty GT is treated as explicitly supplied and blank GT as `unknown`.
+
+**Phân biệt `unknown` và `no_match`:** `unknown` = chưa xác định được ground truth (heuristic không đủ tin cậy hoặc reviewer chưa kết luận); nó **không** chứng minh rằng không có candidate đúng. `no_match` = reviewer đã xác nhận không candidate nào trong pool là đúng. Vì vậy không được tự động đổi `unknown` thành `no_match` để tránh tạo negative labels sai.
+
+Automatic matcher chạy trên **mọi** BibTeX entry của publication được chọn và lưu một kết quả cho từng entry: `match` nếu chọn được reference, `auto_no_match` nếu không candidate nào vượt tiêu chí heuristic. `auto_no_match` sinh hàng toàn 0; đây là nhãn heuristic và có thể có false negative, nên report giữ `null_reason` để audit. `unknown` dành cho nhãn manual chưa kết luận và không sinh pairs. `dataset_report.json` tách riêng manual unknown và automatic no-match.
 
 ### Cách nhóm tổng hợp:
 Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng
@@ -168,7 +143,7 @@ Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nh�
 3. **Fuzzy match:** Title ~88% + có tác giả trùng + chênh lệch năm ≤1 → match
 4. **Ambiguity check:** Nếu 2 ứng viên gần bằng nhau → bỏ qua (không match)
 
-**Output:** JSON files tại `labels/automatic/{arxiv_id}.json` (+ `labels/automatic/automatic.zip` nếu bật zip)
+**Output:** Mỗi publication có một JSON tại `labels/automatic/{arxiv_id}.json`.
 
 **Coverage:** ≥10% papers ngoài manual pool (tối thiểu 2 papers/người)
 
@@ -202,7 +177,10 @@ Với mỗi cặp (BibTeX entry, Reference), tính 14 features:
 3. Tính 14 features cho từng cặp
 4. Gán nhãn:
    - `label=1` nếu ref_arxiv_id == groundtruth_arxiv_id (positive)
-   - `label=0` nếu khác hoặc groundtruth=None (negative)
+   - `label=0` if the ground truth ID is known but this candidate has a different ID.
+   - GT đã xác nhận nhưng **ngoài candidate pool**: sinh hàng toàn `0`, vẫn giữ `groundtruth_arxiv_id` thật để tính Candidate Coverage.
+   - `no_match` (GT trống, reviewer xác nhận): sinh hàng toàn `0`.
+   - `unknown` (GT trống, chưa xác định): **không** sinh pairs, để tránh negative labels sai.
 
 **Output:** DataFrame Parquet với 14 + 6 cột = 20 cột:
 ```
@@ -259,7 +237,6 @@ python -m src.m3_matching.prepare_dataset --k 1 --seed 42
 - `--demo`: Chế độ thử nghiệm dữ liệu mẫu nhỏ
 - `--elements-zip`: ZIP M2 chứa `elements.jsonl` (đọc trực tiếp, không giải nén)
 - `--elements-path`: đường dẫn `elements.jsonl` rời (mặc định `<tables-dir>/elements.jsonl`)
-- `--zip-auto`: gộp `labels/automatic/*.json` thành `labels/automatic/automatic.zip`
 
 ### 3. Output Parquet sẵn sàng
 
@@ -286,7 +263,7 @@ File notebook: `notebooks/m3/M3_matching.ipynb` (24 cells)
 | 3-4 | Mount Google Drive, cấu hình đường dẫn | Drive + `RANGE_ID` | Paths ready |
 | 5 | Load M1 + M2 → `tables/` | Drive folders + M2 ZIP | `bibtex.json`, `references.json` (`elements.jsonl` đọc trong ZIP) |
 | 6 | Export CSV templates (5 papers) | BibTeX + References | `labels/manual/*.csv` (chờ tick) |
-| 7 | **MANUAL WORK:** Tick `is_verified=YES` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
+| 7 | **MANUAL WORK:** Fill `groundtruth_arxiv_id` + import CSV | CSV (bạn sửa) | `labels/manual/*.json` |
 | 8 | **AUTO:** Run pipeline | Labels + tables | `train/valid/test_pairs.parquet` |
 | 9 | Visualization: feature distribution | Parquet files | PNG charts |
 | 10 | Summary: deliverables checklist | All files | ✅ Done |
@@ -394,9 +371,15 @@ data/hf_dataset/data/predictions/*.parquet
 \mathrm{MRR@5} = \frac{1}{|Q|} \sum_i \frac{1}{\mathrm{rank}_i}
 \]
 
-- \(|Q|\) = số BibTeX **đã label** trên test
 - `rank_i` = vị trí GT trong top-5 (`cand_1` = hạng 1)
-- GT ngoài top-5 hoặc GT = `null` → entry đó 0 điểm
+- GT ngoài top-5 → entry đó 0 điểm.
+
+**Phạm vi đánh giá (bắt buộc ghi rõ khi báo cáo):**
+
+- `MRR@5 (evaluated)`: \(|Q|\) = số query có **GT đã xác nhận và nằm trong candidate pool**. Chỉ nhóm này mới rank được.
+- `MRR@5 (strict)`: \(|Q|\) = các query đã có nhãn kết luận trên test; manual `no_match`, automatic `auto_no_match` và GT ngoài pool tính 0 điểm. Manual `unknown` bị loại khỏi mẫu số và phải được báo riêng.
+- Luôn báo kèm `n_evaluated`, `n_labeled` và `candidate_coverage = n_evaluated / n_labeled_with_known_gt`.
+- **Không** báo MRR@5 như thể đã đánh giá toàn bộ 144k query khi `unknown` bị loại khỏi pairs. `dataset_report.json` cung cấp sẵn các mẫu số trong `evaluation_scope`.
 
 Được phép post-process (lọc trùng candidate, boost DOI exact...). Nhóm dùng LLM/pretrained model bị chấm tách nhóm — ghi rõ trên poster.
 
@@ -417,7 +400,7 @@ data/hf_dataset/data/predictions/*.parquet
 ```powershell
 python -m pytest tests/test_m3_matching.py -v
 ```
-✅ 28/28 tests pass
+✅ 33/33 tests pass
 
 | Nhóm | Test | Nội dung kiểm tra |
 |------|------|-------------------|
@@ -435,18 +418,19 @@ python -m pytest tests/test_m3_matching.py -v
 | | `test_prepare_records` | `prepare_bibtex_record` / `prepare_reference_record`, không sửa dict gốc |
 | | `test_prepare_reference_normalizes_arxiv_id` | `arXiv:1706.03762v5` → `1706.03762` |
 | | `test_prepare_bibtex_accepts_alias_columns` | Nhận cả `bib_title`, `bib_authors`, `bib_year`, `bib_doi` |
-| Labelling (4) | `test_auto_match_one` | Auto-label khớp exact title/DOI |
+| Labelling (3) | `test_auto_match_one` | Auto-label khớp exact title/DOI |
 | | `test_auto_match_doi_with_prefix` | DOI có prefix vẫn khớp |
 | | `test_validate_label_quota` | Quota manual/auto đúng quy định |
-| | `test_automatic_labels_zip_roundtrip` | Zip/đọc lại `labels/automatic.zip` đúng nhãn |
 | Features (3) | `test_features_dimensions` | Đủ 14 đặc trưng |
 | | `test_feature_doi_match_normalizes_prefixes` | `doi_match` chuẩn hóa prefix |
 | | `test_feature_year_missing_sentinel` | Sentinel khi thiếu năm |
-| Dataset (3) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
+| Dataset (5) | `test_build_paper_pairs` | Sinh cặp positive/negative đúng |
 | | `test_build_paper_pairs_dedups_reference_arxiv_ids` | Dedup reference theo `ref_arxiv_id` |
 | | `test_build_citation_context_and_cite_count_feature` | `cite_count` lấy từ `elements.jsonl` |
+| | `test_gt_null_review_states_and_gt_outside_pool` | `unknown` không sinh pair; `no_match` và GT ngoài pool sinh hàng toàn 0, giữ GT |
+| | `test_pipeline_query_stats_match_parquet` | Thống kê query khớp Parquet thực tế sau pipeline |
 | Manual tool (2) | `test_manual_template_does_not_autofill_groundtruth` | Template không tự điền groundtruth |
-| | `test_import_manual_csv_requires_verified_rows` | Chỉ import dòng `is_verified=YES` |
+| `test_import_manual_csv_uses_only_nonempty_groundtruth` | Ch? import d?ng c? ground truth |
 | Split (2) | `test_split_publications` | Chia train/valid/test theo publication |
 | | `test_split_rejects_invalid_k` | Báo lỗi khi `k` không hợp lệ |
 
@@ -484,7 +468,7 @@ python -m src.m3_matching.prepare_dataset --demo
 | Vấn đề | Nguyên nhân | Giải pháp |
 |--------|-----------|----------|
 | `ModuleNotFoundError: No module named 'src'` | Chưa chạy cell setup sau khi restart runtime, hoặc kernel không có project trong `sys.path` | Chạy lại cell Setup (clone/pull + `sys.path.insert`) rồi chạy tiếp |
-| Import CSV báo lỗi "No valid labels" | Không có dòng `is_verified=YES` | Mở CSV, tick ≥1 dòng, lưu lại |
+| Import reports no valid labels | No ground truth IDs were entered | Enter a confirmed reference ID in `groundtruth_arxiv_id` |
 | Features bị NaN | Thiếu dữ liệu input | Kiểm tra `references.json` + `bibtex.json` |
 | Split không cân bằng | `k` không khớp | Đếm papers, kiểm tra `--k` parameter |
 | Parquet quá lớn | Auto pool quá nhiều | Dùng `--max-auto 450` để giới hạn |
