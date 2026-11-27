@@ -31,6 +31,7 @@ from src.m3_matching.features import (
 )
 from src.m3_matching.labelling import (
     auto_match_one,
+    auto_label_publication,
     load_labels,
     save_labels,
     validate_label_quota,
@@ -178,6 +179,25 @@ def test_auto_match_doi_with_prefix():
     assert auto_match_one(bib, refs) == "ref.9"
 
 
+def test_auto_label_null_records_reason_without_changing_heuristic():
+    ambiguous = auto_label_publication(
+        "paper.1",
+        [{"citation_key": "k1", "title": "Same Candidate Title"}],
+        [
+            {"ref_arxiv_id": "ref.1", "ref_title": "Same Candidate Title"},
+            {"ref_arxiv_id": "ref.2", "ref_title": "Same Candidate Title"},
+        ],
+    )[0]
+    assert ambiguous["groundtruth_arxiv_id"] is None
+    assert ambiguous["label_status"] == "unknown"
+    assert ambiguous["null_reason"] == "ambiguous_exact_title_candidates"
+
+    no_candidates = auto_label_publication(
+        "paper.2", [{"citation_key": "k1", "title": "Some title"}], []
+    )[0]
+    assert no_candidates["null_reason"] == "no_candidate_with_arxiv_id"
+
+
 def test_validate_label_quota():
     # 5 manual papers, mỗi bài 20 entries = 100 entries
     labels = {}
@@ -251,11 +271,11 @@ def test_build_paper_pairs():
     ]
     labels = [
         {"citation_key": "k1", "groundtruth_arxiv_id": "ref.101", "source": "manual"},
-        {"citation_key": "k2", "groundtruth_arxiv_id": None, "source": "manual"},
+        {"citation_key": "k2", "groundtruth_arxiv_id": None, "label_status": "unknown", "source": "manual"},
     ]
 
     pairs = build_paper_pairs(arxiv_id, bibs, refs, labels, partition="train")
-    assert len(pairs) == 2  # chỉ entry k1 có ground truth xác định được tạo cặp
+    assert len(pairs) == 2  # chỉ entry k1 có nhãn xác định được tạo cặp
     # Cặp k1 - ref.101 phải có label = 1
     match_pairs = [p for p in pairs if p["citation_key"] == "k1" and p["ref_arxiv_id"] == "ref.101"]
     assert match_pairs[0]["label"] == 1
@@ -265,6 +285,31 @@ def test_build_paper_pairs():
     # k2 có groundtruth None -> bị bỏ khỏi dataset, không biến thành negative
     k2_pairs = [p for p in pairs if p["citation_key"] == "k2"]
     assert k2_pairs == []
+
+
+def test_gt_null_review_states_and_gt_outside_pool():
+    bibs = [{"citation_key": key, "title": "Different title"} for key in ("known_none", "unknown", "outside")]
+    refs = [{"ref_arxiv_id": "ref.1", "ref_title": "Candidate"}]
+    labels = [
+        {"citation_key": "known_none", "groundtruth_arxiv_id": None, "label_status": "no_match", "source": "manual"},
+        {"citation_key": "unknown", "groundtruth_arxiv_id": None, "label_status": "unknown", "source": "manual"},
+        {"citation_key": "outside", "groundtruth_arxiv_id": "ref.2", "source": "manual"},
+    ]
+    pairs = build_paper_pairs("test.001", bibs, refs, labels, partition="train")
+    assert [(p["citation_key"], p["label"]) for p in pairs] == [("known_none", 0)]
+
+
+def test_manual_import_preserves_unknown_and_no_match(tmp_path):
+    csv_path = tmp_path / "review.csv"
+    with csv_path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "suggested_ref_arxiv_id", "review_status"])
+        writer.writeheader()
+        writer.writerow({"citation_key": "unknown", "suggested_ref_arxiv_id": "ref.1", "review_status": "unknown"})
+        writer.writerow({"citation_key": "none", "suggested_ref_arxiv_id": "ref.2", "review_status": "no_match"})
+    rows = read_json(import_manual_csv(csv_path, "test.007", labels_dir=tmp_path / "labels"))
+    assert [(r["citation_key"], r["label_status"], r["groundtruth_arxiv_id"]) for r in rows] == [
+        ("unknown", "unknown", None), ("none", "no_match", None)
+    ]
 
 
 def test_build_paper_pairs_dedups_reference_arxiv_ids():
@@ -329,6 +374,7 @@ def test_manual_template_does_not_autofill_groundtruth(tmp_path):
     assert row["suggested_ref_arxiv_id"] == "1706.03762"
     assert row["suggested_score"]
     assert row["groundtruth_arxiv_id"] == ""
+    assert row["review_status"] == "unknown"
     assert "is_verified" not in row
 
 
@@ -343,16 +389,47 @@ def test_import_manual_csv_uses_only_nonempty_groundtruth(tmp_path):
     labels_dir = tmp_path / "labels"
     out_file = import_manual_csv(csv_path, "test.005", labels_dir=labels_dir)
     rows = read_json(out_file)
-    assert [r["citation_key"] for r in rows] == ["k1"]
+    assert [r["citation_key"] for r in rows] == ["k1", "k2"]
     assert rows[0]["groundtruth_arxiv_id"] == "ref.1"
+    assert rows[1]["label_status"] == "unknown"
 
     legacy_csv = tmp_path / "test.006.csv"
     with legacy_csv.open("w", encoding="utf-8-sig", newline="") as fh:
-        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "is_verified"])
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id"])
         writer.writeheader()
-        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "is_verified": "NO"})
+        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1"})
     legacy_output = import_manual_csv(legacy_csv, "test.006", labels_dir=labels_dir)
     assert read_json(legacy_output)[0]["groundtruth_arxiv_id"] == "ref.1"
+
+
+def test_manual_import_review_status(tmp_path):
+    csv_path = tmp_path / "verified.csv"
+    with csv_path.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(
+            fh,
+            fieldnames=["citation_key", "groundtruth_arxiv_id", "suggested_ref_arxiv_id", "review_status"],
+        )
+        writer.writeheader()
+        writer.writerow({"citation_key": "match", "groundtruth_arxiv_id": "ref.1", "suggested_ref_arxiv_id": "ref.9", "review_status": "match"})
+        writer.writerow({"citation_key": "none", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.2", "review_status": "no_match"})
+        writer.writerow({"citation_key": "uncertain", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.3", "review_status": "unknown"})
+        writer.writerow({"citation_key": "pending", "groundtruth_arxiv_id": "", "suggested_ref_arxiv_id": "ref.4", "review_status": "unknown"})
+
+    rows = read_json(import_manual_csv(csv_path, "test.008", labels_dir=tmp_path / "labels"))
+    assert [(r["label_status"], r["groundtruth_arxiv_id"]) for r in rows] == [
+        ("match", "ref.1"),
+        ("no_match", None),
+        ("unknown", None),
+        ("unknown", None),
+    ]
+
+    invalid_csv = tmp_path / "invalid_status.csv"
+    with invalid_csv.open("w", encoding="utf-8-sig", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=["citation_key", "groundtruth_arxiv_id", "review_status"])
+        writer.writeheader()
+        writer.writerow({"citation_key": "k1", "groundtruth_arxiv_id": "ref.1", "review_status": "unknown"})
+    with pytest.raises(ValueError, match="review_status"):
+        import_manual_csv(invalid_csv, "test.009", labels_dir=tmp_path / "labels")
 
 # ---------------------------------------------------------------------------
 # 6. Test Phân chia tập (split.py)

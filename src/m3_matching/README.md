@@ -41,7 +41,7 @@ python -m src.m3_matching.manual_tool --import-csv data/labels/manual/<arxiv_id>
 python -m src.m3_matching.prepare_dataset --k 1 --max-auto 450
 ```
 
-Review suggested references and enter the confirmed ID in `groundtruth_arxiv_id`. The importer uses only non-empty ground truth values; blank rows are skipped and do not become negative labels. Suggested IDs are never copied automatically.
+Use three `review_status` values: `match`, `no_match`, and `unknown`. For a confirmed match, enter its ID in `groundtruth_arxiv_id` and set `match`. For blank GT, use `no_match` only when a reviewer confirms no candidate is correct; otherwise use `unknown`. Suggested IDs are never copied automatically.
 
 ## Thứ tự nên code
 
@@ -82,12 +82,14 @@ File (không commit nếu chứa data lớn; format bắt buộc ghi rõ — đ�
 ```json
 [
   {"citation_key": "vaswani2017", "groundtruth_arxiv_id": "1706.03762", "source": "manual"},
-  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "source": "auto"}
+  {"citation_key": "someBook", "groundtruth_arxiv_id": null, "label_status": "unresolved", "null_reason": "no_match_meets_heuristic_threshold", "source": "auto"}
 ]
 ```
 
 - `source`: chỉ `manual` hoặc `auto`
-- `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu không có trong crawled refs
+- `groundtruth_arxiv_id`: arXiv ID của ref đúng, hoặc `null` nếu chưa xác định được GT
+- `label_status`: phân biệt `confirmed_match`, `confirmed_no_match`, `unreviewed` / `unresolved`, và `matched_by_heuristic`
+- `null_reason`: lý do auto heuristic trả về null để kiểm toán; không làm null thành negative
 
 ---
 

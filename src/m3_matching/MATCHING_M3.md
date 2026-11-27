@@ -20,7 +20,7 @@
 | 6 | Chia train/valid/test split | ✅ DONE | `split.py` |
 | **Output** | **Parquet files + visualization** | ✅ READY | `prepare_dataset.py` |
 
-**Manual labeling:** Review suggestions and enter a confirmed ID in `groundtruth_arxiv_id`; blank rows are skipped.
+**Manual labeling:** Dùng đúng ba giá trị `review_status`: `match`, `no_match`, `unknown`. GT xác nhận phải có ID và `match`; xác nhận không có candidate đúng dùng GT trống và `no_match`; chưa xác định dùng `unknown`.
 
 ---
 
@@ -106,19 +106,20 @@ Export a CSV with BibTeX fields and suggested reference candidates. Suggestions 
 
 **Step 2: Review and fill ground truth**
 
-Compare each BibTeX entry with its candidates. Put the confirmed reference ID in `groundtruth_arxiv_id`. Leave it blank if you cannot determine the correct reference; blank rows are skipped and do not become negative training examples. Do not add an `is_verified` column.
+Compare each BibTeX entry with its candidates. Put the confirmed reference ID in `groundtruth_arxiv_id` and set `review_status=match`. For blank GT, set `review_status=no_match` only after confirming no candidate is correct; otherwise use `review_status=unknown`.
 
 | Case | `groundtruth_arxiv_id` | Import behavior |
 |---|---|---|
-| Candidate confirmed as the cited work | Enter its `ref_arxiv_id` | Imported as a manual label |
-| Suggested candidate is wrong, another reference is found | Enter the correct `ref_arxiv_id` | Imported as a manual label |
-| No reliable answer / not reviewed | Leave blank | Skipped; not used in the pair dataset |
+| Candidate confirmed as the cited work | Enter its `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
+| Suggested candidate is wrong, another reference is found | Enter the correct `ref_arxiv_id`; set `review_status=match` | Imported as a manual positive label |
+| Not reviewed or unresolved | Leave GT blank; set `review_status=unknown` | Retained in labels for audit; omitted from training pairs |
+| Reviewed; no matching reference in the candidate pool | Leave GT blank; set `review_status=no_match` | Kept as an all-zero query |
 
 ### Step 3: Import CSV to JSON
 
 Run `python -m src.m3_matching.manual_tool --import-csv labels/manual/<paper_id>.csv`.
 
-The importer stores only rows with a non-empty `groundtruth_arxiv_id`. Suggested IDs are never accepted automatically. Blank or null ground truth rows are skipped, so they are not treated as negative labels. The imported rows are saved under `labels/manual/<paper_id>.json`.
+The importer uses three review states: `match`, `no_match`, and `unknown`. A non-empty GT requires `match`; blank GT with `no_match` yields an all-zero query; `unknown` is retained in labels but omitted from training pairs. Suggested IDs are never accepted automatically. A GT outside the candidate pool is excluded from pairs and recorded as a candidate-coverage issue in `dataset_report.json`. Legacy CSVs without `review_status` remain accepted; non-empty GT is treated as explicitly supplied and blank GT as `unknown`.
 
 ### Cách nhóm tổng hợp:
 Mỗi người làm 5 bài, import kết quả → Code gộp tất cả → nhãn cuối cùng sẵn sàng

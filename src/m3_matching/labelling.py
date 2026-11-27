@@ -254,6 +254,40 @@ def auto_match_one(
     )
 
 
+def _auto_null_reason(bib_clean: dict[str, Any], refs: list[dict[str, Any]]) -> str:
+    """Audit category for a null heuristic result; does not affect matching."""
+    candidates = [r for r in refs if _get_ref_id(r)]
+    if not candidates:
+        return "no_candidate_with_arxiv_id"
+    title = str(bib_clean.get("title_norm") or "").strip()
+    doi = str(bib_clean.get("doi_norm") or "").strip()
+    authors = bib_clean.get("authors_norm") or []
+    if not title and not doi and not authors:
+        return "insufficient_bibtex_metadata"
+    doi_hits = [r for r in candidates if doi and r.get("doi_norm") == doi]
+    if len({_get_ref_id(r) for r in doi_hits}) > 1:
+        return "ambiguous_doi_candidates"
+    title_hits = [r for r in candidates if len(title) >= 8 and title == (r.get("title_norm") or "")]
+    if len({_get_ref_id(r) for r in title_hits}) > 1:
+        return "ambiguous_exact_title_candidates"
+    # Conservative audit classification: possible near matches need review.
+    scored = []
+    for r in candidates:
+        try:
+            sim = float(title_similarity(bib_clean, r))
+            author = float(author_overlap(bib_clean, r))
+            year = _get_year_difference(bib_clean, r)
+            if sim >= .80 and (author > 0 or sim >= .95) and (year < 0 or year <= 1):
+                scored.append((_get_ref_id(r), sim))
+        except (TypeError, ValueError):
+            continue
+    if len({item[0] for item in scored}) > 1:
+        return "ambiguous_candidates"
+    if not title and not doi:
+        return "insufficient_title_or_doi_metadata"
+    return "no_match_meets_heuristic_threshold"
+
+
 # ============================================================
 # 2. AUTOMATIC LABELING
 # ============================================================
@@ -352,6 +386,8 @@ def auto_label_publication(
         labeled_rows.append({
             "citation_key": citation_key,
             "groundtruth_arxiv_id": groundtruth_id,
+            "label_status": "match" if groundtruth_id else "unknown",
+            "null_reason": _auto_null_reason(bib_clean, prepared_refs) if groundtruth_id is None else None,
             "source": "auto",
         })
 
@@ -747,6 +783,7 @@ def validate_label_quota(
     n_publications_total: int,
     k: int = 1,
     bibtex_counts: dict[str, int] | None = None,
+    bibtex_keys: dict[str, set[str]] | None = None,
 ) -> None:
     """
     Kiểm tra quota theo yêu cầu M3.
@@ -793,7 +830,13 @@ def validate_label_quota(
         source = rows[0].get("source")
 
         if source == "manual":
-            manual_papers[arxiv_id] = len(rows)
+            confirmed = sum(
+                1 for row in rows
+                if str(row.get("label_status") or ("confirmed_match" if row.get("groundtruth_arxiv_id") else "unresolved")).lower()
+                in {"match", "no_match", "confirmed_match", "confirmed_no_match"}
+            )
+            if confirmed:
+                manual_papers[arxiv_id] = confirmed
 
         elif source == "auto":
             auto_papers[arxiv_id] = len(rows)
@@ -905,6 +948,16 @@ def validate_label_quota(
                     f"Auto publication {arxiv_id}: "
                     f"{label_count}/{expected_count} entries đã được label."
                 )
+            if bibtex_keys is not None:
+                expected_keys = bibtex_keys.get(arxiv_id)
+                actual_keys = {str(row.get("citation_key", "")).strip() for row in labels[arxiv_id]}
+                if expected_keys is None or actual_keys != expected_keys:
+                    missing = sorted((expected_keys or set()) - actual_keys)
+                    extra = sorted(actual_keys - (expected_keys or set()))
+                    raise ValueError(
+                        f"Auto publication {arxiv_id}: citation_key mismatch; "
+                        f"missing={missing[:5]}, extra={extra[:5]}."
+                    )
 
     # --------------------------------------------------------
     # Summary

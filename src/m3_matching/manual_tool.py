@@ -423,6 +423,7 @@ def export_manual_template(
         "suggested_ref_title",
         "suggested_score",
         "groundtruth_arxiv_id",
+        "review_status",
         "note",
     ]
 
@@ -573,6 +574,7 @@ def export_manual_template(
                 "suggested_ref_title": suggested_title,
                 "suggested_score": suggested_score,
                 "groundtruth_arxiv_id": "",
+                "review_status": "unknown",
                 "note": "",
             })
 
@@ -598,9 +600,8 @@ def import_manual_csv(
     """
     Import manual CSV -> JSON.
 
-    Chỉ import dòng có groundtruth_arxiv_id. Dòng trống/null được xem là
-    chưa có nhãn và bị bỏ qua; suggested_ref_arxiv_id chỉ là gợi ý, không tự
-    động trở thành ground truth.
+    Preserve one of three review states: match, no_match, or unknown.
+    Suggested IDs are never promoted to ground truth.
     """
 
     csv_path = Path(csv_path)
@@ -617,7 +618,7 @@ def import_manual_csv(
     )
 
     rows = []
-    skipped_missing_gt = 0
+    unresolved_missing_gt = 0
     seen_keys: set[str] = set()
 
     with csv_path.open(
@@ -647,7 +648,7 @@ def import_manual_csv(
                 + ", ".join(sorted(missing_columns))
             )
 
-        for record in reader:
+        for line_number, record in enumerate(reader, start=2):
 
             key = (
                 record.get("citation_key") or ""
@@ -682,15 +683,46 @@ def import_manual_csv(
                 else None
             )
 
-            # Không có ground truth nghĩa là chưa có nhãn; không suy ra nhãn
-            # âm từ gợi ý trống hoặc từ cột trạng thái cũ nếu CSV còn chứa nó.
-            if not gt_id:
-                skipped_missing_gt += 1
-                continue
+            review_status = (record.get("review_status") or "").strip().lower()
+            aliases = {
+                "confirmed_match": "match",
+                "confirmed_no_match": "no_match",
+                "negative": "no_match",
+                "verified_no_match": "no_match",
+                "unresolved": "unknown",
+                "uncertain": "unknown",
+                "verified_unresolved": "unknown",
+                "unreviewed": "unknown",
+                "not_reviewed": "unknown",
+            }
+            review_status = aliases.get(review_status, review_status or "unknown")
+            if review_status not in {"match", "no_match", "unknown"}:
+                raise ValueError(
+                    f"review_status khong hop le tai dong {line_number}: {review_status!r}."
+                )
 
+            if gt_id:
+                if review_status != "match" and "review_status" in reader.fieldnames:
+                    raise ValueError(
+                        f"Dong {line_number} co ground truth nhung review_status={review_status!r}."
+                    )
+                status = "match"
+            elif review_status == "match":
+                raise ValueError(
+                    f"Dong {line_number} co review_status=match nhung khong co groundtruth_arxiv_id."
+                )
+            elif review_status == "no_match":
+                status = "no_match"
+            else:
+                status = "unknown"
+
+            if not gt_id and status == "unknown":
+                unresolved_missing_gt += 1
             rows.append({
                 "citation_key": key,
                 "groundtruth_arxiv_id": gt_id,
+                "label_status": status,
+                "review_status": status,
                 "source": "manual",
             })
 
@@ -714,8 +746,11 @@ def import_manual_csv(
 
     print(f"[INFO] Imported labels: {len(rows)}")
 
-    if skipped_missing_gt:
-        print(f"[INFO] Bỏ qua {skipped_missing_gt} dòng chưa có ground truth.")
+    if unresolved_missing_gt:
+        print(
+            f"[INFO] Giữ {unresolved_missing_gt} dòng GT trống với trạng thái "
+            "chưa có GT xác định trong label JSON; các dòng này không vào training pairs."
+        )
 
     # --------------------------------------------
     # Ghi JSON

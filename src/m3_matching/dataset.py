@@ -105,16 +105,18 @@ def build_paper_pairs(
             )
         label_map[key] = row.get("groundtruth_arxiv_id")
 
-    # Chỉ tạo cặp cho entry có ground truth xác định. None không đồng nghĩa với
-    # negative: đó có thể là chưa biết hoặc đã xác nhận không có match, nên không
-    # tạo các cặp label=0 từ những entry này.
+    # GT-null chỉ sinh hàng zero nếu reviewer xác nhận không có match trong pool.
+    # Auto null và Manual chưa rõ trạng thái đều là unresolved, không sinh pairs.
     labeled_bibs = [
         b for b in bib_entries
         if (
             str(b.get("citation_key") or "").strip() in label_map
-            and _normalize_gt_id(
-                label_map[str(b.get("citation_key") or "").strip()]
-            ) is not None
+            and (
+                _normalize_gt_id(label_map[str(b.get("citation_key") or "").strip()]) is not None
+                or str(next((r.get("label_status", "") for r in labels_for_paper
+                             if str(r.get("citation_key") or "").strip() == str(b.get("citation_key") or "").strip()), "")).lower()
+                   in {"no_match", "confirmed_no_match", "negative"}
+            )
         )
     ]
     if not labeled_bibs or not references:
@@ -143,12 +145,8 @@ def build_paper_pairs(
     for bib in clean_bibs:
         key = str(bib["citation_key"]).strip()
         gt_id = _normalize_gt_id(label_map.get(key))
-        if gt_id is not None and gt_id not in seen_ref_ids:
-            raise ValueError(
-                f"Ground Truth {gt_id!r} của {key!r} không nằm trong "
-                f"candidate pool của publication {arxiv_id}. Nếu đã xác nhận "
-                "không có candidate phù hợp, lưu groundtruth_arxiv_id=null."
-            )
+        # GT ngoài pool là candidate coverage issue. Keep query out of pairs,
+        # and surface it in generated coverage report rather than calling it bad GT.
 
     feat_names = feature_names()
     pairs: list[dict[str, Any]] = []
@@ -158,6 +156,11 @@ def build_paper_pairs(
         gt_id = _normalize_gt_id(label_map.get(key))
         extra = citation_context.get(key) if citation_context else None
 
+        label_row = next(r for r in labels_for_paper if str(r.get("citation_key") or "").strip() == key)
+        confirmed_no_match = str(label_row.get("label_status", "")).lower() in {"no_match", "confirmed_no_match", "negative"}
+        if gt_id is not None and gt_id not in seen_ref_ids:
+            continue
+
         for ref in clean_refs:
             ref_id = ref.get("ref_arxiv_id_norm") or ref.get("ref_arxiv_id")
             if not ref_id:
@@ -165,6 +168,8 @@ def build_paper_pairs(
 
             # Nhãn nhị phân: 1 nếu trùng khớp ground truth, ngược lại 0
             is_match = 1 if (gt_id is not None and ref_id == gt_id) else 0
+            if gt_id is None and not confirmed_no_match:
+                continue
 
             # Tính vector đặc trưng (truyền extra để cite_count không bị 0 vô ích)
             feats = pair_feature_vector(bib, ref, extra=extra)
@@ -265,10 +270,9 @@ def generate_training_dataset(
         all_pairs.extend(pairs)
 
     # Ghi ra các file Parquet để Người 2 sử dụng trực tiếp
-    if all_pairs:
-        write_parquet_shard(output_dir / "dataset_pairs.parquet", all_pairs)
+    # Always write all four shards, including valid empty partitions.
+    write_parquet_shard(output_dir / "dataset_pairs.parquet", all_pairs)
     for part_name, part_rows in dataset_by_split.items():
-        if part_rows:
-            write_parquet_shard(output_dir / f"{part_name}_pairs.parquet", part_rows)
+        write_parquet_shard(output_dir / f"{part_name}_pairs.parquet", part_rows)
 
     return dataset_by_split

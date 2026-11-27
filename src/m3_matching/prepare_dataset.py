@@ -36,6 +36,7 @@ from src.m3_matching.labelling import (
     validate_label_quota,
 )
 from src.m3_matching.split import split_publications
+from src.common.ids import normalize_arxiv_id
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 LOG = logging.getLogger(__name__)
@@ -154,6 +155,7 @@ def run_preparation_pipeline(
     max_auto: int = 0,
     elements_path: Path | None = None,
     elements_zip: Path | None = None,
+    prepared_dataset_dir: Path | None = None,
 ) -> dict[str, Any]:
     """Quy trình chuẩn bị dữ liệu đầy đủ."""
     if demo:
@@ -266,11 +268,16 @@ def run_preparation_pipeline(
         pid: len(bibs_by_paper[pid])
         for pid in available_papers
     }
+    bibtex_keys = {
+        pid: {str(row.get("citation_key") or "").strip() for row in bibs_by_paper[pid]}
+        for pid in available_papers
+    }
     validate_label_quota(
         labels,
         n_publications_total=len(available_papers),
         k=k,
         bibtex_counts=bibtex_counts,
+        bibtex_keys=bibtex_keys,
     )
     LOG.info("Đã kiểm tra Hạn mức (Quota) của thầy: ĐẠT CHUẨN 100%%!")
 
@@ -288,9 +295,13 @@ def run_preparation_pipeline(
     # 6. Sinh tập dữ liệu cặp (Pairs Dataset) với 14 đặc trưng và nhãn 0/1
     LOG.info("Đang sinh tập dữ liệu cặp ứng viên và trích xuất 14 đặc trưng...")
     
-    # Output vào prepared_dataset/ folder (parent của tables_dir)
+    # Default to the legacy folder; review runs can select a new snapshot path.
     my_m3_dir = tables_dir.parent
-    prepared_dataset_dir = my_m3_dir / "prepared_dataset"
+    prepared_dataset_dir = Path(prepared_dataset_dir) if prepared_dataset_dir else my_m3_dir / "prepared_dataset"
+    if prepared_dataset_dir.exists() and any(prepared_dataset_dir.iterdir()):
+        raise FileExistsError(
+            f"Prepared dataset output directory is not empty; refusing to overwrite: {prepared_dataset_dir}"
+        )
     prepared_dataset_dir.mkdir(parents=True, exist_ok=True)
     
     datasets = generate_training_dataset(
@@ -301,6 +312,45 @@ def run_preparation_pipeline(
         output_dir=prepared_dataset_dir,
         element_records=element_records,
     )
+
+    # Auditable query and candidate-coverage counts for this snapshot.
+    def norm_id(value: Any) -> str | None:
+        if value is None or not str(value).strip():
+            return None
+        try:
+            return normalize_arxiv_id(str(value))
+        except ValueError:
+            return str(value).strip()
+
+    gt_outside = []
+    unresolved = confirmed_no_match = 0
+    for pid, rows in labels.items():
+        available_ids = {norm_id(r.get("ref_arxiv_id")) for r in refs_by_paper.get(pid, [])}
+        available_ids.discard(None)
+        for row in rows:
+            gt = norm_id(row.get("groundtruth_arxiv_id"))
+            status = str(row.get("label_status") or ("match" if gt else "unknown")).lower()
+            if gt and gt not in available_ids:
+                gt_outside.append({"arxiv_id": pid, "citation_key": row.get("citation_key"), "groundtruth_arxiv_id": gt})
+            elif not gt and status in {"unknown", "unreviewed", "unresolved"}:
+                unresolved += 1
+            elif not gt and status in {"no_match", "confirmed_no_match", "negative"}:
+                confirmed_no_match += 1
+
+    report = {
+        "publications_with_labels": len(labels),
+        "queries_total": sum(len(rows) for rows in labels.values()),
+        "queries_with_candidate_pairs": len({(r["arxiv_id"], r["citation_key"]) for rows in datasets.values() for r in rows}),
+        "gt_null_queries": unresolved + confirmed_no_match,
+        "gt_null_unresolved_queries": unresolved,
+        "confirmed_no_match_queries": confirmed_no_match,
+        "gt_outside_candidate_pool": gt_outside,
+        "pairs": {name: {"positive": sum(r["label"] == 1 for r in rows), "negative": sum(r["label"] == 0 for r in rows), "total": len(rows)} for name, rows in datasets.items()},
+        "publications_missing_bibtex_or_arxiv_references": len(orphan_labels),
+        "queries_omitted_from_pairs": unresolved + len(gt_outside),
+    }
+    report_path = prepared_dataset_dir / "dataset_report.json"
+    write_json(report_path, report)
 
     summary: dict[str, Any] = {
         "k_members": k,
@@ -332,8 +382,11 @@ def run_preparation_pipeline(
             str(prepared_dataset_dir / "valid_pairs.parquet"),
             str(prepared_dataset_dir / "test_pairs.parquet"),
             str(prepared_dataset_dir / "dataset_pairs.parquet"),
+            str(report_path),
         ],
         "feature_names": feature_names(),
+        "dataset_report": str(report_path),
+        "audit": report,
     }
 
     return summary
